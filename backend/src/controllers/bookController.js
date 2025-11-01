@@ -1,0 +1,348 @@
+/**
+ * ==============================================
+ * BOOK CONTROLLER
+ * ==============================================
+ * Xử lý logic liên quan đến sách
+ */
+
+const Book = require('../models/Book');
+const BookCopy = require('../models/BookCopy');
+const { asyncHandler } = require('../middlewares/errorHandler');
+const { paginate } = require('../utils/helper');
+
+/**
+ * @desc    Lấy danh sách sách (có filter, sort, paginate)
+ * @route   GET /api/books
+ * @access  Public
+ */
+const getBooks = asyncHandler(async (req, res) => {
+  const {
+    page = 1,
+    limit = 12,
+    category,
+    author,
+    publisher,
+    minPrice,
+    maxPrice,
+    search,
+    sortBy = '-createdAt', // Mặc định: mới nhất
+  } = req.query;
+  
+  // Build query
+  const query = { isActive: true };
+  
+  // Filter theo category
+  if (category) {
+    query.category = category;
+  }
+  
+  // Filter theo author
+  if (author) {
+    query.author = author;
+  }
+  
+  // Filter theo publisher
+  if (publisher) {
+    query.publisher = publisher;
+  }
+  
+  // Filter theo giá
+  if (minPrice || maxPrice) {
+    query.salePrice = {};
+    if (minPrice) query.salePrice.$gte = Number(minPrice);
+    if (maxPrice) query.salePrice.$lte = Number(maxPrice);
+  }
+  
+  // Search theo tên sách (full-text search)
+  if (search) {
+    query.$text = { $search: search };
+  }
+  
+  // Pagination
+  const { skip, limit: limitNum } = paginate(page, limit);
+  
+  // Execute query
+  const books = await Book.find(query)
+    .populate('author', 'name')
+    .populate('publisher', 'name')
+    .populate('category', 'name slug')
+    .sort(sortBy)
+    .skip(skip)
+    .limit(limitNum);
+  
+  // Đếm tổng số sách
+  const total = await Book.countDocuments(query);
+  
+  res.status(200).json({
+    success: true,
+    data: {
+      books,
+      pagination: {
+        page: Number(page),
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum),
+      },
+    },
+  });
+});
+
+/**
+ * @desc    Lấy chi tiết 1 sách
+ * @route   GET /api/books/:id
+ * @access  Public
+ */
+const getBookById = asyncHandler(async (req, res) => {
+  const book = await Book.findById(req.params.id)
+    .populate('author', 'name bio photo')
+    .populate('publisher', 'name')
+    .populate('category', 'name slug');
+  
+  if (!book) {
+    return res.status(404).json({
+      success: false,
+      message: 'Book not found',
+    });
+  }
+  
+  // Tăng viewCount
+  book.viewCount += 1;
+  await book.save();
+  
+  res.status(200).json({
+    success: true,
+    data: { book },
+  });
+});
+
+/**
+ * @desc    Lấy sách theo slug
+ * @route   GET /api/books/slug/:slug
+ * @access  Public
+ */
+const getBookBySlug = asyncHandler(async (req, res) => {
+  const book = await Book.findOne({ slug: req.params.slug, isActive: true })
+    .populate('author', 'name bio photo')
+    .populate('publisher', 'name')
+    .populate('category', 'name slug');
+  
+  if (!book) {
+    return res.status(404).json({
+      success: false,
+      message: 'Book not found',
+    });
+  }
+  
+  // Tăng viewCount
+  book.viewCount += 1;
+  await book.save();
+  
+  res.status(200).json({
+    success: true,
+    data: { book },
+  });
+});
+
+/**
+ * @desc    Tạo sách mới (Admin)
+ * @route   POST /api/admin/books
+ * @access  Private/Admin
+ */
+const createBook = asyncHandler(async (req, res) => {
+  const {
+    title,
+    author,
+    publisher,
+    category,
+    isbn,
+    publishYear,
+    pages,
+    language,
+    format,
+    description,
+    fullDescription,
+    images,
+    originalPrice,
+    salePrice,
+  } = req.body;
+  
+  // Kiểm tra ISBN đã tồn tại chưa
+  if (isbn) {
+    const existingBook = await Book.findOne({ isbn });
+    if (existingBook) {
+      return res.status(400).json({
+        success: false,
+        message: 'ISBN already exists',
+      });
+    }
+  }
+  
+  // Tạo sách mới
+  const book = await Book.create({
+    title,
+    author,
+    publisher,
+    category,
+    isbn,
+    publishYear,
+    pages,
+    language,
+    format,
+    description,
+    fullDescription,
+    images,
+    originalPrice,
+    salePrice,
+  });
+  
+  // Populate để trả về thông tin đầy đủ
+  await book.populate('author publisher category');
+  
+  res.status(201).json({
+    success: true,
+    message: 'Book created successfully',
+    data: { book },
+  });
+});
+
+/**
+ * @desc    Cập nhật sách (Admin)
+ * @route   PUT /api/admin/books/:id
+ * @access  Private/Admin
+ */
+const updateBook = asyncHandler(async (req, res) => {
+  let book = await Book.findById(req.params.id);
+  
+  if (!book) {
+    return res.status(404).json({
+      success: false,
+      message: 'Book not found',
+    });
+  }
+  
+  // Update
+  book = await Book.findByIdAndUpdate(
+    req.params.id,
+    req.body,
+    {
+      new: true, // Trả về document sau khi update
+      runValidators: true, // Chạy validators
+    }
+  ).populate('author publisher category');
+  
+  res.status(200).json({
+    success: true,
+    message: 'Book updated successfully',
+    data: { book },
+  });
+});
+
+/**
+ * @desc    Xóa sách (Admin) - Soft delete
+ * @route   DELETE /api/admin/books/:id
+ * @access  Private/Admin
+ */
+const deleteBook = asyncHandler(async (req, res) => {
+  const book = await Book.findById(req.params.id);
+  
+  if (!book) {
+    return res.status(404).json({
+      success: false,
+      message: 'Book not found',
+    });
+  }
+  
+  // Soft delete: chỉ set isActive = false
+  book.isActive = false;
+  await book.save();
+  
+  res.status(200).json({
+    success: true,
+    message: 'Book deleted successfully',
+  });
+});
+
+/**
+ * @desc    Thêm bản sao sách (Admin)
+ * @route   POST /api/admin/books/:id/copies
+ * @access  Private/Admin
+ */
+const addBookCopies = asyncHandler(async (req, res) => {
+  const { quantity, importPrice, condition, warehouseLocation } = req.body;
+  
+  const book = await Book.findById(req.params.id);
+  
+  if (!book) {
+    return res.status(404).json({
+      success: false,
+      message: 'Book not found',
+    });
+  }
+  
+  // Tạo nhiều bản sao
+  const copies = [];
+  for (let i = 0; i < quantity; i++) {
+    const copy = await BookCopy.create({
+      book: book._id,
+      importPrice,
+      condition: condition || 'new',
+      warehouseLocation,
+    });
+    copies.push(copy);
+  }
+  
+  res.status(201).json({
+    success: true,
+    message: `${quantity} copies added successfully`,
+    data: { copies },
+  });
+});
+
+/**
+ * @desc    Lấy danh sách bản sao của 1 sách (Admin)
+ * @route   GET /api/admin/books/:id/copies
+ * @access  Private/Admin
+ */
+const getBookCopies = asyncHandler(async (req, res) => {
+  const { page = 1, limit = 20, status } = req.query;
+  
+  // Build query
+  const query = { book: req.params.id };
+  if (status) {
+    query.status = status;
+  }
+  
+  // Pagination
+  const { skip, limit: limitNum } = paginate(page, limit);
+  
+  const copies = await BookCopy.find(query)
+    .sort('-createdAt')
+    .skip(skip)
+    .limit(limitNum);
+  
+  const total = await BookCopy.countDocuments(query);
+  
+  res.status(200).json({
+    success: true,
+    data: {
+      copies,
+      pagination: {
+        page: Number(page),
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum),
+      },
+    },
+  });
+});
+
+module.exports = {
+  getBooks,
+  getBookById,
+  getBookBySlug,
+  createBook,
+  updateBook,
+  deleteBook,
+  addBookCopies,
+  getBookCopies,
+};

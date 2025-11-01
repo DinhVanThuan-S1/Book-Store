@@ -1,0 +1,92 @@
+@import '@styles/variables.scss';
+
+.footer {
+  background: $text-primary;
+  color: $bg-primary;
+  padding: $spacing-3xl $spacing-lg $spacing-lg;
+  margin-top: $spacing-3xl;
+  
+  .footer-container {
+    max-width: $container-max-width;
+    margin: 0 auto;
+  }
+  
+  .footer-section {
+    .footer-title {
+      color: $bg-primary;
+      font-size: $font-lg;
+      font-weight: $font-semibold;
+      margin-bottom: $spacing-lg;
+    }
+    
+    .footer-description {
+      color: rgba(255, 255, 255, 0.8);
+      line-height: 1.6;
+      margin-bottom: $spacing-md;
+    }
+    
+    .footer-social {
+      a {
+        color: $bg-primary;
+        font-size: $font-xl;
+        transition: color $transition-base;
+        
+        &:hover {
+          color: $primary-light;
+        }
+      }
+    }
+    
+    .footer-links {
+      list-style: none;
+      padding: 0;
+      
+      li {
+        margin-bottom: $spacing-sm;
+        
+        a {
+          color: rgba(255, 255, 255, 0.8);
+          transition: color $transition-base;
+          
+          &:hover {
+            color: $bg-primary;
+          }
+        }
+      }
+    }
+    
+    .footer-contact {
+      list-style: none;
+      padding: 0;
+      
+      li {
+        display: flex;
+        align-items: flex-start;
+        gap: $spacing-sm;
+        margin-bottom: $spacing-sm;
+        color: rgba(255, 255, 255, 0.8);
+        
+        .anticon {
+          font-size: $font-lg;
+          margin-top: 2px;
+        }
+      }
+    }
+  }
+  
+  .footer-bottom {
+    margin-top: $spacing-2xl;
+    padding-top: $spacing-lg;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: center;
+    color: rgba(255, 255, 255, 0.6);
+    
+    p {
+      margin: $spacing-xs 0;
+    }
+    
+    strong {
+      color: $primary-light;
+    }
+  }
+}

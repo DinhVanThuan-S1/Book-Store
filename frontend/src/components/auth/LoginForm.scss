@@ -1,0 +1,54 @@
+@import '@styles/variables.scss';
+
+.login-form {
+  max-width: 400px;
+  margin: 0 auto;
+  
+  .form-title {
+    text-align: center;
+    font-size: $font-3xl;
+    font-weight: $font-bold;
+    color: $text-primary;
+    margin-bottom: $spacing-sm;
+  }
+  
+  .form-subtitle {
+    text-align: center;
+    color: $text-secondary;
+    margin-bottom: $spacing-2xl;
+  }
+  
+  .form-extras {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .forgot-password-link {
+    color: $primary-color;
+    
+    &:hover {
+      color: $primary-dark;
+    }
+  }
+  
+  .form-footer {
+    text-align: center;
+    color: $text-secondary;
+    
+    .register-link {
+      color: $primary-color;
+      font-weight: $font-medium;
+      
+      &:hover {
+        color: $primary-dark;
+      }
+    }
+  }
+  
+  .social-login {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: $spacing-md;
+  }
+}

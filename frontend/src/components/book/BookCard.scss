@@ -1,0 +1,145 @@
+@import '@styles/variables.scss';
+
+.book-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  transition: all $transition-base;
+  
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: $shadow-xl;
+  }
+  
+  .book-card-cover {
+    position: relative;
+    padding-top: 133.33%; // 3:4 aspect ratio
+    overflow: hidden;
+    background: $bg-tertiary;
+    
+    img {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform $transition-slow;
+    }
+    
+    &:hover img {
+      transform: scale(1.05);
+    }
+    
+    .discount-badge {
+      position: absolute;
+      top: $spacing-sm;
+      right: $spacing-sm;
+      z-index: 1;
+      font-weight: $font-bold;
+    }
+    
+    .out-of-stock-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1;
+      
+      .ant-tag {
+        font-size: $font-lg;
+        padding: $spacing-sm $spacing-md;
+      }
+    }
+  }
+  
+  .ant-card-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: $spacing-md;
+  }
+  
+  .ant-card-meta {
+    flex: 1;
+  }
+  
+  .book-title {
+    font-size: $font-base;
+    font-weight: $font-semibold;
+    color: $text-primary;
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    min-height: 2.8em;
+  }
+  
+  .book-author {
+    color: $text-secondary;
+    font-size: $font-sm;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  .book-rating {
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+    
+    .rating-text {
+      color: $text-secondary;
+      font-size: $font-sm;
+    }
+  }
+  
+  .book-price {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    
+    .sale-price {
+      font-size: $font-lg;
+      font-weight: $font-bold;
+      color: $error-color;
+    }
+    
+    .original-price {
+      font-size: $font-sm;
+      color: $text-light;
+      text-decoration: line-through;
+    }
+  }
+  
+  .book-stock {
+    font-size: $font-sm;
+    
+    .in-stock {
+      color: $success-color;
+    }
+    
+    .out-of-stock {
+      color: $error-color;
+    }
+  }
+  
+  .ant-card-actions {
+    border-top: 1px solid $border-color;
+    
+    > li {
+      margin: $spacing-sm;
+      
+      button {
+        width: 100%;
+      }
+    }
+  }
+}

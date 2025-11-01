@@ -1,0 +1,22 @@
+@import '@styles/variables.scss';
+
+.auth-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, $primary-color 0%, $primary-dark 100%);
+  
+  .auth-content {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: $spacing-2xl;
+  }
+  
+  .auth-container {
+    background: $bg-primary;
+    padding: $spacing-3xl;
+    border-radius: $radius-xl;
+    box-shadow: $shadow-xl;
+    width: 100%;
+    max-width: 500px;
+  }
+}

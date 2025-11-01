@@ -1,0 +1,35 @@
+@import '@styles/variables.scss';
+
+.register-form {
+  max-width: 500px;
+  margin: 0 auto;
+  
+  .form-title {
+    text-align: center;
+    font-size: $font-3xl;
+    font-weight: $font-bold;
+    color: $text-primary;
+    margin-bottom: $spacing-sm;
+  }
+  
+  .form-subtitle {
+    text-align: center;
+    color: $text-secondary;
+    margin-bottom: $spacing-2xl;
+  }
+  
+  .form-footer {
+    text-align: center;
+    color: $text-secondary;
+    margin-top: $spacing-lg;
+    
+    .login-link {
+      color: $primary-color;
+      font-weight: $font-medium;
+      
+      &:hover {
+        color: $primary-dark;
+      }
+    }
+  }
+}

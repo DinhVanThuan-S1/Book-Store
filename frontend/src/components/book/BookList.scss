@@ -1,0 +1,14 @@
+@import '@styles/variables.scss';
+
+.book-list {
+  .book-list-pagination {
+    display: flex;
+    justify-content: center;
+    margin-top: $spacing-2xl;
+  }
+}
+
+.book-list-empty {
+  padding: $spacing-3xl;
+  text-align: center;
+}

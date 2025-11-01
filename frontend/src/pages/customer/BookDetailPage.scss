@@ -1,0 +1,103 @@
+@import '@styles/variables.scss';
+
+.book-detail-page {
+  background: $bg-secondary;
+  min-height: 100vh;
+  
+  .page-content {
+    padding: $spacing-2xl 0;
+  }
+  
+  .page-breadcrumb {
+    margin-bottom: $spacing-xl;
+  }
+  
+  .book-images {
+    .main-image {
+      border-radius: $radius-lg;
+      overflow: hidden;
+    }
+    
+    .thumbnail-images {
+      display: flex;
+      gap: $spacing-sm;
+      margin-top: $spacing-md;
+      flex-wrap: wrap;
+      
+      .ant-image {
+        border-radius: $radius-md;
+        overflow: hidden;
+        cursor: pointer;
+        border: 2px solid transparent;
+        transition: border-color $transition-base;
+        
+        &:hover {
+          border-color: $primary-color;
+        }
+      }
+    }
+  }
+  
+  .book-info {
+    .book-author {
+      display: block;
+      margin: $spacing-md 0;
+      font-size: $font-lg;
+    }
+    
+    .book-rating {
+      display: flex;
+      align-items: center;
+      gap: $spacing-sm;
+      margin-bottom: $spacing-lg;
+    }
+    
+    .price-card {
+      margin-bottom: $spacing-lg;
+      background: $bg-tertiary;
+      
+      .price-section {
+        display: flex;
+        align-items: center;
+        gap: $spacing-md;
+        
+        .sale-price {
+          font-size: $font-3xl;
+          font-weight: $font-bold;
+          color: $error-color;
+        }
+        
+        .original-price {
+          font-size: $font-lg;
+          color: $text-light;
+          text-decoration: line-through;
+        }
+      }
+    }
+    
+    .purchase-section {
+      margin: $spacing-xl 0;
+      
+      .action-buttons {
+        margin-top: $spacing-md;
+      }
+    }
+    
+    .book-description {
+      margin-top: $spacing-xl;
+    }
+  }
+  
+  .full-description {
+    margin-top: $spacing-lg;
+    line-height: 1.8;
+    
+    h1, h2, h3 {
+      margin-top: $spacing-lg;
+    }
+    
+    p {
+      margin-bottom: $spacing-md;
+    }
+  }
+}

@@ -1,0 +1,22 @@
+@import '@styles/variables.scss';
+
+.cart-page {
+  background: $bg-secondary;
+  min-height: 100vh;
+  
+  .page-content {
+    padding: $spacing-2xl 0;
+  }
+  
+  .page-breadcrumb {
+    margin-bottom: $spacing-xl;
+  }
+  
+  .cart-items {
+    .section-title {
+      font-size: $font-2xl;
+      font-weight: $font-semibold;
+      margin-bottom: $spacing-lg;
+    }
+  }
+}

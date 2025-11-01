@@ -1,0 +1,180 @@
+/**
+ * ==============================================
+ * CART PAGE
+ * ==============================================
+ * Trang giỏ hàng
+ */
+
+import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { Layout, Row, Col, Breadcrumb, Empty, Button } from 'antd';
+import { HomeOutlined, ShoppingOutlined } from '@ant-design/icons';
+import CartItem from '@components/cart/CartItem';
+import CartSummary from '@components/cart/CartSummary';
+import Loading from '@components/common/Loading';
+import {
+  fetchCart,
+  updateCartItem,
+  removeCartItem,
+} from '@redux/slices/cartSlice';
+import { showSuccess, showError } from '@utils/notification';
+import './CartPage.scss';
+
+const { Content } = Layout;
+
+const CartPage = () => {
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  // Redux state
+  const { items, totalPrice, loading } = useSelector((state) => state.cart);
+  const { isAuthenticated } = useSelector((state) => state.auth);
+
+  /**
+   * Fetch cart
+   */
+  useEffect(() => {
+    if (isAuthenticated) {
+      dispatch(fetchCart());
+    }
+  }, [isAuthenticated, dispatch]);
+
+  /**
+   * Handle update quantity
+   */
+  const handleUpdateQuantity = async (itemId, quantity) => {
+    try {
+      await dispatch(updateCartItem({ itemId, quantity })).unwrap();
+      showSuccess('Đã cập nhật số lượng');
+    } catch (error) {
+      showError(error || 'Không thể cập nhật');
+    }
+  };
+
+  /**
+   * Handle remove item
+   */
+  const handleRemoveItem = async (itemId) => {
+    try {
+      await dispatch(removeCartItem(itemId)).unwrap();
+      showSuccess('Đã xóa khỏi giỏ hàng');
+    } catch (error) {
+      showError(error || 'Không thể xóa');
+    }
+  };
+
+  /**
+   * Handle checkout
+   */
+  const handleCheckout = () => {
+    if (items.length === 0) {
+      showError('Giỏ hàng trống');
+      return;
+    }
+
+    navigate('/checkout');
+  };
+
+  // Not authenticated
+  if (!isAuthenticated) {
+    return (
+      <Layout className="cart-page">
+        <Content className="page-content">
+          <div className="container">
+            <Empty
+              description="Vui lòng đăng nhập để xem giỏ hàng"
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            >
+              <Button type="primary" onClick={() => navigate('/login')}>
+                Đăng nhập
+              </Button>
+            </Empty>
+          </div>
+        </Content>
+      </Layout>
+    );
+  }
+
+  // Loading
+  if (loading) {
+    return <Loading fullScreen />;
+  }
+
+  // Empty cart
+  if (!items || items.length === 0) {
+    return (
+      <Layout className="cart-page">
+        <Content className="page-content">
+          <div className="container">
+            <Empty
+              description="Giỏ hàng trống"
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            >
+              <Button
+                type="primary"
+                icon={<ShoppingOutlined />}
+                onClick={() => navigate('/books')}
+              >
+                Tiếp tục mua sắm
+              </Button>
+            </Empty>
+          </div>
+        </Content>
+      </Layout>
+    );
+  }
+
+  // Calculate summary
+  const shippingFee = totalPrice >= 300000 ? 0 : 25000;
+  const total = totalPrice + shippingFee;
+
+  return (
+    <Layout className="cart-page">
+      <Content className="page-content">
+        <div className="container">
+          {/* Breadcrumb */}
+          <Breadcrumb className="page-breadcrumb">
+            <Breadcrumb.Item href="/">
+              <HomeOutlined />
+            </Breadcrumb.Item>
+            <Breadcrumb.Item>Giỏ hàng</Breadcrumb.Item>
+          </Breadcrumb>
+
+          {/* Content */}
+          <Row gutter={24}>
+            {/* Cart Items */}
+            <Col xs={24} md={16}>
+              <div className="cart-items">
+                <h2 className="section-title">
+                  Giỏ hàng của bạn ({items.length} sản phẩm)
+                </h2>
+
+                {items.map((item) => (
+                  <CartItem
+                    key={item._id}
+                    item={item}
+                    onUpdateQuantity={handleUpdateQuantity}
+                    onRemove={handleRemoveItem}
+                  />
+                ))}
+              </div>
+            </Col>
+
+            {/* Summary */}
+            <Col xs={24} md={8}>
+              <CartSummary
+                subtotal={totalPrice}
+                shippingFee={shippingFee}
+                total={total}
+                onCheckout={handleCheckout}
+              />
+            </Col>
+          </Row>
+        </div>
+      </Content>
+    </Layout>
+  );
+};
+
+export default CartPage;

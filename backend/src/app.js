@@ -1,0 +1,117 @@
+/**
+ * ==============================================
+ * MAIN APPLICATION FILE
+ * ==============================================
+ */
+
+const express = require('express');
+const dotenv = require('dotenv');
+const cors = require('cors');
+const connectDatabase = require('./config/database');
+const { errorHandler } = require('./middlewares/errorHandler');
+
+// Load biến môi trường
+dotenv.config();
+
+// Khởi tạo Express app
+const app = express();
+
+// ================================================
+// MIDDLEWARES
+// ================================================
+
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true,
+}));
+
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Logger (development only)
+if (process.env.NODE_ENV === 'development') {
+  app.use((req, res, next) => {
+    console.log(`${req.method} ${req.url} - ${new Date().toISOString()}`);
+    next();
+  });
+}
+
+// ================================================
+// ROUTES
+// ================================================
+
+// Health Check
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'API is running...',
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// Root Route
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Welcome to Online Bookstore API',
+    version: '1.0.0',
+    endpoints: {
+      auth: '/api/auth',
+      books: '/api/books',
+      categories: '/api/categories',
+      authors: '/api/authors',
+      publishers: '/api/publishers',
+      cart: '/api/cart',
+      orders: '/api/orders',
+    },
+  });
+});
+
+// API Routes
+app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/books', require('./routes/bookRoutes'));
+app.use('/api/categories', require('./routes/categoryRoutes'));
+app.use('/api/authors', require('./routes/authorRoutes'));
+app.use('/api/publishers', require('./routes/publisherRoutes'));
+app.use('/api/cart', require('./routes/cartRoutes'));
+app.use('/api/orders', require('./routes/orderRoutes'));
+
+// 404 Handler
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: 'Route not found',
+    path: req.originalUrl,
+  });
+});
+
+// Error Handler
+app.use(errorHandler);
+
+// ================================================
+// START SERVER
+// ================================================
+
+const PORT = process.env.PORT || 5000;
+
+const startServer = async () => {
+  try {
+    await connectDatabase();
+    
+    app.listen(PORT, () => {
+      console.log('='.repeat(50));
+      console.log(`🚀 Server is running on port ${PORT}`);
+      console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
+      console.log(`📡 API URL: http://localhost:${PORT}`);
+      console.log(`📚 Endpoints: http://localhost:${PORT}/`);
+      console.log('='.repeat(50));
+    });
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
+  }
+};
+
+startServer();
+
+module.exports = app;

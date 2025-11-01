@@ -1,0 +1,54 @@
+@import '@styles/variables.scss';
+
+.cart-summary {
+  position: sticky;
+  top: 80px;
+  
+  .ant-card-head {
+    background: $bg-tertiary;
+  }
+  
+  .summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    
+    .summary-label {
+      color: $text-secondary;
+      font-size: $font-base;
+    }
+    
+    .summary-value {
+      color: $text-primary;
+      font-size: $font-base;
+      font-weight: $font-medium;
+      
+      &.discount {
+        color: $success-color;
+      }
+    }
+    
+    &.total {
+      .summary-label {
+        font-size: $font-lg;
+        font-weight: $font-semibold;
+        color: $text-primary;
+      }
+      
+      .summary-value {
+        font-size: $font-2xl;
+        font-weight: $font-bold;
+        color: $error-color;
+      }
+    }
+  }
+  
+  .summary-note {
+    font-size: $font-sm;
+    color: $text-light;
+    text-align: center;
+    padding: $spacing-sm;
+    background: $bg-tertiary;
+    border-radius: $radius-md;
+  }
+}

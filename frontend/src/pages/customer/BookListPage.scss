@@ -1,0 +1,14 @@
+@import '@styles/variables.scss';
+
+.book-list-page {
+  background: $bg-secondary;
+  min-height: 100vh;
+  
+  .page-content {
+    padding: $spacing-2xl 0;
+  }
+  
+  .page-breadcrumb {
+    margin-bottom: $spacing-xl;
+  }
+}

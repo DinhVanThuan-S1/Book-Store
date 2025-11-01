@@ -1,0 +1,25 @@
+@import '@styles/variables.scss';
+
+.book-filter {
+  .filter-section {
+    margin-bottom: $spacing-lg;
+    
+    .filter-title {
+      font-size: $font-base;
+      font-weight: $font-semibold;
+      margin-bottom: $spacing-md;
+      color: $text-primary;
+    }
+  }
+  
+  .price-slider {
+    padding: 0 $spacing-sm;
+    
+    .price-range-text {
+      text-align: center;
+      margin-top: $spacing-sm;
+      color: $text-secondary;
+      font-size: $font-sm;
+    }
+  }
+}

@@ -1,0 +1,138 @@
+@import '@styles/variables.scss';
+
+.cart-item {
+  margin-bottom: $spacing-md;
+  
+  .ant-card-body {
+    padding: $spacing-lg;
+  }
+  
+  .cart-item-content {
+    display: flex;
+    align-items: center;
+    gap: $spacing-lg;
+  }
+  
+  .cart-item-image {
+    flex: 0 0 100px;
+    
+    .ant-image {
+      width: 100px;
+      height: 140px;
+      object-fit: cover;
+      border-radius: $radius-md;
+    }
+  }
+  
+  .cart-item-info {
+    flex: 1;
+    min-width: 0; // Enable text truncation
+    
+    .cart-item-title {
+      display: block;
+      font-size: $font-base;
+      font-weight: $font-semibold;
+      color: $text-primary;
+      margin-bottom: $spacing-xs;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      
+      &:hover {
+        color: $primary-color;
+      }
+    }
+    
+    .cart-item-author,
+    .cart-item-combo-info {
+      color: $text-secondary;
+      font-size: $font-sm;
+      margin-bottom: $spacing-sm;
+    }
+    
+    .cart-item-price {
+      display: flex;
+      align-items: center;
+      gap: $spacing-sm;
+      
+      .price-label {
+        color: $text-secondary;
+        font-size: $font-sm;
+      }
+      
+      .price-value {
+        color: $text-primary;
+        font-weight: $font-medium;
+      }
+    }
+  }
+  
+  .cart-item-quantity {
+    flex: 0 0 auto;
+    text-align: center;
+    
+    .quantity-label {
+      color: $text-secondary;
+      font-size: $font-sm;
+      margin-bottom: $spacing-xs;
+    }
+  }
+  
+  .cart-item-subtotal {
+    flex: 0 0 150px;
+    text-align: right;
+    
+    .subtotal-label {
+      color: $text-secondary;
+      font-size: $font-sm;
+      margin-bottom: $spacing-xs;
+    }
+    
+    .subtotal-value {
+      font-size: $font-xl;
+      font-weight: $font-bold;
+      color: $error-color;
+    }
+  }
+  
+  .cart-item-actions {
+    flex: 0 0 auto;
+  }
+}
+
+// Responsive
+@media (max-width: $breakpoint-md) {
+  .cart-item {
+    .cart-item-content {
+      flex-wrap: wrap;
+      gap: $spacing-md;
+    }
+    
+    .cart-item-image {
+      flex: 0 0 80px;
+      
+      .ant-image {
+        width: 80px;
+        height: 112px;
+      }
+    }
+    
+    .cart-item-info {
+      flex: 1 1 100%;
+      order: 2;
+    }
+    
+    .cart-item-quantity {
+      order: 3;
+    }
+    
+    .cart-item-subtotal {
+      flex: 1;
+      order: 4;
+    }
+    
+    .cart-item-actions {
+      order: 5;
+    }
+  }
+}
