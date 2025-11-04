@@ -1,0 +1,66 @@
+@import '@styles/variables.scss';
+
+.order-history-page {
+  background: $bg-secondary;
+  min-height: 100vh;
+  
+  .page-content {
+    padding: $spacing-2xl 0;
+  }
+  
+  .page-title {
+    text-align: center;
+    margin-bottom: $spacing-xl;
+  }
+  
+  .order-card {
+    margin-bottom: $spacing-lg;
+    
+    .order-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: $spacing-md;
+      padding-bottom: $spacing-md;
+      border-bottom: 1px solid $border-light;
+    }
+    
+    .order-items {
+      margin-bottom: $spacing-md;
+      
+      .order-item {
+        display: flex;
+        align-items: center;
+        gap: $spacing-md;
+        margin-bottom: $spacing-sm;
+        
+        .item-image {
+          width: 50px;
+          height: 70px;
+          object-fit: cover;
+          border-radius: $radius-md;
+        }
+        
+        .item-info {
+          flex: 1;
+          display: flex;
+          justify-content: space-between;
+        }
+      }
+    }
+    
+    .order-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: $spacing-md;
+      border-top: 1px solid $border-light;
+      
+      .order-total {
+        display: flex;
+        flex-direction: column;
+        gap: $spacing-xs;
+      }
+    }
+  }
+}

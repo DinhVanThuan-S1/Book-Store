@@ -1,8 +1,7 @@
 /**
  * ==============================================
- * APP ROUTES
+ * APP ROUTES - UPDATED
  * ==============================================
- * Cấu hình tất cả routes của app
  */
 
 import React from 'react';
@@ -16,18 +15,11 @@ import RegisterPage from '@pages/customer/RegisterPage';
 import BookListPage from '@pages/customer/BookListPage';
 import BookDetailPage from '@pages/customer/BookDetailPage';
 import CartPage from '@pages/customer/CartPage';
-// import CheckoutPage from '@pages/customer/CheckoutPage';
-// import OrderHistoryPage from '@pages/customer/OrderHistoryPage';
-// import OrderDetailPage from '@pages/customer/OrderDetailPage';
-// import ProfilePage from '@pages/customer/ProfilePage';
+import CheckoutPage from '@pages/customer/CheckoutPage';
+import OrderHistoryPage from '@pages/customer/OrderHistoryPage';
+import OrderDetailPage from '@pages/customer/OrderDetailPage';
+import ProfilePage from '@pages/customer/ProfilePage';
 
-// Admin Pages
-// import DashboardPage from '@pages/admin/DashboardPage';
-// import BookManagementPage from '@pages/admin/BookManagementPage';
-
-/**
- * AppRoutes Component
- */
 const AppRoutes = () => {
   return (
     <Routes>
@@ -48,7 +40,7 @@ const AppRoutes = () => {
         }
       />
 
-      {/* <Route
+      <Route
         path="/checkout"
         element={
           <ProtectedRoute>
@@ -56,7 +48,7 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
-      
+
       <Route
         path="/orders"
         element={
@@ -65,7 +57,7 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
-      
+
       <Route
         path="/orders/:id"
         element={
@@ -74,7 +66,7 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
-      
+
       <Route
         path="/profile"
         element={
@@ -82,26 +74,7 @@ const AppRoutes = () => {
             <ProfilePage />
           </ProtectedRoute>
         }
-      /> */}
-
-      {/* Protected Routes - Admin */}
-      {/* <Route
-        path="/admin"
-        element={
-          <ProtectedRoute requiredRole="admin">
-            <DashboardPage />
-          </ProtectedRoute>
-        }
       />
-      
-      <Route
-        path="/admin/books"
-        element={
-          <ProtectedRoute requiredRole="admin">
-            <BookManagementPage />
-          </ProtectedRoute>
-        }
-      /> */}
 
       {/* 404 - Not Found */}
       <Route path="*" element={<Navigate to="/" replace />} />

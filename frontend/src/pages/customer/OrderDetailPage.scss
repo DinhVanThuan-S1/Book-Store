@@ -1,0 +1,48 @@
+@import '@styles/variables.scss';
+
+.order-detail-page {
+  background: $bg-secondary;
+  min-height: 100vh;
+  
+  .page-content {
+    padding: $spacing-2xl 0;
+  }
+  
+  .order-header-card {
+    margin-bottom: $spacing-lg;
+  }
+  
+  .order-item {
+    padding: $spacing-md 0;
+    border-bottom: 1px solid $border-light;
+    
+    &:last-child {
+      border-bottom: none;
+    }
+    
+    .item-image {
+      width: 80px;
+      height: 112px;
+      object-fit: cover;
+      border-radius: $radius-md;
+    }
+    
+    .item-price {
+      display: block;
+      margin-top: $spacing-xs;
+      color: $text-secondary;
+    }
+  }
+  
+  .summary-row,
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    
+    &.total {
+      padding-top: $spacing-sm;
+      border-top: 1px solid $border-color;
+    }
+  }
+}

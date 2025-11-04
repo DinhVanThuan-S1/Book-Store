@@ -1,0 +1,15 @@
+@import '@styles/variables.scss';
+
+.profile-page {
+  background: $bg-secondary;
+  min-height: 100vh;
+  
+  .page-content {
+    padding: $spacing-2xl 0;
+  }
+  
+  .page-title {
+    text-align: center;
+    margin-bottom: $spacing-xl;
+  }
+}
