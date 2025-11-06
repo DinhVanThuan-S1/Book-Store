@@ -1,0 +1,33 @@
+@import '@styles/variables.scss';
+
+.review-form {
+  .book-info {
+    display: flex;
+    gap: $spacing-md;
+    padding: $spacing-md;
+    background: $bg-tertiary;
+    border-radius: $radius-md;
+    margin-bottom: $spacing-lg;
+    
+    .book-image {
+      width: 60px;
+      height: 84px;
+      object-fit: cover;
+      border-radius: $radius-md;
+    }
+    
+    .book-details {
+      flex: 1;
+      
+      .book-title {
+        font-weight: $font-semibold;
+        margin-bottom: $spacing-xs;
+      }
+      
+      .book-author {
+        color: $text-secondary;
+        font-size: $font-sm;
+      }
+    }
+  }
+}

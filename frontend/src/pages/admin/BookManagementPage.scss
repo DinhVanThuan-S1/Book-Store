@@ -1,0 +1,17 @@
+@import '@styles/variables.scss';
+
+.book-management-page {
+  .page-header {
+    margin-bottom: $spacing-xl;
+  }
+  
+  .toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: $spacing-lg;
+    padding: $spacing-lg;
+    background: $bg-tertiary;
+    border-radius: $radius-lg;
+  }
+}

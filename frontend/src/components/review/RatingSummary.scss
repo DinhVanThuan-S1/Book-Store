@@ -1,0 +1,58 @@
+@import '@styles/variables.scss';
+
+.rating-summary {
+  .rating-overview {
+    display: flex;
+    gap: $spacing-2xl;
+    
+    .average-rating {
+      flex: 0 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: $spacing-sm;
+      padding: $spacing-lg;
+      background: $bg-tertiary;
+      border-radius: $radius-lg;
+    }
+    
+    .rating-distribution {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: $spacing-sm;
+      
+      .rating-row {
+        display: flex;
+        align-items: center;
+        gap: $spacing-md;
+        
+        .star-label {
+          width: 50px;
+          font-size: $font-sm;
+          color: $text-secondary;
+        }
+        
+        .ant-progress {
+          flex: 1;
+        }
+        
+        .count-label {
+          width: 40px;
+          text-align: right;
+          font-size: $font-sm;
+          color: $text-secondary;
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: $breakpoint-md) {
+  .rating-summary {
+    .rating-overview {
+      flex-direction: column;
+      gap: $spacing-lg;
+    }
+  }
+}

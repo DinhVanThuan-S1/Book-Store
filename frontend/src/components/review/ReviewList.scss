@@ -1,0 +1,57 @@
+@import '@styles/variables.scss';
+
+.review-list {
+  .review-item {
+    padding: $spacing-lg 0;
+    border-bottom: 1px solid $border-light;
+    
+    &:last-child {
+      border-bottom: none;
+    }
+    
+    .review-title {
+      display: block;
+      margin-bottom: $spacing-xs;
+      font-size: $font-base;
+    }
+    
+    .review-comment {
+      display: block;
+      line-height: 1.6;
+      color: $text-primary;
+      margin-bottom: $spacing-sm;
+    }
+    
+    .review-images {
+      display: flex;
+      gap: $spacing-sm;
+      flex-wrap: wrap;
+      
+      .review-image {
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+        border-radius: $radius-md;
+        cursor: pointer;
+        transition: transform $transition-base;
+        
+        &:hover {
+          transform: scale(1.05);
+        }
+      }
+    }
+    
+    .review-footer {
+      display: flex;
+      align-items: center;
+      gap: $spacing-md;
+      margin-top: $spacing-sm;
+    }
+  }
+  
+  .review-pagination {
+    display: flex;
+    justify-content: center;
+    margin-top: $spacing-xl;
+  }
+}

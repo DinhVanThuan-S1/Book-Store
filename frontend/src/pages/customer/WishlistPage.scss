@@ -1,0 +1,108 @@
+@import '@styles/variables.scss';
+
+.wishlist-page {
+  background: $bg-secondary;
+  min-height: 100vh;
+  
+  .page-content {
+    padding: $spacing-2xl 0;
+  }
+  
+  .page-breadcrumb {
+    margin-bottom: $spacing-xl;
+  }
+  
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: $spacing-xl;
+    
+    h2 {
+      margin-bottom: 0;
+    }
+  }
+  
+  .wishlist-card {
+    .book-cover {
+      cursor: pointer;
+      padding-top: 133.33%; // 3:4 ratio
+      position: relative;
+      overflow: hidden;
+      background: $bg-tertiary;
+      
+      img {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform $transition-slow;
+      }
+      
+      &:hover img {
+        transform: scale(1.05);
+      }
+    }
+    
+    .book-title {
+      font-weight: $font-semibold;
+      margin-bottom: $spacing-xs;
+      cursor: pointer;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      min-height: 2.8em;
+      
+      &:hover {
+        color: $primary-color;
+      }
+    }
+    
+    .book-author {
+      color: $text-secondary;
+      font-size: $font-sm;
+      margin-bottom: $spacing-sm;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    
+    .book-price {
+      display: flex;
+      align-items: center;
+      gap: $spacing-sm;
+      margin-bottom: $spacing-sm;
+      
+      .sale-price {
+        font-size: $font-lg;
+        font-weight: $font-bold;
+        color: $error-color;
+      }
+      
+      .original-price {
+        font-size: $font-sm;
+        color: $text-light;
+        text-decoration: line-through;
+      }
+    }
+    
+    .book-stock {
+      margin-bottom: $spacing-md;
+      font-size: $font-sm;
+    }
+    
+    .card-actions {
+      width: 100%;
+      
+      .ant-btn {
+        &:first-child {
+          flex: 1;
+        }
+      }
+    }
+  }
+}

@@ -10,94 +10,254 @@
   
   .page-breadcrumb {
     margin-bottom: $spacing-xl;
+    
+    .ant-breadcrumb-link {
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      display: inline-block;
+      vertical-align: bottom;
+    }
   }
   
+  // Images Section
   .book-images {
+    position: sticky;
+    top: 80px;
+    
     .main-image {
       border-radius: $radius-lg;
       overflow: hidden;
+      box-shadow: $shadow-lg;
+      margin-bottom: $spacing-md;
+      
+      .ant-image-img {
+        width: 100%;
+        object-fit: cover;
+      }
     }
     
     .thumbnail-images {
       display: flex;
       gap: $spacing-sm;
-      margin-top: $spacing-md;
       flex-wrap: wrap;
+      margin-bottom: $spacing-md;
       
       .ant-image {
         border-radius: $radius-md;
         overflow: hidden;
         cursor: pointer;
         border: 2px solid transparent;
-        transition: border-color $transition-base;
+        transition: all $transition-base;
         
         &:hover {
           border-color: $primary-color;
+          transform: translateY(-2px);
         }
+      }
+    }
+    
+    .social-actions {
+      .ant-btn {
+        height: 40px;
       }
     }
   }
   
+  // Info Section
   .book-info {
-    .book-author {
-      display: block;
-      margin: $spacing-md 0;
-      font-size: $font-lg;
+    .book-category {
+      margin-bottom: $spacing-sm;
+    }
+    
+    .book-title {
+      margin-bottom: $spacing-md;
+      line-height: 1.3;
+    }
+    
+    .book-meta {
+      margin-bottom: $spacing-md;
+      font-size: $font-base;
     }
     
     .book-rating {
       display: flex;
       align-items: center;
-      gap: $spacing-sm;
-      margin-bottom: $spacing-lg;
+      margin-bottom: $spacing-xl;
+      padding: $spacing-md 0;
+      border-bottom: 1px solid $border-light;
     }
     
+    // Price Card
     .price-card {
       margin-bottom: $spacing-lg;
-      background: $bg-tertiary;
+      background: linear-gradient(135deg, #fff5f5 0%, #ffe8e8 100%);
+      border: 2px solid $error-color;
       
       .price-section {
-        display: flex;
-        align-items: center;
-        gap: $spacing-md;
-        
         .sale-price {
-          font-size: $font-3xl;
+          font-size: $font-4xl;
           font-weight: $font-bold;
           color: $error-color;
+          line-height: 1;
         }
         
         .original-price {
-          font-size: $font-lg;
+          font-size: $font-xl;
           color: $text-light;
           text-decoration: line-through;
         }
       }
-    }
-    
-    .purchase-section {
-      margin: $spacing-xl 0;
       
-      .action-buttons {
-        margin-top: $spacing-md;
+      .stock-section {
+        .ant-col {
+          display: flex;
+          flex-direction: column;
+        }
       }
     }
     
-    .book-description {
-      margin-top: $spacing-xl;
+    // Purchase Section
+    .purchase-section {
+      padding: $spacing-xl;
+      background: $bg-primary;
+      border-radius: $radius-lg;
+      border: 2px dashed $border-color;
+      margin-bottom: $spacing-lg;
+    }
+    
+    // Features Card
+    .features-card {
+      background: $bg-tertiary;
+      
+      .feature-item {
+        padding: $spacing-xs 0;
+        
+        .ant-typography {
+          color: $text-secondary;
+        }
+      }
     }
   }
   
-  .full-description {
-    margin-top: $spacing-lg;
-    line-height: 1.8;
+  // Tabs Section
+  .tab-content {
+    padding: $spacing-lg 0;
+    min-height: 300px;
     
-    h1, h2, h3 {
-      margin-top: $spacing-lg;
+    .full-description {
+      line-height: 1.8;
+      color: $text-primary;
+      
+      h1, h2, h3, h4, h5, h6 {
+        margin-top: $spacing-xl;
+        margin-bottom: $spacing-md;
+        color: $text-primary;
+      }
+      
+      p {
+        margin-bottom: $spacing-md;
+      }
+      
+      img {
+        max-width: 100%;
+        height: auto;
+        border-radius: $radius-md;
+        margin: $spacing-lg 0;
+      }
+      
+      ul, ol {
+        margin-left: $spacing-lg;
+        margin-bottom: $spacing-md;
+      }
+      
+      blockquote {
+        border-left: 4px solid $primary-color;
+        padding-left: $spacing-md;
+        margin: $spacing-lg 0;
+        color: $text-secondary;
+        font-style: italic;
+      }
+    }
+  }
+  
+  // Related Books Section
+  .related-books-section {
+    margin-top: $spacing-3xl;
+    padding-top: $spacing-2xl;
+    border-top: 2px solid $border-light;
+    
+    .section-header {
+      margin-bottom: $spacing-xl;
+      
+      h3 {
+        margin-bottom: 0;
+      }
+    }
+  }
+}
+
+// Responsive
+@media (max-width: $breakpoint-lg) {
+  .book-detail-page {
+    .book-images {
+      position: static;
+      margin-bottom: $spacing-xl;
+    }
+  }
+}
+
+@media (max-width: $breakpoint-md) {
+  .book-detail-page {
+    .page-content {
+      padding: $spacing-lg 0;
     }
     
-    p {
-      margin-bottom: $spacing-md;
+    .book-info {
+      .book-title {
+        font-size: $font-2xl;
+      }
+      
+      .price-card {
+        .price-section {
+          .sale-price {
+            font-size: $font-3xl;
+          }
+        }
+      }
+      
+      .purchase-section {
+        padding: $spacing-md;
+        
+        .ant-space {
+          width: 100%;
+          
+          .ant-btn {
+            width: 100%;
+          }
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: $breakpoint-sm) {
+  .book-detail-page {
+    .book-info {
+      .price-card {
+        .price-section {
+          .sale-price {
+            font-size: $font-2xl;
+          }
+        }
+      }
+      
+      .purchase-section {
+        .ant-input-number {
+          width: 100px;
+        }
+      }
     }
   }
 }

@@ -1,12 +1,12 @@
 /**
  * ==============================================
- * PROTECTED ROUTE COMPONENT
+ * PROTECTED ROUTE COMPONENT - UPDATED
  * ==============================================
- * Component bảo vệ routes yêu cầu đăng nhập
+ * Bảo vệ routes yêu cầu đăng nhập và role
  */
 
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import Loading from './Loading';
 
@@ -14,9 +14,10 @@ import Loading from './Loading';
  * ProtectedRoute Component
  * @param {Object} props
  * @param {React.Component} props.children - Component con
- * @param {String} props.requiredRole - Role yêu cầu (admin/customer)
+ * @param {String} props.requiredRole - Role yêu cầu ('admin' hoặc 'customer')
  */
 const ProtectedRoute = ({ children, requiredRole }) => {
+  const location = useLocation();
   const { isAuthenticated, user, loading } = useSelector((state) => state.auth);
 
   // Đang loading
@@ -26,16 +27,30 @@ const ProtectedRoute = ({ children, requiredRole }) => {
 
   // Chưa đăng nhập
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    // Nếu là admin route → redirect đến admin login
+    if (requiredRole === 'admin') {
+      return <Navigate to="/admin/login" state={{ from: location }} replace />;
+    }
+
+    // Customer route → redirect đến customer login
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   // Kiểm tra role (nếu có yêu cầu)
   if (requiredRole) {
-    // Lấy role từ user (admin hoặc customer)
-    const userRole = user?.role || 'customer';
+    // Xác định role của user hiện tại
+    // Nếu user có email admin thì là admin, còn lại là customer
+    const userRole = user?.email?.includes('admin') || user?.role === 'admin'
+      ? 'admin'
+      : 'customer';
 
     if (userRole !== requiredRole) {
-      // Không đúng role → redirect về home
+      // Admin truy cập customer routes → redirect về admin
+      if (userRole === 'admin') {
+        return <Navigate to="/admin" replace />;
+      }
+
+      // Customer truy cập admin routes → redirect về home
       return <Navigate to="/" replace />;
     }
   }

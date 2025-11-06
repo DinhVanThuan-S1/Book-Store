@@ -1,0 +1,41 @@
+@import '@styles/variables.scss';
+
+.dashboard-page {
+  .page-header {
+    margin-bottom: $spacing-2xl;
+    
+    h2 {
+      margin-bottom: $spacing-xs;
+    }
+  }
+  
+  .stat-card {
+    .ant-card-body {
+      padding: $spacing-lg;
+    }
+    
+    .ant-statistic {
+      .ant-statistic-title {
+        color: $text-secondary;
+        font-size: $font-base;
+        margin-bottom: $spacing-sm;
+      }
+      
+      .ant-statistic-content {
+        display: flex;
+        align-items: center;
+        gap: $spacing-sm;
+        
+        .ant-statistic-content-value {
+          font-size: $font-2xl;
+          font-weight: $font-bold;
+        }
+      }
+    }
+    
+    &:hover {
+      transform: translateY(-4px);
+      box-shadow: $shadow-lg;
+    }
+  }
+}

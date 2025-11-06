@@ -22,6 +22,7 @@ const initialState = {
   user: userFromStorage,
   token: tokenFromStorage,
   isAuthenticated: !!tokenFromStorage,
+  userRole: userFromStorage?.role || (userFromStorage?.email?.includes('admin') ? 'admin' : 'customer'), // ⭐ THÊM
   loading: false,
   error: null,
 };
@@ -140,6 +141,7 @@ const authSlice = createSlice({
         state.user = action.payload.customer;
         state.token = action.payload.token;
         state.isAuthenticated = true;
+        state.userRole = 'customer'; // ⭐ SET ROLE
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;
@@ -157,6 +159,7 @@ const authSlice = createSlice({
         state.user = action.payload.admin;
         state.token = action.payload.token;
         state.isAuthenticated = true;
+        state.userRole = 'admin'; // ⭐ SET ROLE
       })
       .addCase(loginAdmin.rejected, (state, action) => {
         state.loading = false;

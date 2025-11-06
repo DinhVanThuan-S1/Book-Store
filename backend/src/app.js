@@ -1,6 +1,6 @@
 /**
  * ==============================================
- * MAIN APPLICATION FILE
+ * MAIN APPLICATION FILE - UPDATED
  * ==============================================
  */
 
@@ -10,10 +10,10 @@ const cors = require('cors');
 const connectDatabase = require('./config/database');
 const { errorHandler } = require('./middlewares/errorHandler');
 
-// Load biến môi trường
+// Load env
 dotenv.config();
 
-// Khởi tạo Express app
+// Init app
 const app = express();
 
 // ================================================
@@ -28,7 +28,7 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Logger (development only)
+// Logger (dev only)
 if (process.env.NODE_ENV === 'development') {
   app.use((req, res, next) => {
     console.log(`${req.method} ${req.url} - ${new Date().toISOString()}`);
@@ -49,7 +49,7 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Root Route
+// Root
 app.get('/', (req, res) => {
   res.status(200).json({
     success: true,
@@ -63,6 +63,9 @@ app.get('/', (req, res) => {
       publishers: '/api/publishers',
       cart: '/api/cart',
       orders: '/api/orders',
+      reviews: '/api/reviews',
+      wishlist: '/api/wishlist',
+      dashboard: '/api/admin/dashboard',
     },
   });
 });
@@ -75,6 +78,14 @@ app.use('/api/authors', require('./routes/authorRoutes'));
 app.use('/api/publishers', require('./routes/publisherRoutes'));
 app.use('/api/cart', require('./routes/cartRoutes'));
 app.use('/api/orders', require('./routes/orderRoutes'));
+app.use('/api/reviews', require('./routes/reviewRoutes'));
+app.use('/api/wishlist', require('./routes/wishlistRoutes'));
+app.use('/api/admin/dashboard', require('./routes/dashboardRoutes'));
+
+app.use('/api/payments', require('./routes/paymentRoutes'));
+app.use('/api/combos', require('./routes/comboRoutes'));
+app.use('/api/addresses', require('./routes/addressRoutes'));
+app.use('/api/admin/customers', require('./routes/customerRoutes'));
 
 // 404 Handler
 app.use((req, res) => {
@@ -93,11 +104,12 @@ app.use(errorHandler);
 // ================================================
 
 const PORT = process.env.PORT || 5000;
-
+const startAllJobs = require('./jobs');
 const startServer = async () => {
   try {
     await connectDatabase();
-    
+    // Start background jobs
+    startAllJobs();
     app.listen(PORT, () => {
       console.log('='.repeat(50));
       console.log(`🚀 Server is running on port ${PORT}`);
