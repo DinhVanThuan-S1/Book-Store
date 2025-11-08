@@ -1,17 +1,16 @@
 /**
  * ==============================================
- * APP ROUTES - COMPLETE VERSION
+ * APP ROUTES - COMPLETE WITH LAYOUTS
  * ==============================================
- * Tất cả routes của ứng dụng
- * Author: DinhVanThuan-S1
- * Date: 2025-11-04
+ * Tất cả routes với layout riêng biệt
  */
 
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from '@components/common/ProtectedRoute';
 
-// Layout
+// Layouts
+import CustomerLayout from '@components/common/CustomerLayout';
 import AdminLayout from '@components/admin/AdminLayout';
 
 // Customer Pages
@@ -31,6 +30,9 @@ import WishlistPage from '@pages/customer/WishlistPage';
 import AdminLoginPage from '@pages/admin/AdminLoginPage';
 import DashboardPage from '@pages/admin/DashboardPage';
 import BookManagementPage from '@pages/admin/BookManagementPage';
+import OrderManagementPage from '@pages/admin/OrderManagementPage';
+import CustomerManagementPage from '@pages/admin/CustomerManagementPage';
+import ReportsPage from '@pages/admin/ReportsPage';
 
 // Other
 import NotFoundPage from '@pages/NotFoundPage';
@@ -41,73 +43,75 @@ import NotFoundPage from '@pages/NotFoundPage';
 const AppRoutes = () => {
   return (
     <Routes>
-      {/* ==================== PUBLIC ROUTES ==================== */}
-      <Route path="/" element={<HomePage />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
-      <Route path="/books" element={<BookListPage />} />
-      <Route path="/books/:slug" element={<BookDetailPage />} />
+      {/* ==================== CUSTOMER ROUTES (WITH LAYOUT) ==================== */}
+      <Route element={<CustomerLayout />}>
+        {/* Public Routes */}
+        <Route path="/" element={<HomePage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/books" element={<BookListPage />} />
+        <Route path="/books/:slug" element={<BookDetailPage />} />
 
-      {/* ==================== CUSTOMER PROTECTED ROUTES ==================== */}
-      <Route
-        path="/cart"
-        element={
-          <ProtectedRoute requiredRole="customer">
-            <CartPage />
-          </ProtectedRoute>
-        }
-      />
+        {/* Protected Customer Routes */}
+        <Route
+          path="/cart"
+          element={
+            <ProtectedRoute requiredRole="customer">
+              <CartPage />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/checkout"
-        element={
-          <ProtectedRoute requiredRole="customer">
-            <CheckoutPage />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/checkout"
+          element={
+            <ProtectedRoute requiredRole="customer">
+              <CheckoutPage />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/orders"
-        element={
-          <ProtectedRoute requiredRole="customer">
-            <OrderHistoryPage />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/orders"
+          element={
+            <ProtectedRoute requiredRole="customer">
+              <OrderHistoryPage />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/orders/:id"
-        element={
-          <ProtectedRoute requiredRole="customer">
-            <OrderDetailPage />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/orders/:id"
+          element={
+            <ProtectedRoute requiredRole="customer">
+              <OrderDetailPage />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/profile"
-        element={
-          <ProtectedRoute requiredRole="customer">
-            <ProfilePage />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute requiredRole="customer">
+              <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/wishlist"
-        element={
-          <ProtectedRoute requiredRole="customer">
-            <WishlistPage />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/wishlist"
+          element={
+            <ProtectedRoute requiredRole="customer">
+              <WishlistPage />
+            </ProtectedRoute>
+          }
+        />
+      </Route>
 
-      {/* ==================== ADMIN ROUTES ==================== */}
-      {/* Admin Login (Public) */}
+      {/* ==================== ADMIN LOGIN (NO LAYOUT) ==================== */}
       <Route path="/admin/login" element={<AdminLoginPage />} />
 
-      {/* Admin Panel (Protected) */}
+      {/* ==================== ADMIN ROUTES (WITH ADMIN LAYOUT) ==================== */}
       <Route
         path="/admin"
         element={
@@ -118,8 +122,9 @@ const AppRoutes = () => {
       >
         <Route index element={<DashboardPage />} />
         <Route path="books" element={<BookManagementPage />} />
-        {/* <Route path="orders" element={<OrderManagementPage />} /> */}
-        {/* <Route path="customers" element={<CustomerManagementPage />} /> */}
+        <Route path="orders" element={<OrderManagementPage />} />
+        <Route path="customers" element={<CustomerManagementPage />} />
+        <Route path="reports" element={<ReportsPage />} />
       </Route>
 
       {/* ==================== 404 NOT FOUND ==================== */}

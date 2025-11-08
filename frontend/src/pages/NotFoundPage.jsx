@@ -7,16 +7,14 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Result, Button } from 'antd';
-import { Layout } from 'antd';
-
-const { Content } = Layout;
+import { } from 'antd';
 
 const NotFoundPage = () => {
   const navigate = useNavigate();
 
   return (
-    <Layout style={{ minHeight: '100vh', background: '#fff' }}>
-      <Content style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{ minHeight: '100vh', background: '#fff' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Result
           status="404"
           title="404"
@@ -27,8 +25,8 @@ const NotFoundPage = () => {
             </Button>
           }
         />
-      </Content>
-    </Layout>
+      </div>
+    </div>
   );
 };
 

@@ -9,7 +9,6 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
-  Layout,
   Card,
   Row,
   Col,
@@ -37,7 +36,6 @@ import { showSuccess, showError } from '@utils/notification';
 import Loading from '@components/common/Loading';
 import './OrderDetailPage.scss';
 
-const { Content } = Layout;
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 
@@ -116,8 +114,8 @@ const OrderDetailPage = () => {
   const canCancel = [ORDER_STATUS.PENDING, ORDER_STATUS.CONFIRMED].includes(order.status);
 
   return (
-    <Layout className="order-detail-page">
-      <Content className="page-content">
+    <div className="order-detail-page">
+      <div className="page-content">
         <div className="container">
           {/* Back Button */}
           <Button
@@ -267,7 +265,7 @@ const OrderDetailPage = () => {
             </Col>
           </Row>
         </div>
-      </Content>
+      </div>
 
       {/* Cancel Order Modal */}
       <Modal
@@ -290,7 +288,7 @@ const OrderDetailPage = () => {
           />
         </Space>
       </Modal>
-    </Layout>
+    </div>
   );
 };
 

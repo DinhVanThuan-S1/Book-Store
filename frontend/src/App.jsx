@@ -1,10 +1,8 @@
 /**
  * ==============================================
- * MAIN APP COMPONENT
+ * MAIN APP COMPONENT - FIXED
  * ==============================================
- * Component chính của app
- * Author: DinhVanThuan-S1
- * Date: 2025-10-31
+ * Component chính - KHÔNG render Header/Footer ở đây
  */
 
 import React from 'react';
@@ -13,11 +11,10 @@ import { Provider } from 'react-redux';
 import { ConfigProvider } from 'antd';
 import viVN from 'antd/locale/vi_VN';
 import store from '@redux/store';
-import Header from '@components/common/Header';
-import Footer from '@components/common/Footer';
 import AppRoutes from '@routes/AppRoutes';
 import '@styles/global.scss';
 import './App.scss';
+import ErrorBoundary from '@components/common/ErrorBoundary';
 
 /**
  * App Component
@@ -36,13 +33,12 @@ function App() {
         }}
       >
         <Router>
-          <div className="app">
-            <Header />
-            <main className="app-main">
+          <ErrorBoundary>
+            <div className="app">
+              {/* KHÔNG render Header/Footer ở đây */}
               <AppRoutes />
-            </main>
-            <Footer />
-          </div>
+            </div>
+          </ErrorBoundary>
         </Router>
       </ConfigProvider>
     </Provider>

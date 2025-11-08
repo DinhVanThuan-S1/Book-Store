@@ -11,7 +11,6 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import {
-  Layout,
   Row,
   Col,
   Breadcrumb,
@@ -34,7 +33,6 @@ import { showSuccess, showError } from '@utils/notification';
 import Loading from '@components/common/Loading';
 import './WishlistPage.scss';
 
-const { Content } = Layout;
 const { Title, Text } = Typography;
 
 const WishlistPage = () => {
@@ -128,8 +126,8 @@ const WishlistPage = () => {
   const books = wishlist?.books || [];
 
   return (
-    <Layout className="wishlist-page">
-      <Content className="page-content">
+    <div className="wishlist-page">
+      <div className="page-content">
         <div className="container">
           {/* Breadcrumb */}
           <Breadcrumb className="page-breadcrumb">
@@ -251,8 +249,8 @@ const WishlistPage = () => {
             </Row>
           )}
         </div>
-      </Content>
-    </Layout>
+      </div>
+    </div>
   );
 };
 

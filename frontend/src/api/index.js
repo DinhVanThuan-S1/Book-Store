@@ -15,3 +15,5 @@ export { default as dashboardApi } from './dashboardApi';
 export { default as comboApi } from './comboApi';
 export { default as addressApi } from './addressApi';
 export { default as paymentApi } from './paymentApi';
+export { default as authorApi } from './authorApi';
+export { default as publisherApi } from './publisherApi';

@@ -17,7 +17,6 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
-  Layout,
   Row,
   Col,
   Breadcrumb,
@@ -55,7 +54,7 @@ import ReviewList from '@components/review/ReviewList';
 import BookList from '@components/book/BookList';
 import './BookDetailPage.scss';
 
-const { Content } = Layout;
+
 const { Title, Paragraph, Text } = Typography;
 
 const BookDetailPage = () => {
@@ -345,8 +344,8 @@ const BookDetailPage = () => {
   ];
 
   return (
-    <Layout className="book-detail-page">
-      <Content className="page-content">
+    <div className="book-detail-page">
+      <div className="page-content">
         <div className="container">
           {/* Breadcrumb */}
           <Breadcrumb className="page-breadcrumb">
@@ -618,8 +617,8 @@ const BookDetailPage = () => {
             </div>
           )}
         </div>
-      </Content>
-    </Layout>
+      </div>
+    </div>
   );
 };
 

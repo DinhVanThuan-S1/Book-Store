@@ -1,10 +1,7 @@
 /**
  * ==============================================
- * ADMIN LAYOUT COMPONENT
+ * ADMIN LAYOUT COMPONENT - FIXED
  * ==============================================
- * Layout chính cho admin dashboard
- * Author: DinhVanThuan-S1
- * Date: 2025-11-04
  */
 
 import React, { useState } from 'react';
@@ -127,7 +124,7 @@ const AdminLayout = () => {
     },
   ];
 
-  // Get current selected key from pathname
+  // Get current selected key
   const selectedKey = location.pathname;
 
   return (
@@ -138,7 +135,14 @@ const AdminLayout = () => {
         collapsible
         collapsed={collapsed}
         width={250}
+        collapsedWidth={80}
         className="admin-sider"
+        breakpoint="lg"
+        onBreakpoint={(broken) => {
+          if (broken) {
+            setCollapsed(true);
+          }
+        }}
       >
         {/* Logo */}
         <div className="admin-logo">
@@ -155,7 +159,7 @@ const AdminLayout = () => {
         />
       </Sider>
 
-      {/* Main Content */}
+      {/* Main Content Layout */}
       <Layout>
         {/* Header */}
         <Header className="admin-header">
@@ -172,7 +176,7 @@ const AdminLayout = () => {
           <div className="header-right">
             {/* Notifications */}
             <Badge count={5} className="notification-badge">
-              <BellOutlined style={{ fontSize: 20, cursor: 'pointer' }} />
+              <BellOutlined style={{ fontSize: 20 }} />
             </Badge>
 
             {/* User Menu */}
@@ -181,7 +185,7 @@ const AdminLayout = () => {
               placement="bottomRight"
               arrow
             >
-              <Space className="user-info" style={{ cursor: 'pointer' }}>
+              <Space className="user-info">
                 <Avatar
                   src={user?.avatar}
                   icon={<UserOutlined />}
@@ -189,7 +193,7 @@ const AdminLayout = () => {
                 />
                 {!collapsed && (
                   <div className="user-details">
-                    <Text strong>{user?.fullName}</Text>
+                    <Text strong>{user?.fullName || 'Admin'}</Text>
                     <Text type="secondary" style={{ fontSize: 12 }}>
                       Quản trị viên
                     </Text>

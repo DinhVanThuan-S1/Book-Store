@@ -9,7 +9,6 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
-  Layout,
   Card,
   Tabs,
   List,
@@ -31,7 +30,6 @@ import {
 import Loading from '@components/common/Loading';
 import './OrderHistoryPage.scss';
 
-const { Content } = Layout;
 const { Title, Text } = Typography;
 
 const OrderHistoryPage = () => {
@@ -126,8 +124,8 @@ const OrderHistoryPage = () => {
   };
 
   return (
-    <Layout className="order-history-page">
-      <Content className="page-content">
+    <div className="order-history-page">
+      <div className="page-content">
         <div className="container">
           <Title level={2} className="page-title">
             Đơn hàng của tôi
@@ -160,8 +158,8 @@ const OrderHistoryPage = () => {
             )}
           </Card>
         </div>
-      </Content>
-    </Layout>
+      </div>
+    </div>
   );
 };
 

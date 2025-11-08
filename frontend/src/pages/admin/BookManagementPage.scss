@@ -2,7 +2,14 @@
 
 .book-management-page {
   .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: $spacing-xl;
+    
+    h2 {
+      margin-bottom: $spacing-xs;
+    }
   }
   
   .toolbar {
@@ -13,5 +20,51 @@
     padding: $spacing-lg;
     background: $bg-tertiary;
     border-radius: $radius-lg;
+    flex-wrap: wrap;
+    gap: $spacing-md;
+  }
+  
+  // Table customization
+  .ant-table {
+    .ant-table-thead > tr > th {
+      background: $bg-tertiary;
+      font-weight: $font-semibold;
+    }
+    
+    .ant-table-tbody > tr {
+      &:hover {
+        background: $bg-secondary;
+      }
+    }
+  }
+}
+
+// Responsive
+@media (max-width: $breakpoint-md) {
+  .book-management-page {
+    .page-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: $spacing-md;
+    }
+    
+    .toolbar {
+      flex-direction: column;
+      align-items: stretch;
+      
+      .ant-space {
+        width: 100%;
+        flex-direction: column;
+        
+        .ant-input-search,
+        .ant-select {
+          width: 100% !important;
+        }
+      }
+      
+      button {
+        width: 100%;
+      }
+    }
   }
 }

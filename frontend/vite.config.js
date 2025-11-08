@@ -46,4 +46,14 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: false,
   },
+
+  // CSS config for SCSS
+  // Có thời gian fix cảnh báo của vite về scss : @import '@styles/variables.scss';
+  css: {
+    preprocessorOptions: {
+      scss: {
+        quietDeps: true,
+      },
+    },
+  },
 });

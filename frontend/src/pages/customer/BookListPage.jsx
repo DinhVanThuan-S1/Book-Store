@@ -8,7 +8,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { Layout, Row, Col, Breadcrumb } from 'antd';
+import { Row, Col, Breadcrumb } from 'antd';
 import { HomeOutlined } from '@ant-design/icons';
 import BookList from '@components/book/BookList';
 import BookFilter from '@components/book/BookFilter';
@@ -17,7 +17,6 @@ import { addToCart } from '@redux/slices/cartSlice';
 import { showSuccess, showError } from '@utils/notification';
 import './BookListPage.scss';
 
-const { Content } = Layout;
 
 const BookListPage = () => {
   const dispatch = useDispatch();
@@ -104,8 +103,8 @@ const BookListPage = () => {
   };
 
   return (
-    <Layout className="book-list-page">
-      <Content className="page-content">
+    <div className="book-list-page">
+      <div className="page-content">
         <div className="container">
           {/* Breadcrumb */}
           <Breadcrumb className="page-breadcrumb">
@@ -137,8 +136,8 @@ const BookListPage = () => {
             </Col>
           </Row>
         </div>
-      </Content>
-    </Layout>
+      </div>
+    </div>
   );
 };
 

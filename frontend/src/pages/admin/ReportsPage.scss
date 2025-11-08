@@ -1,0 +1,11 @@
+@import '@styles/variables.scss';
+
+.reports-page {
+  .page-header {
+    margin-bottom: $spacing-xl;
+  }
+  
+  .filter-card {
+    margin-bottom: $spacing-lg;
+  }
+}

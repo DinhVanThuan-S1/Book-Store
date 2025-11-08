@@ -8,7 +8,6 @@
 import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
-  Layout,
   Card,
   Tabs,
   Form,
@@ -34,7 +33,6 @@ import { authApi } from '@api';
 import { showSuccess, showError } from '@utils/notification';
 import './ProfilePage.scss';
 
-const { Content } = Layout;
 const { Title } = Typography;
 
 const ProfilePage = () => {
@@ -258,8 +256,8 @@ const ProfilePage = () => {
   ];
 
   return (
-    <Layout className="profile-page">
-      <Content className="page-content">
+    <div className="profile-page">
+      <div className="page-content">
         <div className="container">
           <Title level={2} className="page-title">
             Thông tin tài khoản
@@ -267,8 +265,8 @@ const ProfilePage = () => {
 
           <Tabs defaultActiveKey="profile" items={tabItems} />
         </div>
-      </Content>
-    </Layout>
+      </div>
+    </div>
   );
 };
 

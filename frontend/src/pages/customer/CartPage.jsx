@@ -8,7 +8,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { Layout, Row, Col, Breadcrumb, Empty, Button } from 'antd';
+import { Row, Col, Breadcrumb, Empty, Button } from 'antd';
 import { HomeOutlined, ShoppingOutlined } from '@ant-design/icons';
 import CartItem from '@components/cart/CartItem';
 import CartSummary from '@components/cart/CartSummary';
@@ -20,8 +20,6 @@ import {
 } from '@redux/slices/cartSlice';
 import { showSuccess, showError } from '@utils/notification';
 import './CartPage.scss';
-
-const { Content } = Layout;
 
 const CartPage = () => {
   const navigate = useNavigate();
@@ -79,8 +77,8 @@ const CartPage = () => {
   // Not authenticated
   if (!isAuthenticated) {
     return (
-      <Layout className="cart-page">
-        <Content className="page-content">
+      <div className="cart-page">
+        <div className="page-content">
           <div className="container">
             <Empty
               description="Vui lòng đăng nhập để xem giỏ hàng"
@@ -91,8 +89,8 @@ const CartPage = () => {
               </Button>
             </Empty>
           </div>
-        </Content>
-      </Layout>
+        </div>
+      </div>
     );
   }
 
@@ -104,8 +102,8 @@ const CartPage = () => {
   // Empty cart
   if (!items || items.length === 0) {
     return (
-      <Layout className="cart-page">
-        <Content className="page-content">
+      <div className="cart-page">
+        <div className="page-content">
           <div className="container">
             <Empty
               description="Giỏ hàng trống"
@@ -120,8 +118,8 @@ const CartPage = () => {
               </Button>
             </Empty>
           </div>
-        </Content>
-      </Layout>
+        </div>
+      </div>
     );
   }
 
@@ -130,8 +128,8 @@ const CartPage = () => {
   const total = totalPrice + shippingFee;
 
   return (
-    <Layout className="cart-page">
-      <Content className="page-content">
+    <div className="cart-page">
+      <div className="page-content">
         <div className="container">
           {/* Breadcrumb */}
           <Breadcrumb className="page-breadcrumb">
@@ -172,8 +170,8 @@ const CartPage = () => {
             </Col>
           </Row>
         </div>
-      </Content>
-    </Layout>
+      </div>
+    </div>
   );
 };
 

@@ -11,7 +11,6 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
-  Layout,
   Row,
   Col,
   Card,
@@ -38,7 +37,6 @@ import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from '@constants/appConstants'
 import Loading from '@components/common/Loading';
 import './CheckoutPage.scss';
 
-const { Content } = Layout;
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 
@@ -148,8 +146,8 @@ const CheckoutPage = () => {
   }
 
   return (
-    <Layout className="checkout-page">
-      <Content className="page-content">
+    <div className="checkout-page">
+      <div className="page-content">
         <div className="container">
           <Title level={2} className="page-title">
             Thanh toán đơn hàng
@@ -160,7 +158,7 @@ const CheckoutPage = () => {
 
           <Form
             form={form}
-            layout="vertical"
+            div="vertical"
             onFinish={handleSubmitOrder}
             scrollToFirstError
           >
@@ -376,8 +374,8 @@ const CheckoutPage = () => {
             </Row>
           </Form>
         </div>
-      </Content>
-    </Layout>
+      </div>
+    </div>
   );
 };
 
