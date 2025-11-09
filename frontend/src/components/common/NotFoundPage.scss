@@ -1,0 +1,19 @@
+@import '@styles/variables.scss';
+
+.not-found-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: $bg-secondary;
+  
+  .ant-result {
+    padding: $spacing-3xl;
+  }
+  
+  .button-group {
+    display: flex;
+    gap: $spacing-md;
+    justify-content: center;
+  }
+}

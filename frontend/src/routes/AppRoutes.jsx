@@ -35,7 +35,7 @@ import CustomerManagementPage from '@pages/admin/CustomerManagementPage';
 import ReportsPage from '@pages/admin/ReportsPage';
 
 // Other
-import NotFoundPage from '@pages/NotFoundPage';
+import NotFoundPage from '@components/common/NotFoundPage';
 
 /**
  * AppRoutes Component
