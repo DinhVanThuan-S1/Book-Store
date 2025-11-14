@@ -13,7 +13,8 @@ const { asyncHandler } = require('../middlewares/errorHandler');
  * @access  Public
  */
 const getAuthors = asyncHandler(async (req, res) => {
-  const authors = await Author.find({ isActive: true }).sort('name');
+  // Không filter isActive vì model không có field này
+  const authors = await Author.find().sort('name');
   
   res.status(200).json({
     success: true,

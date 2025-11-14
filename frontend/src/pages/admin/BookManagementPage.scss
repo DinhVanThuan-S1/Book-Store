@@ -37,6 +37,49 @@
       }
     }
   }
+  
+  // Modal form - Uniform input heights
+  .ant-modal {
+    .ant-form-item {
+      // Ensure all inputs have the same height
+      .ant-input,
+      .ant-input-number,
+      .ant-select-selector,
+      .ant-input-number-input {
+        height: 40px;
+        line-height: 40px;
+      }
+      
+      .ant-input-number {
+        width: 100%;
+        
+        .ant-input-number-input {
+          height: 38px;
+        }
+      }
+      
+      .ant-select-single {
+        .ant-select-selector {
+          height: 40px;
+          
+          .ant-select-selection-search-input {
+            height: 38px;
+          }
+          
+          .ant-select-selection-item,
+          .ant-select-selection-placeholder {
+            line-height: 38px;
+          }
+        }
+      }
+      
+      // TextArea should be taller
+      textarea.ant-input {
+        height: auto;
+        line-height: 1.6;
+      }
+    }
+  }
 }
 
 // Responsive

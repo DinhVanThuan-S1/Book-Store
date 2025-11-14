@@ -81,6 +81,7 @@ app.use('/api/orders', require('./routes/orderRoutes'));
 app.use('/api/reviews', require('./routes/reviewRoutes'));
 app.use('/api/wishlist', require('./routes/wishlistRoutes'));
 app.use('/api/admin/dashboard', require('./routes/dashboardRoutes'));
+app.use('/api/upload', require('./routes/uploadRoutes')); // ← Upload routes
 
 app.use('/api/payments', require('./routes/paymentRoutes'));
 app.use('/api/combos', require('./routes/comboRoutes'));

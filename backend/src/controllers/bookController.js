@@ -157,13 +157,14 @@ const createBook = asyncHandler(async (req, res) => {
     isbn,
     publishYear,
     pages,
-    language,
+    bookLanguage,
     format,
     description,
     fullDescription,
     images,
     originalPrice,
     salePrice,
+    discountPercent,
   } = req.body;
   
   // Kiểm tra ISBN đã tồn tại chưa
@@ -186,13 +187,14 @@ const createBook = asyncHandler(async (req, res) => {
     isbn,
     publishYear,
     pages,
-    language,
+    bookLanguage,
     format,
     description,
     fullDescription,
     images,
     originalPrice,
     salePrice,
+    discountPercent,
   });
   
   // Populate để trả về thông tin đầy đủ
@@ -220,10 +222,19 @@ const updateBook = asyncHandler(async (req, res) => {
     });
   }
   
+  // Xử lý giá trước khi update
+  const updateData = { ...req.body };
+  
+  // Nếu có discountPercent, tính salePrice
+  if (updateData.discountPercent !== undefined) {
+    const originalPrice = updateData.originalPrice || book.originalPrice;
+    updateData.salePrice = Math.round(originalPrice - (originalPrice * updateData.discountPercent / 100));
+  }
+  
   // Update
   book = await Book.findByIdAndUpdate(
     req.params.id,
-    req.body,
+    updateData,
     {
       new: true, // Trả về document sau khi update
       runValidators: true, // Chạy validators

@@ -65,11 +65,11 @@ const bookSchema = new mongoose.Schema({
     min: 1,
   },
   
-  // Ngôn ngữ
-  language: {
+  // Ngôn ngữ của sách (đổi tên để tránh conflict với MongoDB text index)
+  bookLanguage: {
     type: String,
-    enum: ['Vietnamese', 'English', 'Other'],
-    default: 'Vietnamese',
+    trim: true,
+    maxlength: 50,
   },
   
   // Hình thức
@@ -203,13 +203,24 @@ bookSchema.pre('save', function(next) {
 });
 
 /**
- * Middleware: Tính % giảm giá trước khi save
+ * Middleware: Tính salePrice từ discountPercent, hoặc ngược lại
+ * Priority: discountPercent > salePrice
  */
 bookSchema.pre('save', function(next) {
-  if (this.originalPrice && this.salePrice) {
+  // Nếu có discountPercent, tính salePrice từ đó
+  if (this.isModified('discountPercent') && this.originalPrice && this.discountPercent !== undefined) {
+    this.salePrice = Math.round(this.originalPrice - (this.originalPrice * this.discountPercent / 100));
+  }
+  // Nếu không có discountPercent nhưng có salePrice, tính ngược lại
+  else if (this.originalPrice && this.salePrice && !this.discountPercent) {
     this.discountPercent = Math.round(
       ((this.originalPrice - this.salePrice) / this.originalPrice) * 100
     );
+  }
+  // Nếu không có gì, set salePrice = originalPrice
+  else if (this.originalPrice && !this.salePrice) {
+    this.salePrice = this.originalPrice;
+    this.discountPercent = 0;
   }
   next();
 });

@@ -36,9 +36,8 @@ import {
   DeleteOutlined,
   SearchOutlined,
   PlusCircleOutlined,
-  UploadOutlined,
 } from '@ant-design/icons';
-import { bookApi, categoryApi, authorApi, publisherApi } from '@api';
+import { bookApi, categoryApi, authorApi, publisherApi, uploadApi } from '@api';
 import { formatPrice } from '@utils/formatPrice';
 import { showSuccess, showError } from '@utils/notification';
 import {
@@ -81,6 +80,24 @@ const BookManagementPage = () => {
 
   const [copiesForm] = Form.useForm();
   const [bookForm] = Form.useForm();
+  const [uploading, setUploading] = useState(false);
+
+  // Watch for price changes to auto-calculate sale price
+  const originalPrice = Form.useWatch('originalPrice', bookForm);
+  const discountPercent = Form.useWatch('discountPercent', bookForm);
+  const salePrice = Form.useWatch('salePrice', bookForm); // ← Watch salePrice để trigger re-render
+
+  /**
+   * Calculate sale price based on original price and discount
+   */
+  useEffect(() => {
+    if (originalPrice && discountPercent !== undefined && discountPercent !== null) {
+      const calculatedSalePrice = originalPrice - (originalPrice * discountPercent / 100);
+      bookForm.setFieldsValue({ salePrice: Math.round(calculatedSalePrice) });
+    } else if (originalPrice && (discountPercent === undefined || discountPercent === null || discountPercent === 0)) {
+      bookForm.setFieldsValue({ salePrice: originalPrice });
+    }
+  }, [originalPrice, discountPercent, bookForm]);
 
   /**
    * Fetch books
@@ -133,19 +150,48 @@ const BookManagementPage = () => {
   useEffect(() => {
     const fetchAuthors = async () => {
       try {
-        // Assuming you have authorApi.getAuthors()
-        // const response = await authorApi.getAuthors();
-        // setAuthors(response.data.authors);
+        const response = await authorApi.getAuthors();
+        console.log('📚 Authors API Response:', response); // Debug full response
+        console.log('📚 Response structure:', JSON.stringify(response, null, 2)); // Debug structure
 
-        // Mock data for now
-        setAuthors([
-          { _id: '1', name: 'Nguyễn Nhật Ánh' },
-          { _id: '2', name: 'Aoyama Gosho' },
-          { _id: '3', name: 'Dale Carnegie' },
-          { _id: '4', name: 'Tony Buổi Sáng' },
-        ]);
+        // Xử lý nhiều cấu trúc response khác nhau
+        let authorsList = [];
+
+        if (response?.data?.data?.authors) {
+          // Nested: { data: { data: { authors: [...] } } }
+          authorsList = response.data.data.authors;
+          console.log('✅ Found authors in response.data.data.authors');
+        } else if (response?.data?.authors) {
+          // Nested: { data: { authors: [...] } }
+          authorsList = response.data.authors;
+          console.log('✅ Found authors in response.data.authors');
+        } else if (Array.isArray(response?.data)) {
+          // Direct array: { data: [...] }
+          authorsList = response.data;
+          console.log('✅ Found authors as direct array in response.data');
+        } else if (Array.isArray(response)) {
+          // Direct array response
+          authorsList = response;
+          console.log('✅ Found authors as direct array in response');
+        }
+
+        console.log(`📚 Total authors found: ${authorsList.length}`);
+        console.log('📚 Authors list:', authorsList);
+
+        if (authorsList.length === 0) {
+          console.warn('⚠️ Không có tác giả nào. Có thể do:');
+          console.warn('   1. Database chưa có data');
+          console.warn('   2. Tất cả authors có isActive = false');
+          console.warn('   3. API endpoint không đúng');
+          showError('Chưa có tác giả nào hoặc tất cả đã bị vô hiệu hóa.');
+        }
+
+        setAuthors(authorsList);
       } catch (error) {
-        console.error('Error fetching authors:', error);
+        console.error('❌ Error fetching authors:', error);
+        console.error('❌ Error details:', error.response?.data || error.message);
+        showError(`Không thể tải danh sách tác giả: ${error.message}`);
+        setAuthors([]);
       }
     };
 
@@ -158,19 +204,48 @@ const BookManagementPage = () => {
   useEffect(() => {
     const fetchPublishers = async () => {
       try {
-        // Assuming you have publisherApi.getPublishers()
-        // const response = await publisherApi.getPublishers();
-        // setPublishers(response.data.publishers);
+        const response = await publisherApi.getPublishers();
+        console.log('🏢 Publishers API Response:', response); // Debug full response
+        console.log('🏢 Response structure:', JSON.stringify(response, null, 2)); // Debug structure
 
-        // Mock data for now
-        setPublishers([
-          { _id: '1', name: 'NXB Kim Đồng' },
-          { _id: '2', name: 'NXB Trẻ' },
-          { _id: '3', name: 'NXB Văn học' },
-          { _id: '4', name: 'NXB Lao động' },
-        ]);
+        // Xử lý nhiều cấu trúc response khác nhau
+        let publishersList = [];
+
+        if (response?.data?.data?.publishers) {
+          // Nested: { data: { data: { publishers: [...] } } }
+          publishersList = response.data.data.publishers;
+          console.log('✅ Found publishers in response.data.data.publishers');
+        } else if (response?.data?.publishers) {
+          // Nested: { data: { publishers: [...] } }
+          publishersList = response.data.publishers;
+          console.log('✅ Found publishers in response.data.publishers');
+        } else if (Array.isArray(response?.data)) {
+          // Direct array: { data: [...] }
+          publishersList = response.data;
+          console.log('✅ Found publishers as direct array in response.data');
+        } else if (Array.isArray(response)) {
+          // Direct array response
+          publishersList = response;
+          console.log('✅ Found publishers as direct array in response');
+        }
+
+        console.log(`🏢 Total publishers found: ${publishersList.length}`);
+        console.log('🏢 Publishers list:', publishersList);
+
+        if (publishersList.length === 0) {
+          console.warn('⚠️ Không có nhà xuất bản nào. Có thể do:');
+          console.warn('   1. Database chưa có data');
+          console.warn('   2. Tất cả publishers có isActive = false');
+          console.warn('   3. API endpoint không đúng');
+          showError('Chưa có nhà xuất bản nào hoặc tất cả đã bị vô hiệu hóa.');
+        }
+
+        setPublishers(publishersList);
       } catch (error) {
-        console.error('Error fetching publishers:', error);
+        console.error('❌ Error fetching publishers:', error);
+        console.error('❌ Error details:', error.response?.data || error.message);
+        showError(`Không thể tải danh sách nhà xuất bản: ${error.message}`);
+        setPublishers([]);
       }
     };
 
@@ -179,6 +254,7 @@ const BookManagementPage = () => {
 
   useEffect(() => {
     fetchBooks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
   /**
@@ -192,7 +268,7 @@ const BookManagementPage = () => {
    * Handle category filter
    */
   const handleCategoryChange = (value) => {
-    setFilters({ ...filters, category: value });
+    setFilters({ ...filters, category: value || null });
   };
 
   /**
@@ -209,6 +285,9 @@ const BookManagementPage = () => {
     setEditingBook(null);
     setFileList([]);
     bookForm.resetFields();
+    bookForm.setFieldsValue({
+      discountPercent: 0,
+    });
     setBookFormModalVisible(true);
   };
 
@@ -217,6 +296,11 @@ const BookManagementPage = () => {
    */
   const handleEditBook = (book) => {
     setEditingBook(book);
+
+    // Calculate discount percent from prices
+    const calculatedDiscount = book.originalPrice > 0
+      ? Math.round(((book.originalPrice - book.salePrice) / book.originalPrice) * 100)
+      : 0;
 
     // Set form values
     bookForm.setFieldsValue({
@@ -227,10 +311,11 @@ const BookManagementPage = () => {
       isbn: book.isbn,
       publishYear: book.publishYear,
       pages: book.pages,
-      language: book.language,
+      bookLanguage: book.bookLanguage || book.language, // Support both old and new field names
       format: book.format,
       description: book.description,
       originalPrice: book.originalPrice,
+      discountPercent: calculatedDiscount,
       salePrice: book.salePrice,
     });
 
@@ -253,13 +338,43 @@ const BookManagementPage = () => {
     try {
       setSavingBook(true);
 
+      // Prepare images array
+      const images = fileList
+        .filter((file) => file.status === 'done')
+        .map((file) => file.url || file.response?.url || '');
+
+      // Validate images
+      if (images.length === 0) {
+        showError('Vui lòng upload ít nhất 1 ảnh');
+        setSavingBook(false);
+        return;
+      }
+
       // Prepare book data
       const bookData = {
-        ...values,
-        images: fileList
-          .filter((file) => file.status === 'done')
-          .map((file) => file.url || file.response?.url || ''),
+        title: values.title,
+        author: values.author,
+        publisher: values.publisher,
+        category: values.category,
+        images,
+        originalPrice: values.originalPrice,
+        salePrice: values.salePrice || values.originalPrice, // Ensure salePrice exists
       };
+
+      // Add optional fields if they exist
+      if (values.isbn) bookData.isbn = values.isbn;
+      if (values.publishYear) bookData.publishYear = values.publishYear;
+      if (values.pages) bookData.pages = values.pages;
+      if (values.bookLanguage) bookData.bookLanguage = values.bookLanguage;
+      if (values.format) bookData.format = values.format;
+      if (values.description) bookData.description = values.description;
+
+      // ✅ Add discountPercent để backend tính toán và lưu
+      if (values.discountPercent !== undefined && values.discountPercent !== null) {
+        bookData.discountPercent = values.discountPercent;
+      }
+
+      console.log('Sending book data:', bookData); // Debug
 
       if (editingBook) {
         // Update existing book
@@ -280,7 +395,19 @@ const BookManagementPage = () => {
       // Refresh list
       fetchBooks(pagination.current);
     } catch (error) {
-      showError(error || 'Không thể lưu sách');
+      console.error('Save book error:', error); // Debug
+      console.error('Error details:', error.errors); // ← Log chi tiết errors
+
+      // Hiển thị chi tiết lỗi validation
+      if (error?.errors && Array.isArray(error.errors)) {
+        console.log('Validation errors:', error.errors); // ← Log từng lỗi
+        error.errors.forEach((err, index) => {
+          console.log(`Error ${index + 1}:`, err); // ← Log từng lỗi chi tiết
+          showError(`${err.param || err.field || 'Error'}: ${err.msg || err.message}`);
+        });
+      } else {
+        showError(error?.message || 'Không thể lưu sách');
+      }
     } finally {
       setSavingBook(false);
     }
@@ -329,13 +456,6 @@ const BookManagementPage = () => {
   };
 
   /**
-   * Handle upload change
-   */
-  const handleUploadChange = ({ fileList: newFileList }) => {
-    setFileList(newFileList);
-  };
-
-  /**
    * Upload button
    */
   const uploadButton = (
@@ -350,7 +470,7 @@ const BookManagementPage = () => {
    */
   const columns = [
     {
-      title: 'Ảnh',
+      title: 'Bìa',
       dataIndex: 'images',
       key: 'images',
       width: 80,
@@ -532,7 +652,7 @@ const BookManagementPage = () => {
             onChange={handleCategoryChange}
             style={{ width: 200 }}
             options={[
-              { value: null, label: 'Tất cả danh mục' },
+              { value: '', label: 'Tất cả danh mục' },
               ...categories.map((cat) => ({
                 value: cat._id,
                 label: cat.name,
@@ -679,12 +799,14 @@ const BookManagementPage = () => {
         }}
         footer={null}
         width={900}
-        destroyOnClose
       >
         <Form
           form={bookForm}
           layout="vertical"
           onFinish={handleSaveBook}
+          initialValues={{
+            discountPercent: 0,
+          }}
         >
           <Row gutter={16}>
             {/* Left Column */}
@@ -694,7 +816,7 @@ const BookManagementPage = () => {
                 label="Tên sách"
                 rules={[{ required: true, message: 'Vui lòng nhập tên sách!' }]}
               >
-                <Input placeholder="Nhập tên sách" size="large" />
+                <Input placeholder="Nhập tên sách" />
               </Form.Item>
 
               <Form.Item
@@ -740,6 +862,10 @@ const BookManagementPage = () => {
               >
                 <Select
                   placeholder="Chọn danh mục"
+                  showSearch
+                  filterOption={(input, option) =>
+                    (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                  }
                   options={categories.map((cat) => ({
                     value: cat._id,
                     label: cat.name,
@@ -787,16 +913,13 @@ const BookManagementPage = () => {
               </Row>
 
               <Form.Item
-                name="language"
+                name="bookLanguage"
                 label="Ngôn ngữ"
               >
-                <Select placeholder="Chọn ngôn ngữ">
-                  {Object.keys(LANGUAGES).map((key) => (
-                    <Select.Option key={LANGUAGES[key]} value={LANGUAGES[key]}>
-                      {LANGUAGE_LABELS[LANGUAGES[key]]}
-                    </Select.Option>
-                  ))}
-                </Select>
+                <Input
+                  placeholder="VD: Tiếng Việt, English, 日本語..."
+                  maxLength={50}
+                />
               </Form.Item>
 
               <Form.Item
@@ -833,22 +956,39 @@ const BookManagementPage = () => {
 
                 <Col span={12}>
                   <Form.Item
-                    name="salePrice"
-                    label="Giá bán"
-                    rules={[{ required: true, message: 'Vui lòng nhập giá bán!' }]}
+                    name="discountPercent"
+                    label="Giảm giá"
                   >
                     <InputNumber
                       min={0}
+                      max={100}
                       style={{ width: '100%' }}
-                      formatter={(value) =>
-                        `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-                      }
-                      parser={(value) => value.replace(/\$\s?|(,*)/g, '')}
-                      addonAfter="₫"
+                      addonAfter="%"
+                      placeholder="0"
                     />
                   </Form.Item>
                 </Col>
               </Row>
+
+              {/* Display calculated sale price */}
+              {originalPrice && (
+                <Form.Item label="Giá bán (tự động tính)">
+                  <Input
+                    value={formatPrice(salePrice || originalPrice)}
+                    disabled
+                    style={{
+                      fontWeight: 600,
+                      color: '#f5222d',
+                      backgroundColor: '#fff1f0'
+                    }}
+                  />
+                </Form.Item>
+              )}
+
+              {/* Hidden field to store sale price */}
+              <Form.Item name="salePrice" hidden>
+                <InputNumber />
+              </Form.Item>
             </Col>
           </Row>
 
@@ -863,18 +1003,92 @@ const BookManagementPage = () => {
             />
           </Form.Item>
 
-          <Form.Item label="Hình ảnh sách">
+          <Form.Item
+            label="Hình ảnh sách"
+            required
+            tooltip="Ít nhất 1 ảnh là bắt buộc"
+          >
             <Upload
               listType="picture-card"
               fileList={fileList}
-              onChange={handleUploadChange}
-              beforeUpload={() => false} // Prevent auto upload
+              beforeUpload={async (file) => {
+                // Validate file type
+                const isImage = file.type.startsWith('image/');
+                if (!isImage) {
+                  showError('Chỉ được upload file ảnh!');
+                  return false;
+                }
+
+                // Validate file size (max 5MB)
+                const isLt5M = file.size / 1024 / 1024 < 5;
+                if (!isLt5M) {
+                  showError('Kích thước ảnh phải nhỏ hơn 5MB!');
+                  return false;
+                }
+
+                // Upload to Cloudinary
+                try {
+                  setUploading(true);
+
+                  // Create temp file object with uploading status
+                  const tempFile = {
+                    uid: file.uid,
+                    name: file.name,
+                    status: 'uploading',
+                    url: '',
+                  };
+                  setFileList(prev => [...prev, tempFile]);
+
+                  // Upload to Cloudinary
+                  const response = await uploadApi.uploadImage(file);
+
+                  console.log('Upload response:', response); // Debug
+
+                  // Update file với URL từ Cloudinary
+                  const uploadedFile = {
+                    uid: file.uid,
+                    name: file.name,
+                    status: 'done',
+                    url: response.data?.url || response.url, // Support both formats
+                    publicId: response.data?.publicId || response.publicId,
+                  };
+
+                  setFileList(prev =>
+                    prev.map(item => item.uid === file.uid ? uploadedFile : item)
+                  );
+
+                  showSuccess('Upload ảnh thành công!');
+                } catch (error) {
+                  console.error('Upload error:', error);
+                  console.error('Error response:', error.response?.data); // Debug
+                  showError(error.response?.data?.message || 'Upload ảnh thất bại!');
+
+                  // Remove failed file
+                  setFileList(prev => prev.filter(item => item.uid !== file.uid));
+                } finally {
+                  setUploading(false);
+                }
+
+                return false; // Prevent auto upload
+              }}
+              onRemove={(file) => {
+                // Xóa file khỏi list
+                setFileList(prev => prev.filter(item => item.uid !== file.uid));
+
+                // Nếu file đã upload lên Cloudinary, xóa luôn trên Cloudinary
+                if (file.publicId) {
+                  uploadApi.deleteImage(file.publicId).catch(err => {
+                    console.error('Delete image error:', err);
+                  });
+                }
+              }}
               maxCount={5}
             >
               {fileList.length >= 5 ? null : uploadButton}
             </Upload>
             <Text type="secondary" style={{ fontSize: 12 }}>
-              Tối đa 5 ảnh. Ảnh đầu tiên sẽ là ảnh chính.
+              Tối đa 5 ảnh. Ảnh đầu tiên sẽ là ảnh chính. Kích thước tối đa 5MB/ảnh.
+              {uploading && <span style={{ color: '#1890ff', marginLeft: 8 }}>Đang upload...</span>}
             </Text>
           </Form.Item>
 
