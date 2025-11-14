@@ -152,7 +152,7 @@ const BookManagementPage = () => {
       try {
         const response = await authorApi.getAuthors();
         console.log('📚 Authors API Response:', response); // Debug full response
-        console.log('📚 Response structure:', JSON.stringify(response, null, 2)); // Debug structure
+        // console.log('📚 Response structure:', JSON.stringify(response, null, 2)); // Debug structure
 
         // Xử lý nhiều cấu trúc response khác nhau
         let authorsList = [];
@@ -206,7 +206,7 @@ const BookManagementPage = () => {
       try {
         const response = await publisherApi.getPublishers();
         console.log('🏢 Publishers API Response:', response); // Debug full response
-        console.log('🏢 Response structure:', JSON.stringify(response, null, 2)); // Debug structure
+        // console.log('🏢 Response structure:', JSON.stringify(response, null, 2)); // Debug structure
 
         // Xử lý nhiều cấu trúc response khác nhau
         let publishersList = [];
@@ -436,7 +436,27 @@ const BookManagementPage = () => {
       copiesForm.resetFields();
       fetchBooks(pagination.current);
     } catch (error) {
-      showError(error || 'Không thể thêm bản sao');
+      console.error('Add copies error:', error);
+      // Nếu backend trả về validation errors, hiển thị chi tiết
+      if (error?.response?.data) {
+        const data = error.response.data;
+        // Log server response to console for easier debugging
+        console.error('Server response:', data);
+
+        if (Array.isArray(data.errors) && data.errors.length > 0) {
+          data.errors.forEach((err) => {
+            showError(`${err.field || 'Error'}: ${err.message}`);
+          });
+        } else if (data.message) {
+          showError(data.message);
+        } else {
+          showError(JSON.stringify(data));
+        }
+      } else if (error?.message) {
+        showError(error.message);
+      } else {
+        showError('Không thể thêm bản sao');
+      }
     } finally {
       setAddingCopies(false);
     }

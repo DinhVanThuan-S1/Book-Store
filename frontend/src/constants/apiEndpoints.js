@@ -13,6 +13,7 @@ export const API_ENDPOINTS = {
     LOGIN_ADMIN: '/auth/admin/login',
     ME: '/auth/me',
     CHANGE_PASSWORD: '/auth/change-password',
+    UPDATE_PROFILE: '/auth/profile',
     LOGOUT: '/auth/logout',
   },
   

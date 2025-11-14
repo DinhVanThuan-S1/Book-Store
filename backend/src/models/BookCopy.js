@@ -14,7 +14,7 @@ const bookCopySchema = new mongoose.Schema({
   copyCode: {
     type: String,
     unique: true,
-    required: true,
+    // Không bắt buộc vì sẽ tự động tạo trong pre('save') middleware
   },
   
   // Mã vạch/QR code

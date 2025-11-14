@@ -8,12 +8,9 @@
   // Sidebar
   .admin-sider {
     background: #001529;
-    position: fixed;
-    left: 0;
-    top: 0;
-    bottom: 0;
     overflow: auto;
     z-index: 100;
+    transition: all 0.2s; // ⭐ Smooth transition
     
     // Hide scrollbar for cleaner look
     &::-webkit-scrollbar {
@@ -66,28 +63,38 @@
         line-height: 48px;
         margin: 4px 8px; // ⭐ THÊM
         border-radius: $radius-md; // ⭐ THÊM
+        color: rgba(255, 255, 255, 0.85); // ⭐ Màu chữ sáng
+        
+        // Icon color
+        .anticon {
+          color: rgba(255, 255, 255, 0.75);
+        }
         
         &:hover {
           background: rgba(255, 255, 255, 0.1);
+          color: #ffffff; // ⭐ Màu chữ trắng khi hover
+          
+          .anticon {
+            color: #ffffff;
+          }
         }
       }
       
       .ant-menu-item-selected {
         background: $primary-color !important;
+        color: #ffffff !important; // ⭐ Màu chữ trắng khi selected
+        
+        .anticon {
+          color: #ffffff !important;
+        }
       }
     }
   }
   
   // Main Layout (bên phải sidebar)
   .ant-layout {
-    margin-left: 250px; // ⭐ THÊM - width của sidebar
-    height: 100vh; // ⭐ THÊM
-    
-    &.ant-layout-has-sider {
-      .ant-layout {
-        margin-left: 0; // ⭐ THÊM - reset margin
-      }
-    }
+    // ⭐ Không set margin-left cố định - để Ant Design Layout tự động xử lý
+    height: 100vh;
   }
   
   // Header
@@ -191,14 +198,14 @@
   .admin-layout {
     .admin-sider {
       // Sidebar ẩn trên mobile, chỉ hiện khi click toggle
+      position: fixed; // ⭐ Chỉ fixed trên mobile
+      left: 0;
+      top: 0;
+      bottom: 0;
+      
       &:not(.ant-layout-sider-collapsed) {
-        position: fixed;
         z-index: 1000;
       }
-    }
-    
-    .ant-layout {
-      margin-left: 0; // ⭐ FIX - Không margin trên mobile
     }
     
     .admin-content {

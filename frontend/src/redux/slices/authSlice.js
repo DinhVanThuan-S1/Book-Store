@@ -51,11 +51,14 @@ export const loginUser = createAsyncThunk(
     try {
       const response = await authApi.login(credentials);
       
+      // Thêm role vào customer object
+      const customerWithRole = { ...response.data.customer, role: 'customer' };
+      
       // Lưu vào localStorage
       localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.customer));
+      localStorage.setItem('user', JSON.stringify(customerWithRole));
       
-      return response.data;
+      return { ...response.data, customer: customerWithRole };
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -69,10 +72,13 @@ export const loginAdmin = createAsyncThunk(
     try {
       const response = await authApi.loginAdmin(credentials);
       
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.admin));
+      // Thêm role vào admin object để phân biệt với customer
+      const adminWithRole = { ...response.data.admin, role: 'admin' };
       
-      return response.data;
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(adminWithRole));
+      
+      return { ...response.data, admin: adminWithRole };
     } catch (error) {
       return rejectWithValue(error.message);
     }

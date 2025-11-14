@@ -136,7 +136,7 @@ const deleteAddress = asyncHandler(async (req, res) => {
     });
   }
   
-  await address.remove();
+  await address.deleteOne();
   
   res.status(200).json({
     success: true,

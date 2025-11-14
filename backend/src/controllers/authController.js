@@ -216,6 +216,47 @@ const logout = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * @desc    Cập nhật thông tin profile
+ * @route   PUT /api/auth/profile
+ * @access  Private
+ */
+const updateProfile = asyncHandler(async (req, res) => {
+  const { fullName, phone, dateOfBirth, gender, avatar } = req.body;
+  
+  // Lấy user hiện tại
+  let user;
+  if (req.userRole === 'admin') {
+    user = await Admin.findById(req.user._id);
+  } else {
+    user = await Customer.findById(req.user._id);
+  }
+  
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      message: 'User not found',
+    });
+  }
+  
+  // Cập nhật thông tin
+  if (fullName) user.fullName = fullName;
+  if (phone) user.phone = phone;
+  if (dateOfBirth !== undefined) user.dateOfBirth = dateOfBirth;
+  if (gender) user.gender = gender;
+  if (avatar) user.avatar = avatar;
+  
+  await user.save();
+  
+  res.status(200).json({
+    success: true,
+    message: 'Profile updated successfully',
+    data: {
+      user: user.toJSON(),
+    },
+  });
+});
+
 module.exports = {
   register,
   loginCustomer,
@@ -223,4 +264,5 @@ module.exports = {
   getMe,
   changePassword,
   logout,
+  updateProfile,
 };

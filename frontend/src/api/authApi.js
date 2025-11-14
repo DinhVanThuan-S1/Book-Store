@@ -53,6 +53,15 @@ export const changePassword = (data) => {
 };
 
 /**
+ * Cập nhật thông tin profile
+ * @param {Object} data - { fullName, phone, dateOfBirth, gender, avatar }
+ * @returns {Promise}
+ */
+export const updateProfile = (data) => {
+  return axiosInstance.put(API_ENDPOINTS.AUTH.UPDATE_PROFILE, data);
+};
+
+/**
  * Đăng xuất
  * @returns {Promise}
  */
@@ -67,6 +76,7 @@ const authApi = {
   loginAdmin,
   getMe,
   changePassword,
+  updateProfile,
   logout,
 };
 

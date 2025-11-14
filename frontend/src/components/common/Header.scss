@@ -45,16 +45,22 @@
   .header-search {
     flex: 1;
     max-width: 500px;
+    display: flex;
+    justify-content: center; // ⭐ Canh giữa
   }
   
   .header-actions {
     flex: 0 0 auto;
+    display: flex; // ⭐ Flex để canh giữa
+    align-items: center; // ⭐ Canh giữa theo chiều dọc
   }
   
   .header-cart {
     color: $text-primary;
     cursor: pointer;
     transition: color $transition-base;
+    display: flex; // ⭐ Flex để canh giữa badge
+    align-items: center; // ⭐ Canh giữa icon
     
     &:hover {
       color: $primary-color;

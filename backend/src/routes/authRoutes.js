@@ -19,6 +19,7 @@ const {
   getMe,
   changePassword,
   logout,
+  updateProfile,
 } = require('../controllers/authController');
 
 /**
@@ -72,6 +73,27 @@ const changePasswordValidation = [
     }),
 ];
 
+// Validation cho update profile
+const updateProfileValidation = [
+  body('fullName')
+    .optional()
+    .trim()
+    .isLength({ min: 2 })
+    .withMessage('Full name must be at least 2 characters'),
+  body('phone')
+    .optional()
+    .matches(/^[0-9]{10,11}$/)
+    .withMessage('Please provide a valid phone number (10-11 digits)'),
+  body('dateOfBirth')
+    .optional()
+    .isISO8601()
+    .withMessage('Invalid date format'),
+  body('gender')
+    .optional()
+    .isIn(['male', 'female', 'other'])
+    .withMessage('Invalid gender'),
+];
+
 /**
  * Routes
  */
@@ -111,5 +133,16 @@ router.put(
 // @desc    Đăng xuất
 // @access  Private
 router.post('/logout', protect, logout);
+
+// @route   PUT /api/auth/profile
+// @desc    Cập nhật thông tin profile
+// @access  Private
+router.put(
+  '/profile',
+  protect,
+  updateProfileValidation,
+  validate,
+  updateProfile
+);
 
 module.exports = router;

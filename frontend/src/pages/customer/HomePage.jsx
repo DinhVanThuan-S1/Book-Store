@@ -97,7 +97,7 @@ const HomePage = () => {
           <div className="hero-slide hero-slide-1">
             <div className="hero-content">
               <Title level={1}>Khám phá thế giới tri thức</Title>
-              <Paragraph>
+              <Paragraph style={{ color: '#ffffff', fontWeight: 500, textShadow: '0 2px 4px rgba(0, 0, 0, 0.3)' }}>
                 Hàng nghìn đầu sách chất lượng với giá tốt nhất
               </Paragraph>
               <Button
@@ -114,7 +114,7 @@ const HomePage = () => {
           <div className="hero-slide hero-slide-2">
             <div className="hero-content">
               <Title level={1}>Ưu đãi hấp dẫn</Title>
-              <Paragraph>
+              <Paragraph style={{ color: '#ffffff', fontWeight: 500, textShadow: '0 2px 4px rgba(0, 0, 0, 0.3)' }}>
                 Giảm giá lên đến 50% cho hàng nghìn đầu sách
               </Paragraph>
               <Button
@@ -131,7 +131,7 @@ const HomePage = () => {
           <div className="hero-slide hero-slide-3">
             <div className="hero-content">
               <Title level={1}>Miễn phí vận chuyển</Title>
-              <Paragraph>
+              <Paragraph style={{ color: '#ffffff', fontWeight: 500, textShadow: '0 2px 4px rgba(0, 0, 0, 0.3)' }}>
                 Cho đơn hàng từ 300.000đ trên toàn quốc
               </Paragraph>
               <Button

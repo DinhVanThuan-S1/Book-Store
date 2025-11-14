@@ -38,11 +38,8 @@ const ProtectedRoute = ({ children, requiredRole }) => {
 
   // Kiểm tra role (nếu có yêu cầu)
   if (requiredRole) {
-    // Xác định role của user hiện tại
-    // Nếu user có email admin thì là admin, còn lại là customer
-    const userRole = user?.email?.includes('admin') || user?.role === 'admin'
-      ? 'admin'
-      : 'customer';
+    // Xác định role của user hiện tại từ user.role (đã được set khi login)
+    const userRole = user?.role || 'customer';
 
     if (userRole !== requiredRole) {
       // Admin truy cập customer routes → redirect về admin

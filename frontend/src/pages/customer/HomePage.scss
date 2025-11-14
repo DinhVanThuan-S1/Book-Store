@@ -57,6 +57,9 @@
         p {
           font-size: $font-xl;
           margin-bottom: $spacing-xl;
+          color: #ffffff !important; // ⭐ Màu trắng hoàn toàn để dễ nhìn
+          font-weight: 500; // ⭐ Tăng độ đậm
+          text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3); // ⭐ Thêm bóng chữ để nổi bật hơn
         }
       }
     }
