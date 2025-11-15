@@ -17,6 +17,7 @@ import './CartSummary.scss';
  * @param {Number} props.subtotal - Tổng tiền hàng
  * @param {Number} props.shippingFee - Phí ship
  * @param {Number} props.discount - Giảm giá
+ * @param {Number} props.savings - Tiết kiệm được
  * @param {Number} props.total - Tổng cộng
  * @param {Function} props.onCheckout - Callback thanh toán
  * @param {Boolean} props.loading - Loading state
@@ -25,6 +26,7 @@ const CartSummary = ({
   subtotal = 0,
   shippingFee = 25000,
   discount = 0,
+  savings = 0,
   total = 0,
   onCheckout,
   loading = false,
@@ -43,6 +45,16 @@ const CartSummary = ({
           <span className="summary-label">Phí vận chuyển:</span>
           <span className="summary-value">{formatPrice(shippingFee)}</span>
         </div>
+
+        {/* Savings */}
+        {savings > 0 && (
+          <div className="summary-row">
+            <span className="summary-label">Tiết kiệm:</span>
+            <span className="summary-value savings">
+              {formatPrice(savings)}
+            </span>
+          </div>
+        )}
 
         {/* Discount */}
         {discount > 0 && (

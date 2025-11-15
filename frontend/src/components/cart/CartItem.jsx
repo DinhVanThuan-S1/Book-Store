@@ -47,7 +47,7 @@ const CartItem = ({ item, onUpdateQuantity, onRemove }) => {
   const subtotal = item.price * item.quantity;
 
   return (
-    <Card className="cart-item" bordered={false}>
+    <Card className="cart-item" variant="borderless">
       <div className="cart-item-content">
         {/* Image */}
         <Link to={`/books/${product.slug || product._id}`} className="cart-item-image">

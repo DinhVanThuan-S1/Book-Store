@@ -21,7 +21,11 @@ const getCart = asyncHandler(async (req, res) => {
   let cart = await Cart.findOne({ customer: req.user._id })
     .populate({
       path: 'items.book',
-      select: 'title slug images salePrice availableCopies',
+      select: 'title slug images salePrice originalPrice availableCopies author',
+      populate: {
+        path: 'author',
+        select: 'name',
+      },
     })
     .populate({
       path: 'items.combo',
@@ -260,8 +264,8 @@ const removeCartItem = asyncHandler(async (req, res) => {
     );
   }
   
-  // Xóa item
-  item.remove();
+  // Xóa item (sử dụng pull thay vì remove)
+  cart.items.pull(req.params.itemId);
   
   // Tính lại tổng tiền
   cart.calculateTotal();

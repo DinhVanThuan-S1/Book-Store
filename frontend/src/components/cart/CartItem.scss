@@ -21,6 +21,11 @@
       height: 140px;
       object-fit: cover;
       border-radius: $radius-md;
+      overflow: hidden;
+      
+      img {
+        border-radius: $radius-md;
+      }
     }
   }
   
@@ -80,7 +85,7 @@
   
   .cart-item-subtotal {
     flex: 0 0 150px;
-    text-align: right;
+    text-align: center;
     
     .subtotal-label {
       color: $text-secondary;

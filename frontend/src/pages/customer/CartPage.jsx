@@ -127,17 +127,33 @@ const CartPage = () => {
   const shippingFee = totalPrice >= 300000 ? 0 : 25000;
   const total = totalPrice + shippingFee;
 
+  // Calculate savings (originalPrice - salePrice)
+  const savings = items.reduce((acc, item) => {
+    if (item.type === 'book' && item.book) {
+      const originalPrice = item.book.originalPrice || item.price;
+      const saved = (originalPrice - item.price) * item.quantity;
+      return acc + saved;
+    }
+    return acc;
+  }, 0);
+
   return (
     <div className="cart-page">
       <div className="page-content">
         <div className="container">
           {/* Breadcrumb */}
-          <Breadcrumb className="page-breadcrumb">
-            <Breadcrumb.Item href="/">
-              <HomeOutlined />
-            </Breadcrumb.Item>
-            <Breadcrumb.Item>Giỏ hàng</Breadcrumb.Item>
-          </Breadcrumb>
+          <Breadcrumb
+            className="page-breadcrumb"
+            items={[
+              {
+                href: '/',
+                title: <HomeOutlined />,
+              },
+              {
+                title: 'Giỏ hàng',
+              },
+            ]}
+          />
 
           {/* Content */}
           <Row gutter={24}>
@@ -164,6 +180,7 @@ const CartPage = () => {
               <CartSummary
                 subtotal={totalPrice}
                 shippingFee={shippingFee}
+                savings={savings}
                 total={total}
                 onCheckout={handleCheckout}
               />

@@ -13,21 +13,21 @@ const Cart = require('../models/Cart');
  * Chạy mỗi 5 phút
  */
 const startCartCleanupJob = () => {
-  cron.schedule('*/5 * * * *', async () => {
-    try {
-      console.log('🧹 Running cart cleanup job...');
+  // cron.schedule('*/5 * * * *', async () => {
+  //   try {
+  //     console.log('🧹 Running cart cleanup job...');
       
-      // 1. Release expired book copy reservations
-      await BookCopy.releaseExpiredReservations();
+  //     // 1. Release expired book copy reservations
+  //     await BookCopy.releaseExpiredReservations();
       
-      // 2. Remove expired items from carts
-      await Cart.removeExpiredItems();
+  //     // 2. Remove expired items from carts
+  //     await Cart.removeExpiredItems();
       
-      console.log('✅ Cart cleanup completed');
-    } catch (error) {
-      console.error('❌ Cart cleanup error:', error);
-    }
-  });
+  //     console.log('✅ Cart cleanup completed');
+  //   } catch (error) {
+  //     console.error('❌ Cart cleanup error:', error);
+  //   }
+  // });
   
   console.log('✅ Cart cleanup job scheduled (every 5 minutes)');
 };
