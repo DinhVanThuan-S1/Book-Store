@@ -40,13 +40,14 @@ import {
 import dayjs from 'dayjs';
 import { updateUser } from '@redux/slices/authSlice';
 import { authApi, uploadApi, addressApi } from '@api';
-import { showSuccess, showError } from '@utils/notification';
+import { useMessage } from '@utils/notification';
 import './ProfilePage.scss';
 
 const { Title } = Typography;
 
 const ProfilePage = () => {
   const dispatch = useDispatch();
+  const { message } = useMessage(); // ⭐ Sử dụng hook thay vì static functions
   const [profileForm] = Form.useForm();
   const [passwordForm] = Form.useForm();
   const [addressForm] = Form.useForm();
@@ -96,10 +97,17 @@ const ProfilePage = () => {
 
       // Loại bỏ email (không cho phép update) và convert dateOfBirth
       const { email: _email, ...updateFields } = values;
-      const updateData = {
-        ...updateFields,
-        dateOfBirth: values.dateOfBirth ? values.dateOfBirth.toISOString() : null,
-      };
+
+      // Clean data: chỉ gửi các field có giá trị
+      const updateData = {};
+
+      if (updateFields.fullName) updateData.fullName = updateFields.fullName;
+      if (updateFields.phone) updateData.phone = updateFields.phone;
+      if (updateFields.dateOfBirth) {
+        // Format YYYY-MM-DD để tránh lỗi timezone
+        updateData.dateOfBirth = updateFields.dateOfBirth.format('YYYY-MM-DD');
+      }
+      if (updateFields.gender) updateData.gender = updateFields.gender;
 
       console.log('Update data:', updateData); // Debug
 
@@ -110,7 +118,7 @@ const ProfilePage = () => {
       // Update Redux state với data từ server
       dispatch(updateUser(response.data.user));
 
-      showSuccess('Cập nhật thông tin thành công');
+      message.success('Cập nhật thông tin thành công');
     } catch (error) {
       console.error('Update profile error:', error); // Debug
       console.error('Error response data:', error?.response?.data); // Debug chi tiết
@@ -124,17 +132,17 @@ const ProfilePage = () => {
           // Log từng lỗi để debug
           console.error('Validation errors:', data.errors);
           data.errors.forEach((err) => {
-            showError(`${err.field || err.param || 'Error'}: ${err.message || err.msg}`);
+            message.error(`${err.field || err.param || 'Error'}: ${err.message || err.msg}`);
           });
         } else if (data.message) {
-          showError(data.message);
+          message.error(data.message);
         } else {
-          showError('Không thể cập nhật thông tin');
+          message.error('Không thể cập nhật thông tin');
         }
       } else if (error?.message) {
-        showError(error.message);
+        message.error(error.message);
       } else {
-        showError('Không thể cập nhật thông tin');
+        message.error('Không thể cập nhật thông tin');
       }
     } finally {
       setUpdatingProfile(false);
@@ -153,10 +161,10 @@ const ProfilePage = () => {
         newPassword: values.newPassword,
       });
 
-      showSuccess('Đổi mật khẩu thành công');
+      message.success('Đổi mật khẩu thành công');
       passwordForm.resetFields();
     } catch (error) {
-      showError(error || 'Không thể đổi mật khẩu');
+      message.error(error || 'Không thể đổi mật khẩu');
     } finally {
       setChangingPassword(false);
     }
@@ -169,13 +177,13 @@ const ProfilePage = () => {
     // Validate file
     const isImage = file.type.startsWith('image/');
     if (!isImage) {
-      showError('Chỉ được upload file ảnh!');
+      message.error('Chỉ được upload file ảnh!');
       return false;
     }
 
     const isLt5M = file.size / 1024 / 1024 < 5;
     if (!isLt5M) {
-      showError('Ảnh phải nhỏ hơn 5MB!');
+      message.error('Ảnh phải nhỏ hơn 5MB!');
       return false;
     }
 
@@ -197,10 +205,10 @@ const ProfilePage = () => {
       // Update Redux state
       dispatch(updateUser({ ...user, avatar: avatarUrl }));
 
-      showSuccess('Đổi ảnh đại diện thành công!');
+      message.success('Đổi ảnh đại diện thành công!');
     } catch (error) {
       console.error('Avatar upload error:', error);
-      showError(error?.message || 'Không thể upload ảnh');
+      message.error(error?.message || 'Không thể upload ảnh');
     } finally {
       setUploadingAvatar(false);
     }
@@ -231,11 +239,11 @@ const ProfilePage = () => {
       if (editingAddress) {
         // Update
         await addressApi.updateAddress(editingAddress._id, values);
-        showSuccess('Cập nhật địa chỉ thành công');
+        message.success('Cập nhật địa chỉ thành công');
       } else {
         // Create
         await addressApi.createAddress(values);
-        showSuccess('Thêm địa chỉ thành công');
+        message.success('Thêm địa chỉ thành công');
       }
 
       setAddressModalVisible(false);
@@ -243,7 +251,7 @@ const ProfilePage = () => {
       setEditingAddress(null);
       fetchAddresses();
     } catch (error) {
-      showError(error?.message || 'Không thể lưu địa chỉ');
+      message.error(error?.message || 'Không thể lưu địa chỉ');
     } finally {
       setSavingAddress(false);
     }
@@ -255,10 +263,10 @@ const ProfilePage = () => {
   const handleDeleteAddress = async (id) => {
     try {
       await addressApi.deleteAddress(id);
-      showSuccess('Xóa địa chỉ thành công');
+      message.success('Xóa địa chỉ thành công');
       fetchAddresses();
     } catch (error) {
-      showError(error?.message || 'Không thể xóa địa chỉ');
+      message.error(error?.message || 'Không thể xóa địa chỉ');
     }
   };
 
@@ -268,10 +276,10 @@ const ProfilePage = () => {
   const handleSetDefaultAddress = async (id) => {
     try {
       await addressApi.setDefaultAddress(id);
-      showSuccess('Đặt địa chỉ mặc định thành công');
+      message.success('Đặt địa chỉ mặc định thành công');
       fetchAddresses();
     } catch (error) {
-      showError(error?.message || 'Không thể đặt địa chỉ mặc định');
+      message.error(error?.message || 'Không thể đặt địa chỉ mặc định');
     }
   };
 

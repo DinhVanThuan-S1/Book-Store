@@ -8,10 +8,11 @@
 import React from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
 import { Provider } from 'react-redux';
-import { ConfigProvider } from 'antd';
+import { ConfigProvider, App as AntApp } from 'antd';
 import viVN from 'antd/locale/vi_VN';
 import store from '@redux/store';
 import AppRoutes from '@routes/AppRoutes';
+import { MessageProvider } from '@contexts/MessageContext';
 import '@styles/global.scss';
 import './App.scss';
 import ErrorBoundary from '@components/common/ErrorBoundary';
@@ -32,14 +33,18 @@ function App() {
           },
         }}
       >
-        <Router>
-          <ErrorBoundary>
-            <div className="app">
-              {/* KHÔNG render Header/Footer ở đây */}
-              <AppRoutes />
-            </div>
-          </ErrorBoundary>
-        </Router>
+        <AntApp>
+          <MessageProvider>
+            <Router>
+              <ErrorBoundary>
+                <div className="app">
+                  {/* KHÔNG render Header/Footer ở đây */}
+                  <AppRoutes />
+                </div>
+              </ErrorBoundary>
+            </Router>
+          </MessageProvider>
+        </AntApp>
       </ConfigProvider>
     </Provider>
   );

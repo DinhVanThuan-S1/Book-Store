@@ -2,72 +2,78 @@
  * ==============================================
  * NOTIFICATION UTILITY
  * ==============================================
- * Wrapper cho Ant Design message/notification
+ * Export hook để sử dụng message API từ MessageContext
  */
 
-import { message, notification } from 'antd';
+import { message as antdMessage, notification as antdNotification } from 'antd';
+
+// Export hook chính (dùng trong React components)
+export { useMessage } from '@contexts/MessageContext';
+
+// ⚠️ DEPRECATED: Legacy static functions cho backward compatibility
+// Dùng tạm để không phá vỡ code cũ, nhưng nên migrate sang useMessage hook
 
 /**
- * Hiển thị success message
- * @param {String} content
+ * @deprecated Sử dụng useMessage() hook thay thế
  */
 export const showSuccess = (content) => {
-  message.success(content);
+  antdMessage.success(content);
 };
 
 /**
- * Hiển thị error message
- * @param {String} content
+ * @deprecated Sử dụng useMessage() hook thay thế
  */
 export const showError = (content) => {
-  message.error(content);
+  antdMessage.error(content);
 };
 
 /**
- * Hiển thị warning message
- * @param {String} content
+ * @deprecated Sử dụng useMessage() hook thay thế
  */
 export const showWarning = (content) => {
-  message.warning(content);
+  antdMessage.warning(content);
 };
 
 /**
- * Hiển thị info message
- * @param {String} content
+ * @deprecated Sử dụng useMessage() hook thay thế
  */
 export const showInfo = (content) => {
-  message.info(content);
+  antdMessage.info(content);
 };
 
 /**
- * Hiển thị loading message
- * @param {String} content
- * @param {Number} duration - Duration in seconds (0 = không tự đóng)
- * @returns {Function} - Function để close message
+ * @deprecated Sử dụng useMessage() hook thay thế
  */
 export const showLoading = (content, duration = 0) => {
-  return message.loading(content, duration);
+  return antdMessage.loading(content, duration);
 };
 
 /**
- * Hiển thị notification (phức tạp hơn message)
- * @param {String} type - 'success' | 'error' | 'warning' | 'info'
- * @param {String} title
- * @param {String} description
+ * @deprecated Sử dụng useMessage() hook thay thế
  */
 export const showNotification = (type, title, description) => {
-  notification[type]({
+  antdNotification[type]({
     message: title,
     description: description,
     placement: 'topRight',
+    duration: 4.5,
   });
 };
 
-export default {
-  showSuccess,
-  showError,
-  showWarning,
-  showInfo,
-  showLoading,
-  showNotification,
-};
+/**
+ * Helper functions để sử dụng với useMessage hook
+ * 
+ * Cách dùng trong component:
+ * 
+ * import { useMessage } from '@utils/notification';
+ * 
+ * const MyComponent = () => {
+ *   const { message } = useMessage();
+ *   
+ *   const handleClick = () => {
+ *     message.success('Thành công!');
+ *   };
+ *   
+ *   return <button onClick={handleClick}>Click me</button>;
+ * };
+ */

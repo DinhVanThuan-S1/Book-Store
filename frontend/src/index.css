@@ -27,3 +27,116 @@ code {
 #root {
   min-height: 100vh;
 }
+
+/* ========================================
+   CUSTOM NOTIFICATION STYLES
+   ======================================== */
+
+/* Notification container */
+.ant-notification {
+  z-index: 99999 !important;
+}
+
+.ant-notification-notice {
+  padding: 16px 24px !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: #fff;
+  animation: slideInRight 0.3s ease-out;
+}
+
+/* Close button styling */
+.ant-notification-notice-close {
+  top: 16px !important;
+  right: 16px !important;
+  color: rgba(0, 0, 0, 0.45);
+  transition: all 0.3s;
+}
+
+.ant-notification-notice-close:hover {
+  color: rgba(0, 0, 0, 0.75);
+  transform: rotate(90deg);
+}
+
+/* Success notification */
+.custom-notification-success .ant-notification-notice-icon {
+  font-size: 24px;
+}
+
+.custom-notification-success .ant-notification-notice-message {
+  color: #52c41a;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.custom-notification-success .ant-notification-notice-description {
+  color: rgba(0, 0, 0, 0.85);
+  font-size: 14px;
+}
+
+/* Error notification */
+.custom-notification-error .ant-notification-notice-icon {
+  font-size: 24px;
+}
+
+.custom-notification-error .ant-notification-notice-message {
+  color: #ff4d4f;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.custom-notification-error .ant-notification-notice-description {
+  color: rgba(0, 0, 0, 0.85);
+  font-size: 14px;
+}
+
+/* Warning notification */
+.custom-notification-warning .ant-notification-notice-icon {
+  font-size: 24px;
+}
+
+.custom-notification-warning .ant-notification-notice-message {
+  color: #faad14;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.custom-notification-warning .ant-notification-notice-description {
+  color: rgba(0, 0, 0, 0.85);
+  font-size: 14px;
+}
+
+/* Info notification */
+.custom-notification-info .ant-notification-notice-icon {
+  font-size: 24px;
+}
+
+.custom-notification-info .ant-notification-notice-message {
+  color: #1890ff;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.custom-notification-info .ant-notification-notice-description {
+  color: rgba(0, 0, 0, 0.85);
+  font-size: 14px;
+}
+
+/* Animation */
+@keyframes slideInRight {
+  from {
+    transform: translate3d(100%, 0, 0);
+    opacity: 0;
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
+}
+
+/* Hover effect */
+.ant-notification-notice:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2) !important;
+  transition: box-shadow 0.3s ease;
+}
