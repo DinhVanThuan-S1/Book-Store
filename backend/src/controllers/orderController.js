@@ -26,8 +26,15 @@ const createOrder = asyncHandler(async (req, res) => {
   
   // Lấy giỏ hàng
   const cart = await Cart.findOne({ customer: req.user._id })
-    .populate('items.book', 'title salePrice author')
-    .populate('items.combo', 'name comboPrice');
+    .populate({
+      path: 'items.book',
+      select: 'title salePrice images author',
+      populate: {
+        path: 'author',
+        select: 'name',
+      },
+    })
+    .populate('items.combo', 'name comboPrice image');
   
   if (!cart || cart.items.length === 0) {
     return res.status(400).json({
@@ -66,7 +73,7 @@ const createOrder = asyncHandler(async (req, res) => {
       orderItem.bookSnapshot = {
         title: item.book.title,
         author: item.book.author ? item.book.author.name : 'Unknown',
-        image: item.book.images[0],
+        image: item.book.images && item.book.images.length > 0 ? item.book.images[0] : '',
       };
       
       // Cập nhật trạng thái bản sao từ reserved → sold
@@ -80,7 +87,7 @@ const createOrder = asyncHandler(async (req, res) => {
       orderItem.combo = item.combo._id;
       orderItem.comboSnapshot = {
         name: item.combo.name,
-        image: item.combo.image,
+        image: item.combo.image || '',
       };
       
       // TODO: Xử lý bản sao cho combo

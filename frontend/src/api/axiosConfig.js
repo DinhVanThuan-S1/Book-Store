@@ -51,6 +51,14 @@ axiosInstance.interceptors.response.use(
       // Server trả về error (4xx, 5xx)
       const { status, data } = error.response;
       
+      // Log error để debug
+      console.error('API Error Response:', {
+        status,
+        data,
+        url: error.config?.url,
+        method: error.config?.method,
+      });
+      
       // 401: Unauthorized - Token hết hạn hoặc không hợp lệ
       if (status === 401) {
         // Xóa token và redirect to login

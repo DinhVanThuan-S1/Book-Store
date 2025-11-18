@@ -23,10 +23,13 @@ import {
   List,
   Typography,
   Space,
+  Tag,
 } from 'antd';
 import {
   EnvironmentOutlined,
-  CreditCardOutlined,
+  PlusOutlined,
+  HomeOutlined,
+  ShopOutlined,
   CheckCircleOutlined,
 } from '@ant-design/icons';
 import { fetchCart } from '@redux/slices/cartSlice';
@@ -34,7 +37,10 @@ import { createOrder } from '@redux/slices/orderSlice';
 import { formatPrice } from '@utils/formatPrice';
 import { showSuccess, showError, showLoading } from '@utils/notification';
 import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from '@constants/appConstants';
+import { addressApi } from '@api';
 import Loading from '@components/common/Loading';
+import AddressSelector from '@components/address/AddressSelector';
+import AddressForm from '@components/address/AddressForm';
 import './CheckoutPage.scss';
 
 const { Title, Text } = Typography;
@@ -45,12 +51,28 @@ const CheckoutPage = () => {
   const dispatch = useDispatch();
   const [form] = Form.useForm();
 
-  const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [loadingAddress, setLoadingAddress] = useState(true);
+  const [showAddressSelector, setShowAddressSelector] = useState(false);
+  const [showAddressForm, setShowAddressForm] = useState(false);
+  const [selectedAddress, setSelectedAddress] = useState(null);
+  const [hasAddresses, setHasAddresses] = useState(false);
 
   // Redux state
   const { items, totalPrice } = useSelector((state) => state.cart);
   const { user } = useSelector((state) => state.auth);
+
+  /**
+   * Get location type display
+   */
+  const getLocationTypeDisplay = (type) => {
+    const types = {
+      home: { icon: <HomeOutlined />, text: 'Nhà ở' },
+      office: { icon: <ShopOutlined />, text: 'Văn phòng' },
+      other: { icon: <EnvironmentOutlined />, text: 'Khác' },
+    };
+    return types[type] || types.other;
+  };
 
   /**
    * Fetch cart
@@ -70,17 +92,104 @@ const CheckoutPage = () => {
   }, [items, navigate]);
 
   /**
-   * Set default values
+   * Fetch default address and set form values
    */
   useEffect(() => {
+    const fetchDefaultAddress = async () => {
+      try {
+        setLoadingAddress(true);
+
+        // Lấy địa chỉ mặc định
+        const response = await addressApi.getDefaultAddress();
+        const defaultAddress = response.data.address;
+
+        if (defaultAddress) {
+          setHasAddresses(true);
+          setSelectedAddress(defaultAddress);
+          // Có địa chỉ mặc định, điền vào form
+          form.setFieldsValue({
+            recipientName: defaultAddress.recipientName,
+            phone: defaultAddress.phone,
+            province: defaultAddress.province,
+            district: defaultAddress.district,
+            ward: defaultAddress.ward,
+            detailAddress: defaultAddress.detailAddress,
+            paymentMethod: PAYMENT_METHODS.COD,
+          });
+        } else {
+          // Kiểm tra xem có địa chỉ nào không
+          const allAddressResponse = await addressApi.getMyAddresses();
+          const addresses = allAddressResponse.data.addresses || [];
+
+          if (addresses.length > 0) {
+            setHasAddresses(true);
+          } else {
+            setHasAddresses(false);
+          }
+
+          // Không có địa chỉ mặc định, dùng thông tin user
+          if (user) {
+            form.setFieldsValue({
+              recipientName: user.fullName,
+              phone: user.phone,
+              paymentMethod: PAYMENT_METHODS.COD,
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching default address:', error);
+        setHasAddresses(false);
+        // Fallback to user info
+        if (user) {
+          form.setFieldsValue({
+            recipientName: user.fullName,
+            phone: user.phone,
+            paymentMethod: PAYMENT_METHODS.COD,
+          });
+        }
+      } finally {
+        setLoadingAddress(false);
+      }
+    };
+
     if (user) {
-      form.setFieldsValue({
-        recipientName: user.fullName,
-        phone: user.phone,
-        paymentMethod: PAYMENT_METHODS.COD,
-      });
+      fetchDefaultAddress();
     }
   }, [user, form]);
+
+  /**
+   * Handle select address
+   */
+  const handleSelectAddress = (address) => {
+    setSelectedAddress(address);
+    form.setFieldsValue({
+      recipientName: address.recipientName,
+      phone: address.phone,
+      province: address.province,
+      district: address.district,
+      ward: address.ward,
+      detailAddress: address.detailAddress,
+    });
+    setShowAddressSelector(false);
+  };
+
+  /**
+   * Handle add address success
+   */
+  const handleAddAddressSuccess = (newAddress) => {
+    setSelectedAddress(newAddress);
+    setHasAddresses(true);
+    form.setFieldsValue({
+      recipientName: newAddress.recipientName,
+      phone: newAddress.phone,
+      province: newAddress.province,
+      district: newAddress.district,
+      ward: newAddress.ward,
+      detailAddress: newAddress.detailAddress,
+    });
+    setShowAddressForm(false);
+    showSuccess('Đã thêm địa chỉ mới');
+  };
 
   /**
    * Calculate total
@@ -93,7 +202,18 @@ const CheckoutPage = () => {
    */
   const handleSubmitOrder = async (values) => {
     try {
+      // Kiểm tra giỏ hàng trước khi submit
+      if (!items || items.length === 0) {
+        showError('Giỏ hàng trống. Vui lòng thêm sản phẩm trước khi đặt hàng.');
+        navigate('/cart');
+        return;
+      }
+
       setLoading(true);
+
+      console.log('Submitting order with values:', values);
+      console.log('Cart items:', items);
+
       const hide = showLoading('Đang xử lý đơn hàng...');
 
       const orderData = {
@@ -109,6 +229,8 @@ const CheckoutPage = () => {
         notes: values.notes || '',
       };
 
+      console.log('Order data to send:', orderData);
+
       const result = await dispatch(createOrder(orderData)).unwrap();
 
       hide();
@@ -117,31 +239,20 @@ const CheckoutPage = () => {
       // Redirect to order detail
       navigate(`/orders/${result.order._id}`);
     } catch (error) {
-      showError(error || 'Đặt hàng thất bại. Vui lòng thử lại.');
+      console.error('Order error:', error);
+
+      // Hiển thị lỗi chi tiết nếu có
+      const errorMessage = typeof error === 'object' && error.errors
+        ? error.errors.map(e => e.message).join(', ')
+        : error || 'Đặt hàng thất bại. Vui lòng thử lại.';
+
+      showError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
-  /**
-   * Steps
-   */
-  const steps = [
-    {
-      title: 'Địa chỉ giao hàng',
-      icon: <EnvironmentOutlined />,
-    },
-    {
-      title: 'Thanh toán',
-      icon: <CreditCardOutlined />,
-    },
-    {
-      title: 'Hoàn tất',
-      icon: <CheckCircleOutlined />,
-    },
-  ];
-
-  if (!items || items.length === 0) {
+  if (!items || items.length === 0 || loadingAddress) {
     return <Loading fullScreen />;
   }
 
@@ -153,12 +264,9 @@ const CheckoutPage = () => {
             Thanh toán đơn hàng
           </Title>
 
-          {/* Steps */}
-          <Steps current={currentStep} items={steps} className="checkout-steps" />
-
           <Form
             form={form}
-            div="vertical"
+            layout="vertical"
             onFinish={handleSubmitOrder}
             scrollToFirstError
           >
@@ -166,91 +274,100 @@ const CheckoutPage = () => {
               {/* Left Column - Form */}
               <Col xs={24} md={16}>
                 {/* Shipping Address */}
-                <Card
-                  title="Thông tin giao hàng"
-                  className="checkout-section"
-                >
-                  <Row gutter={16}>
-                    <Col xs={24} sm={12}>
-                      <Form.Item
-                        name="recipientName"
-                        label="Tên người nhận"
-                        rules={[
-                          { required: true, message: 'Vui lòng nhập tên người nhận!' },
-                        ]}
+                <Card className="checkout-section">
+                  <div className="card-header">
+                    <Title level={5} style={{ margin: 0 }}>Thông tin giao hàng</Title>
+                    {hasAddresses && selectedAddress && (
+                      <Button
+                        type="link"
+                        onClick={() => setShowAddressSelector(true)}
                       >
-                        <Input placeholder="Nguyễn Văn A" size="large" />
-                      </Form.Item>
-                    </Col>
+                        Chọn địa chỉ khác
+                      </Button>
+                    )}
+                  </div>
 
-                    <Col xs={24} sm={12}>
-                      <Form.Item
-                        name="phone"
-                        label="Số điện thoại"
-                        rules={[
-                          { required: true, message: 'Vui lòng nhập số điện thoại!' },
-                          {
-                            pattern: /^[0-9]{10,11}$/,
-                            message: 'Số điện thoại không hợp lệ!',
-                          },
-                        ]}
+                  {hasAddresses && selectedAddress ? (
+                    <div className="selected-address-display">
+                      <div className="address-info">
+                        <div className="address-icon">
+                          {getLocationTypeDisplay(selectedAddress.addressType)?.icon || <EnvironmentOutlined />}
+                        </div>
+                        <div className="address-content">
+                          <div className="address-header">
+                            <Space>
+                              <Text strong style={{ fontSize: 16 }}>
+                                {selectedAddress.recipientName}
+                              </Text>
+                              <Text type="secondary">|</Text>
+                              <Text type="secondary">
+                                {selectedAddress.phone}
+                              </Text>
+                              {selectedAddress.addressType && (
+                                <Tag>{getLocationTypeDisplay(selectedAddress.addressType)?.text}</Tag>
+                              )}
+                              {selectedAddress.isDefault && (
+                                <Tag icon={<CheckCircleOutlined />} color="success">
+                                  Mặc định
+                                </Tag>
+                              )}
+                            </Space>
+                          </div>
+                          <div className="address-detail">
+                            <Text type="secondary">
+                              {selectedAddress.detailAddress}
+                            </Text>
+                          </div>
+                          <div className="address-location">
+                            <Text type="secondary">
+                              {selectedAddress.ward}, {selectedAddress.district}, {selectedAddress.province}
+                            </Text>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                      <EnvironmentOutlined style={{ fontSize: 48, color: '#d9d9d9', marginBottom: 16 }} />
+                      <div style={{ marginBottom: 16 }}>
+                        <Text type="secondary">Bạn chưa có địa chỉ giao hàng</Text>
+                      </div>
+                      <Button
+                        type="primary"
+                        icon={<PlusOutlined />}
+                        onClick={() => setShowAddressForm(true)}
                       >
-                        <Input placeholder="0912345678" size="large" />
-                      </Form.Item>
-                    </Col>
-                  </Row>
+                        Thêm địa chỉ
+                      </Button>
+                    </div>
+                  )}
 
-                  <Row gutter={16}>
-                    <Col xs={24} sm={8}>
-                      <Form.Item
-                        name="province"
-                        label="Tỉnh/Thành phố"
-                        rules={[
-                          { required: true, message: 'Vui lòng chọn tỉnh/thành phố!' },
-                        ]}
-                      >
-                        <Input placeholder="TP. Hồ Chí Minh" size="large" />
-                      </Form.Item>
-                    </Col>
-
-                    <Col xs={24} sm={8}>
-                      <Form.Item
-                        name="district"
-                        label="Quận/Huyện"
-                        rules={[
-                          { required: true, message: 'Vui lòng chọn quận/huyện!' },
-                        ]}
-                      >
-                        <Input placeholder="Quận 1" size="large" />
-                      </Form.Item>
-                    </Col>
-
-                    <Col xs={24} sm={8}>
-                      <Form.Item
-                        name="ward"
-                        label="Phường/Xã"
-                        rules={[
-                          { required: true, message: 'Vui lòng chọn phường/xã!' },
-                        ]}
-                      >
-                        <Input placeholder="Phường Bến Nghé" size="large" />
-                      </Form.Item>
-                    </Col>
-                  </Row>
-
-                  <Form.Item
-                    name="detailAddress"
-                    label="Địa chỉ chi tiết"
-                    rules={[
-                      { required: true, message: 'Vui lòng nhập địa chỉ chi tiết!' },
-                    ]}
-                  >
-                    <Input placeholder="Số nhà, tên đường..." size="large" />
-                  </Form.Item>
+                  {/* Hidden form fields to store address data */}
+                  <div style={{ display: 'none' }}>
+                    <Form.Item name="recipientName">
+                      <Input />
+                    </Form.Item>
+                    <Form.Item name="phone">
+                      <Input />
+                    </Form.Item>
+                    <Form.Item name="province">
+                      <Input />
+                    </Form.Item>
+                    <Form.Item name="district">
+                      <Input />
+                    </Form.Item>
+                    <Form.Item name="ward">
+                      <Input />
+                    </Form.Item>
+                    <Form.Item name="detailAddress">
+                      <Input />
+                    </Form.Item>
+                  </div>
 
                   <Form.Item
                     name="notes"
                     label="Ghi chú đơn hàng (không bắt buộc)"
+                    style={{ marginTop: hasAddresses && selectedAddress ? 16 : 0 }}
                   >
                     <TextArea
                       rows={3}
@@ -354,10 +471,17 @@ const CheckoutPage = () => {
                   <Button
                     type="primary"
                     size="large"
-                    htmlType="submit"
                     block
                     loading={loading}
                     style={{ marginTop: 16 }}
+                    onClick={() => {
+                      if (!hasAddresses) {
+                        setShowAddressForm(true);
+                        showError('Vui lòng thêm địa chỉ giao hàng');
+                      } else {
+                        form.submit();
+                      }
+                    }}
                   >
                     Đặt hàng
                   </Button>
@@ -375,6 +499,25 @@ const CheckoutPage = () => {
           </Form>
         </div>
       </div>
+
+      {/* Address Selector Modal */}
+      <AddressSelector
+        visible={showAddressSelector}
+        onCancel={() => setShowAddressSelector(false)}
+        onSelect={handleSelectAddress}
+        onAddNew={() => {
+          setShowAddressSelector(false);
+          setShowAddressForm(true);
+        }}
+        selectedAddressId={selectedAddress?._id}
+      />
+
+      {/* Address Form Modal */}
+      <AddressForm
+        visible={showAddressForm}
+        onCancel={() => setShowAddressForm(false)}
+        onSuccess={handleAddAddressSuccess}
+      />
     </div>
   );
 };

@@ -34,6 +34,7 @@ const createOrderValidation = [
     .notEmpty()
     .withMessage('Recipient name is required'),
   body('shippingAddress.phone')
+    .trim()
     .matches(/^[0-9]{10,11}$/)
     .withMessage('Invalid phone number'),
   body('shippingAddress.province')

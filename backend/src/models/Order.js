@@ -13,7 +13,7 @@ const orderSchema = new mongoose.Schema({
   orderNumber: {
     type: String,
     unique: true,
-    required: true,
+    // Không require vì sẽ được auto-generate trong pre-save middleware
   },
   
   // Khách hàng

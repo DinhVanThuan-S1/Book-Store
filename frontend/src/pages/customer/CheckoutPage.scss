@@ -22,6 +22,48 @@
   
   .checkout-section {
     margin-bottom: $spacing-lg;
+    
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: $spacing-md;
+    }
+
+    .selected-address-display {
+      background: $bg-secondary;
+      border: 1px solid $border-color;
+      border-radius: $radius-md;
+      padding: $spacing-md;
+      margin-bottom: $spacing-md;
+
+      .address-info {
+        display: flex;
+        gap: $spacing-md;
+
+        .address-icon {
+          font-size: 24px;
+          color: $primary-color;
+          flex-shrink: 0;
+        }
+
+        .address-content {
+          flex: 1;
+
+          .address-header {
+            margin-bottom: $spacing-xs;
+          }
+
+          .address-detail {
+            margin-bottom: 4px;
+          }
+
+          .address-location {
+            color: $text-secondary;
+          }
+        }
+      }
+    }
   }
   
   .payment-methods {

@@ -36,11 +36,14 @@ import {
   DeleteOutlined,
   CheckCircleOutlined,
   EnvironmentOutlined,
+  HomeOutlined,
+  ShopOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { updateUser } from '@redux/slices/authSlice';
 import { authApi, uploadApi, addressApi } from '@api';
 import { useMessage } from '@utils/notification';
+import AddressForm from '@components/address/AddressForm';
 import './ProfilePage.scss';
 
 const { Title } = Typography;
@@ -50,7 +53,6 @@ const ProfilePage = () => {
   const { message } = useMessage(); // ⭐ Sử dụng hook thay vì static functions
   const [profileForm] = Form.useForm();
   const [passwordForm] = Form.useForm();
-  const [addressForm] = Form.useForm();
 
   const [updatingProfile, setUpdatingProfile] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
@@ -59,9 +61,8 @@ const ProfilePage = () => {
   // Address states
   const [addresses, setAddresses] = useState([]);
   const [loadingAddresses, setLoadingAddresses] = useState(false);
-  const [addressModalVisible, setAddressModalVisible] = useState(false);
+  const [addressFormVisible, setAddressFormVisible] = useState(false);
   const [editingAddress, setEditingAddress] = useState(null);
-  const [savingAddress, setSavingAddress] = useState(false);
 
   // Redux state
   const { user } = useSelector((state) => state.auth);
@@ -221,40 +222,17 @@ const ProfilePage = () => {
    */
   const handleAddressModal = (address = null) => {
     setEditingAddress(address);
-    if (address) {
-      addressForm.setFieldsValue(address);
-    } else {
-      addressForm.resetFields();
-    }
-    setAddressModalVisible(true);
+    setAddressFormVisible(true);
   };
 
   /**
-   * Handle save address
+   * Handle save address success
    */
-  const handleSaveAddress = async (values) => {
-    try {
-      setSavingAddress(true);
-
-      if (editingAddress) {
-        // Update
-        await addressApi.updateAddress(editingAddress._id, values);
-        message.success('Cập nhật địa chỉ thành công');
-      } else {
-        // Create
-        await addressApi.createAddress(values);
-        message.success('Thêm địa chỉ thành công');
-      }
-
-      setAddressModalVisible(false);
-      addressForm.resetFields();
-      setEditingAddress(null);
-      fetchAddresses();
-    } catch (error) {
-      message.error(error?.message || 'Không thể lưu địa chỉ');
-    } finally {
-      setSavingAddress(false);
-    }
+  const handleAddressSuccess = () => {
+    message.success(editingAddress ? 'Cập nhật địa chỉ thành công' : 'Thêm địa chỉ thành công');
+    setAddressFormVisible(false);
+    setEditingAddress(null);
+    fetchAddresses();
   };
 
   /**
@@ -281,6 +259,18 @@ const ProfilePage = () => {
     } catch (error) {
       message.error(error?.message || 'Không thể đặt địa chỉ mặc định');
     }
+  };
+
+  /**
+   * Get location type display
+   */
+  const getLocationTypeDisplay = (type) => {
+    const types = {
+      home: { icon: <HomeOutlined />, text: 'Nhà ở' },
+      office: { icon: <ShopOutlined />, text: 'Văn phòng' },
+      other: { icon: <EnvironmentOutlined />, text: 'Khác' },
+    };
+    return types[type] || types.other;
   };
 
   /**
@@ -511,12 +501,19 @@ const ProfilePage = () => {
                 ]}
               >
                 <List.Item.Meta
-                  avatar={<EnvironmentOutlined style={{ fontSize: 24 }} />}
+                  avatar={
+                    <div style={{ fontSize: 24 }}>
+                      {getLocationTypeDisplay(address.addressType)?.icon || <EnvironmentOutlined />}
+                    </div>
+                  }
                   title={
                     <Space>
                       <span>{address.recipientName}</span>
                       <span>|</span>
                       <span>{address.phone}</span>
+                      {address.addressType && (
+                        <Tag>{getLocationTypeDisplay(address.addressType)?.text}</Tag>
+                      )}
                       {address.isDefault && (
                         <Tag icon={<CheckCircleOutlined />} color="success">
                           Mặc định
@@ -555,117 +552,16 @@ const ProfilePage = () => {
         </div>
       </div>
 
-      {/* Address Modal */}
-      <Modal
-        title={editingAddress ? 'Chỉnh sửa địa chỉ' : 'Thêm địa chỉ mới'}
-        open={addressModalVisible}
+      {/* Address Form Modal */}
+      <AddressForm
+        visible={addressFormVisible}
         onCancel={() => {
-          setAddressModalVisible(false);
-          addressForm.resetFields();
+          setAddressFormVisible(false);
           setEditingAddress(null);
         }}
-        footer={null}
-        width={600}
-      >
-        <Form
-          form={addressForm}
-          layout="vertical"
-          onFinish={handleSaveAddress}
-        >
-          <Row gutter={16}>
-            <Col xs={24} sm={12}>
-              <Form.Item
-                name="recipientName"
-                label="Họ và tên người nhận"
-                rules={[{ required: true, message: 'Vui lòng nhập tên!' }]}
-              >
-                <Input size="large" placeholder="Nguyễn Văn A" />
-              </Form.Item>
-            </Col>
-
-            <Col xs={24} sm={12}>
-              <Form.Item
-                name="phone"
-                label="Số điện thoại"
-                rules={[
-                  { required: true, message: 'Vui lòng nhập số điện thoại!' },
-                  {
-                    pattern: /^[0-9]{10,11}$/,
-                    message: 'Số điện thoại không hợp lệ!',
-                  },
-                ]}
-              >
-                <Input size="large" placeholder="0123456789" />
-              </Form.Item>
-            </Col>
-
-            <Col xs={24} sm={8}>
-              <Form.Item
-                name="province"
-                label="Tỉnh/Thành phố"
-                rules={[{ required: true, message: 'Vui lòng nhập tỉnh!' }]}
-              >
-                <Input size="large" placeholder="Hà Nội" />
-              </Form.Item>
-            </Col>
-
-            <Col xs={24} sm={8}>
-              <Form.Item
-                name="district"
-                label="Quận/Huyện"
-                rules={[{ required: true, message: 'Vui lòng nhập quận!' }]}
-              >
-                <Input size="large" placeholder="Cầu Giấy" />
-              </Form.Item>
-            </Col>
-
-            <Col xs={24} sm={8}>
-              <Form.Item
-                name="ward"
-                label="Phường/Xã"
-                rules={[{ required: true, message: 'Vui lòng nhập phường!' }]}
-              >
-                <Input size="large" placeholder="Dịch Vọng" />
-              </Form.Item>
-            </Col>
-
-            <Col span={24}>
-              <Form.Item
-                name="detailAddress"
-                label="Địa chỉ chi tiết"
-                rules={[{ required: true, message: 'Vui lòng nhập địa chỉ!' }]}
-              >
-                <Input.TextArea
-                  size="large"
-                  rows={3}
-                  placeholder="Số nhà, tên đường..."
-                />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Divider />
-
-          <Space>
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={savingAddress}
-            >
-              {editingAddress ? 'Cập nhật' : 'Thêm địa chỉ'}
-            </Button>
-            <Button
-              onClick={() => {
-                setAddressModalVisible(false);
-                addressForm.resetFields();
-                setEditingAddress(null);
-              }}
-            >
-              Hủy
-            </Button>
-          </Space>
-        </Form>
-      </Modal>
+        onSuccess={handleAddressSuccess}
+        address={editingAddress}
+      />
     </div>
   );
 };
