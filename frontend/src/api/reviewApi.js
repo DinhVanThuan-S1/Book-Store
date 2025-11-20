@@ -14,6 +14,7 @@ import axiosInstance from './axiosConfig';
  * @param {Object} data - { bookId, orderId, rating, title, comment, images }
  */
 export const createReview = (data) => {
+  console.log('reviewApi.createReview called with:', data);
   return axiosInstance.post('/reviews', data);
 };
 

@@ -38,24 +38,22 @@ const reviewSchema = new mongoose.Schema({
     required: [true, 'Rating is required'],
     min: 1,
     max: 5,
-    validate: {
-      validator: Number.isInteger,
-      message: 'Rating must be an integer',
-    },
   },
   
-  // Tiêu đề đánh giá
+  // Tiêu đề đánh giá (không bắt buộc)
   title: {
     type: String,
     trim: true,
     maxlength: [200, 'Title cannot exceed 200 characters'],
+    default: '',
   },
   
-  // Nội dung đánh giá
+  // Nội dung đánh giá (không bắt buộc)
   comment: {
     type: String,
     trim: true,
     maxlength: [2000, 'Comment cannot exceed 2000 characters'],
+    default: '',
   },
   
   // Ảnh đánh giá (tối đa 5 ảnh)

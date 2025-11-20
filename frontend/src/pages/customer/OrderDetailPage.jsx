@@ -21,9 +21,13 @@ import {
   Typography,
   Modal,
   Input,
+  Rate,
+  Upload,
+  Form,
 } from 'antd';
-import { ArrowLeftOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, StarOutlined, RollbackOutlined, PlusOutlined } from '@ant-design/icons';
 import { fetchOrderById, cancelOrder } from '@redux/slices/orderSlice';
+import { orderApi, reviewApi, uploadApi } from '@api';
 import { formatPrice } from '@utils/formatPrice';
 import { formatDateTime } from '@utils/formatDate';
 import {
@@ -47,6 +51,19 @@ const OrderDetailPage = () => {
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [cancelling, setCancelling] = useState(false);
+
+  // Review modal state
+  const [reviewModalVisible, setReviewModalVisible] = useState(false);
+  const [reviewableItems, setReviewableItems] = useState([]);
+  const [selectedBookForReview, setSelectedBookForReview] = useState(null);
+  const [reviewForm] = Form.useForm();
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const [fileList, setFileList] = useState([]);
+
+  // Return modal state
+  const [returnModalVisible, setReturnModalVisible] = useState(false);
+  const [returnReason, setReturnReason] = useState('');
+  const [returning, setReturning] = useState(false);
 
   // Redux state
   const { currentOrder: order, loading } = useSelector((state) => state.order);
@@ -84,6 +101,119 @@ const OrderDetailPage = () => {
     } finally {
       setCancelling(false);
     }
+  };
+
+  /**
+   * Handle open review modal
+   */
+  const handleOpenReviewModal = async () => {
+    try {
+      const response = await orderApi.getReviewableItems(order._id);
+      setReviewableItems(response.data.items);
+      setReviewModalVisible(true);
+    } catch (error) {
+      showError('Không thể tải danh sách sách');
+    }
+  };
+
+  /**
+   * Handle submit review
+   */
+  const handleSubmitReview = async (values) => {
+    if (!selectedBookForReview) {
+      showError('Vui lòng chọn sách để đánh giá');
+      return;
+    }
+
+    try {
+      setUploadingImages(true);
+
+      // Upload ảnh nếu có
+      let imageUrls = [];
+      if (fileList.length > 0) {
+        const files = fileList
+          .filter(file => file.originFileObj)
+          .map(file => file.originFileObj);
+
+        if (files.length > 0) {
+          const uploadResponse = await uploadApi.uploadImages(files);
+          console.log('Upload response:', uploadResponse);
+          console.log('Upload response stringified:', JSON.stringify(uploadResponse, null, 2));
+
+          // axiosInstance interceptor đã unwrap response.data
+          // uploadResponse = { success: true, data: { images: [...] } }
+          const images = uploadResponse.data?.images || [];
+          console.log('images array:', images);
+          console.log('images stringified:', JSON.stringify(images, null, 2));
+          imageUrls = images.map(img => img.url);
+          console.log('Extracted image URLs:', imageUrls);
+        }
+      }
+
+      // Prepare review data
+      const reviewData = {
+        bookId: selectedBookForReview,
+        orderId: order._id,
+        rating: values.rating,
+        title: values.title || '',
+        comment: values.comment || '',
+        images: imageUrls,
+      };
+
+      console.log('Sending review data:', reviewData);
+      console.log('Images in reviewData:', reviewData.images);
+
+      // Gửi review với ảnh đã upload
+      await reviewApi.createReview(reviewData);
+
+      showSuccess('Đánh giá thành công!');
+      setReviewModalVisible(false);
+      setSelectedBookForReview(null);
+      setFileList([]);
+      reviewForm.resetFields();
+
+      // Refresh reviewable items
+      handleOpenReviewModal();
+    } catch (error) {
+      console.error('Review error:', error);
+      showError(error.message || 'Không thể gửi đánh giá');
+    } finally {
+      setUploadingImages(false);
+    }
+  };
+
+  /**
+   * Handle request return
+   */
+  const handleRequestReturn = async () => {
+    if (!returnReason || returnReason.trim().length < 10) {
+      showError('Vui lòng nhập lý do hoàn trả (ít nhất 10 ký tự)');
+      return;
+    }
+
+    try {
+      setReturning(true);
+
+      await orderApi.requestReturn(order._id, returnReason);
+
+      showSuccess('Yêu cầu hoàn trả đã được gửi. Vui lòng chờ xác nhận từ Admin.');
+      setReturnModalVisible(false);
+      setReturnReason('');
+
+      // Refresh order
+      dispatch(fetchOrderById(id));
+    } catch (error) {
+      showError(error.message || 'Không thể gửi yêu cầu hoàn trả');
+    } finally {
+      setReturning(false);
+    }
+  };
+
+  /**
+   * Handle upload change
+   */
+  const handleUploadChange = ({ fileList: newFileList }) => {
+    setFileList(newFileList);
   };
 
   /**
@@ -138,15 +268,44 @@ const OrderDetailPage = () => {
                 </Text>
               </Col>
               <Col>
-                <Space>
-                  <Tag color={ORDER_STATUS_COLORS[order.status]} style={{ fontSize: 16 }}>
-                    {ORDER_STATUS_LABELS[order.status]}
-                  </Tag>
-                  {canCancel && (
-                    <Button danger onClick={() => setCancelModalVisible(true)}>
-                      Hủy đơn hàng
-                    </Button>
-                  )}
+                <Space direction="vertical" size="small">
+                  <Space>
+                    <Tag color={ORDER_STATUS_COLORS[order.status]} style={{ fontSize: 16 }}>
+                      {ORDER_STATUS_LABELS[order.status]}
+                    </Tag>
+                    {/* ✅ Hiển thị thông báo chờ xác nhận hoàn trả */}
+                    {order.returnRequestedAt && order.status === ORDER_STATUS.DELIVERED && (
+                      <Tag color="orange" style={{ fontSize: 13 }}>
+                        ⚠️ Đã yêu cầu hoàn trả - Chờ Admin xác nhận
+                      </Tag>
+                    )}
+                  </Space>
+                  <Space>
+                    {order.status === ORDER_STATUS.DELIVERED && (
+                      <>
+                        <Button
+                          type="primary"
+                          icon={<StarOutlined />}
+                          onClick={handleOpenReviewModal}
+                          disabled={order.returnRequestedAt} // ✅ Disable nếu đã yêu cầu hoàn trả
+                        >
+                          Đánh giá
+                        </Button>
+                        <Button
+                          icon={<RollbackOutlined />}
+                          onClick={() => setReturnModalVisible(true)}
+                          disabled={order.returnRequestedAt} // ✅ Disable nếu đã yêu cầu hoàn trả
+                        >
+                          Hoàn trả
+                        </Button>
+                      </>
+                    )}
+                    {canCancel && (
+                      <Button danger onClick={() => setCancelModalVisible(true)}>
+                        Hủy đơn hàng
+                      </Button>
+                    )}
+                  </Space>
                 </Space>
               </Col>
             </Row>
@@ -286,6 +445,169 @@ const OrderDetailPage = () => {
             onChange={(e) => setCancelReason(e.target.value)}
             placeholder="Nhập lý do hủy đơn (ít nhất 10 ký tự)..."
           />
+        </Space>
+      </Modal>
+
+      {/* Review Modal */}
+      <Modal
+        title="Đánh giá sản phẩm"
+        open={reviewModalVisible}
+        onCancel={() => {
+          setReviewModalVisible(false);
+          setSelectedBookForReview(null);
+          setFileList([]);
+          reviewForm.resetFields();
+        }}
+        footer={null}
+        width={700}
+      >
+        {reviewableItems.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '40px 0' }}>
+            <Text type="secondary">Bạn đã đánh giá tất cả sản phẩm trong đơn hàng này</Text>
+          </div>
+        ) : (
+          <>
+            <div style={{ marginBottom: 24 }}>
+              <Text strong>Chọn sản phẩm để đánh giá:</Text>
+              <div style={{ marginTop: 16 }}>
+                {reviewableItems.map((item) => (
+                  <Card
+                    key={item._id}
+                    hoverable
+                    style={{
+                      marginBottom: 12,
+                      border: selectedBookForReview === item.book._id ? '2px solid #1890ff' : '1px solid #d9d9d9',
+                      cursor: item.isReviewed ? 'not-allowed' : 'pointer',
+                      opacity: item.isReviewed ? 0.5 : 1,
+                    }}
+                    onClick={() => !item.isReviewed && setSelectedBookForReview(item.book._id)}
+                  >
+                    <Row gutter={16} align="middle">
+                      <Col>
+                        <img
+                          src={item.book.images?.[0] || item.bookSnapshot?.image}
+                          alt={item.book.title || item.bookSnapshot?.title}
+                          style={{ width: 60, height: 80, objectFit: 'cover' }}
+                        />
+                      </Col>
+                      <Col flex="auto">
+                        <div><strong>{item.book.title || item.bookSnapshot?.title}</strong></div>
+                        <div style={{ fontSize: 12, color: '#999' }}>
+                          {item.book.author?.name || item.bookSnapshot?.author}
+                        </div>
+                      </Col>
+                      <Col>
+                        {item.isReviewed && (
+                          <Tag color="green">Đã đánh giá</Tag>
+                        )}
+                      </Col>
+                    </Row>
+                  </Card>
+                ))}
+              </div>
+            </div>
+
+            {selectedBookForReview && (
+              <Form
+                form={reviewForm}
+                layout="vertical"
+                onFinish={handleSubmitReview}
+              >
+                <Form.Item
+                  name="rating"
+                  label="Đánh giá"
+                  rules={[{ required: true, message: 'Vui lòng chọn số sao' }]}
+                >
+                  <Rate />
+                </Form.Item>
+
+                <Form.Item
+                  name="title"
+                  label="Tiêu đề (tùy chọn)"
+                >
+                  <Input placeholder="Tóm tắt cảm nhận của bạn..." />
+                </Form.Item>
+
+                <Form.Item
+                  name="comment"
+                  label="Nhận xét (tùy chọn)"
+                >
+                  <TextArea
+                    rows={4}
+                    placeholder="Chia sẻ cảm nhận của bạn về sản phẩm..."
+                    maxLength={1000}
+                    showCount
+                  />
+                </Form.Item>
+
+                <Form.Item label="Hình ảnh (tùy chọn)">
+                  <Upload
+                    listType="picture-card"
+                    fileList={fileList}
+                    onChange={handleUploadChange}
+                    maxCount={5}
+                    beforeUpload={() => false}
+                    accept="image/*"
+                  >
+                    {fileList.length >= 5 ? null : (
+                      <div>
+                        <PlusOutlined />
+                        <div style={{ marginTop: 8 }}>Tải ảnh</div>
+                      </div>
+                    )}
+                  </Upload>
+                </Form.Item>
+
+                <Form.Item>
+                  <Space>
+                    <Button
+                      type="primary"
+                      htmlType="submit"
+                      loading={uploadingImages}
+                    >
+                      {uploadingImages ? 'Đang tải ảnh...' : 'Gửi đánh giá'}
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setSelectedBookForReview(null);
+                        setFileList([]);
+                        reviewForm.resetFields();
+                      }}
+                      disabled={uploadingImages}
+                    >
+                      Hủy
+                    </Button>
+                  </Space>
+                </Form.Item>
+              </Form>
+            )}
+          </>
+        )}
+      </Modal>
+
+      {/* Return Request Modal */}
+      <Modal
+        title="Yêu cầu hoàn trả"
+        open={returnModalVisible}
+        onCancel={() => setReturnModalVisible(false)}
+        onOk={handleRequestReturn}
+        confirmLoading={returning}
+        okText="Gửi yêu cầu"
+        cancelText="Đóng"
+      >
+        <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+          <Text>Vui lòng cho chúng tôi biết lý do bạn muốn hoàn trả:</Text>
+          <TextArea
+            rows={4}
+            value={returnReason}
+            onChange={(e) => setReturnReason(e.target.value)}
+            placeholder="Nhập lý do hoàn trả (ít nhất 10 ký tự)..."
+            maxLength={500}
+            showCount
+          />
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            * Admin sẽ xem xét và phản hồi yêu cầu của bạn trong thời gian sớm nhất.
+          </Text>
         </Space>
       </Modal>
     </div>

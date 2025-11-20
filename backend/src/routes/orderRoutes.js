@@ -10,14 +10,14 @@ const router = express.Router();
 const { body, param } = require('express-validator');
 const { validate } = require('../middlewares/validation');
 const { protect } = require('../middlewares/auth');
-const { customerOnly, adminOnly } = require('../middlewares/role');
+const { customerOnly } = require('../middlewares/role');
 const {
   createOrder,
   getMyOrders,
   getOrderById,
   cancelOrder,
-  getAllOrders,
-  updateOrderStatus,
+  getReviewableItems,
+  requestReturn,
 } = require('../controllers/orderController');
 
 /**
@@ -73,19 +73,14 @@ const cancelOrderValidation = [
     .withMessage('Cancel reason must be between 10 and 500 characters'),
 ];
 
-// Validation cho cập nhật trạng thái (admin)
-const updateStatusValidation = [
-  body('status')
-    .isIn([
-      'pending',
-      'confirmed',
-      'preparing',
-      'shipping',
-      'delivered',
-      'cancelled',
-      'returned',
-    ])
-    .withMessage('Invalid status'),
+// Validation cho hoàn trả
+const returnOrderValidation = [
+  body('returnReason')
+    .trim()
+    .notEmpty()
+    .withMessage('Return reason is required')
+    .isLength({ min: 10, max: 500 })
+    .withMessage('Return reason must be between 10 and 500 characters'),
 ];
 
 /**
@@ -133,26 +128,29 @@ router.put(
   cancelOrder
 );
 
-/**
- * Admin Routes
- */
-
-// @route   GET /api/admin/orders
-// @desc    Lấy tất cả đơn hàng (Admin)
-// @access  Private/Admin
-router.get('/admin/all', protect, adminOnly, getAllOrders);
-
-// @route   PUT /api/admin/orders/:id/status
-// @desc    Cập nhật trạng thái đơn hàng (Admin)
-// @access  Private/Admin
-router.put(
-  '/admin/:id/status',
+// @route   GET /api/orders/:id/reviewable-items
+// @desc    Lấy danh sách sách có thể review
+// @access  Private/Customer
+router.get(
+  '/:id/reviewable-items',
   protect,
-  adminOnly,
+  customerOnly,
   param('id').isMongoId().withMessage('Invalid order ID'),
-  updateStatusValidation,
   validate,
-  updateOrderStatus
+  getReviewableItems
+);
+
+// @route   PUT /api/orders/:id/request-return
+// @desc    Yêu cầu hoàn trả đơn hàng
+// @access  Private/Customer
+router.put(
+  '/:id/request-return',
+  protect,
+  customerOnly,
+  param('id').isMongoId().withMessage('Invalid order ID'),
+  returnOrderValidation,
+  validate,
+  requestReturn
 );
 
 module.exports = router;

@@ -39,7 +39,10 @@ export const uploadImages = async (files) => {
     },
   });
 
-  return response.data;
+  console.log('uploadApi - raw response:', response);
+  console.log('uploadApi - response stringified:', JSON.stringify(response, null, 2));
+
+  return response;
 };
 
 /**

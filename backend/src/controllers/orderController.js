@@ -297,12 +297,24 @@ const getAllOrders = asyncHandler(async (req, res) => {
     .skip(skip)
     .limit(limitNum);
   
+  // Populate payment info cho mỗi order
+  const Payment = require('../models/Payment');
+  const ordersWithPayment = await Promise.all(
+    orders.map(async (order) => {
+      const payment = await Payment.findOne({ order: order._id }).select('status paymentMethod amount');
+      return {
+        ...order.toObject(),
+        payment,
+      };
+    })
+  );
+  
   const total = await Order.countDocuments(query);
   
   res.status(200).json({
     success: true,
     data: {
-      orders,
+      orders: ordersWithPayment,
       pagination: {
         page: Number(page),
         limit: limitNum,
@@ -319,7 +331,7 @@ const getAllOrders = asyncHandler(async (req, res) => {
  * @access  Private/Admin
  */
 const updateOrderStatus = asyncHandler(async (req, res) => {
-  const { status } = req.body;
+  const { status, cancelReason } = req.body;
   
   const order = await Order.findById(req.params.id);
   
@@ -348,12 +360,213 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
     });
   }
   
+  // Nếu hủy đơn, yêu cầu lý do
+  if (status === 'cancelled') {
+    if (!cancelReason || cancelReason.trim().length < 10) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cancel reason is required and must be at least 10 characters',
+      });
+    }
+    order.cancelReason = cancelReason;
+    
+    // Giải phóng bản sao về available
+    const BookCopy = require('../models/BookCopy');
+    for (const item of order.items) {
+      if (item.soldCopies && item.soldCopies.length > 0) {
+        await BookCopy.updateMany(
+          { _id: { $in: item.soldCopies } },
+          { status: 'available', $unset: { soldDate: 1, order: 1 } }
+        );
+      }
+    }
+  }
+  
   // Cập nhật trạng thái
   await order.updateStatus(status);
   
   res.status(200).json({
     success: true,
     message: 'Order status updated',
+    data: { order },
+  });
+});
+
+/**
+ * @desc    Lấy danh sách sách có thể review từ đơn hàng (Customer)
+ * @route   GET /api/orders/:id/reviewable-items
+ * @access  Private/Customer
+ */
+const getReviewableItems = asyncHandler(async (req, res) => {
+  const order = await Order.findById(req.params.id)
+    .populate('items.book', 'title images author')
+    .populate({
+      path: 'items.book',
+      populate: { path: 'author', select: 'name' }
+    });
+  
+  if (!order) {
+    return res.status(404).json({
+      success: false,
+      message: 'Order not found',
+    });
+  }
+  
+  // Kiểm tra quyền
+  if (order.customer.toString() !== req.user._id.toString()) {
+    return res.status(403).json({
+      success: false,
+      message: 'Access denied',
+    });
+  }
+  
+  // Chỉ cho phép review khi đã giao
+  if (order.status !== 'delivered') {
+    return res.status(400).json({
+      success: false,
+      message: 'Order must be delivered to review',
+    });
+  }
+  
+  // Lấy danh sách reviews đã tạo cho order này
+  const Review = require('../models/Review');
+  const existingReviews = await Review.find({
+    order: order._id,
+    customer: req.user._id,
+  }).select('book');
+  
+  const reviewedBookIds = existingReviews.map(r => r.book.toString());
+  
+  // Filter items chưa review
+  const reviewableItems = order.items
+    .filter(item => item.type === 'book' && item.book)
+    .map(item => ({
+      _id: item._id,
+      book: item.book,
+      bookSnapshot: item.bookSnapshot,
+      quantity: item.quantity,
+      isReviewed: reviewedBookIds.includes(item.book._id.toString()),
+    }));
+  
+  res.status(200).json({
+    success: true,
+    data: {
+      orderNumber: order.orderNumber,
+      items: reviewableItems,
+    },
+  });
+});
+
+/**
+ * @desc    Yêu cầu hoàn trả đơn hàng (Customer)
+ * @route   PUT /api/orders/:id/request-return
+ * @access  Private/Customer
+ */
+const requestReturn = asyncHandler(async (req, res) => {
+  const { returnReason } = req.body;
+  
+  const order = await Order.findById(req.params.id);
+  
+  if (!order) {
+    return res.status(404).json({
+      success: false,
+      message: 'Order not found',
+    });
+  }
+  
+  // Kiểm tra quyền
+  if (order.customer.toString() !== req.user._id.toString()) {
+    return res.status(403).json({
+      success: false,
+      message: 'Access denied',
+    });
+  }
+  
+  // Chỉ cho phép hoàn trả khi đã giao
+  if (order.status !== 'delivered') {
+    return res.status(400).json({
+      success: false,
+      message: 'Can only request return for delivered orders',
+    });
+  }
+  
+  // Validate lý do
+  if (!returnReason || returnReason.trim().length < 10) {
+    return res.status(400).json({
+      success: false,
+      message: 'Return reason is required and must be at least 10 characters',
+    });
+  }
+  
+  // ✅ Chỉ đánh dấu yêu cầu hoàn trả, không chuyển status
+  order.returnReason = returnReason;
+  order.returnRequestedAt = new Date();
+  await order.save();
+  
+  res.status(200).json({
+    success: true,
+    message: 'Return request submitted successfully. Waiting for admin confirmation.',
+    data: { order },
+  });
+});
+
+/**
+ * @desc    Xác nhận hoàn trả đơn hàng (Admin)
+ * @route   PUT /api/admin/orders/:id/confirm-return
+ * @access  Private/Admin
+ */
+const confirmReturn = asyncHandler(async (req, res) => {
+  const order = await Order.findById(req.params.id);
+  
+  if (!order) {
+    return res.status(404).json({
+      success: false,
+      message: 'Order not found',
+    });
+  }
+  
+  // Kiểm tra phải có yêu cầu hoàn trả
+  if (!order.returnRequestedAt) {
+    return res.status(400).json({
+      success: false,
+      message: 'No return request found for this order',
+    });
+  }
+  
+  // Kiểm tra status phải là delivered
+  if (order.status !== 'delivered') {
+    return res.status(400).json({
+      success: false,
+      message: 'Order must be in delivered status',
+    });
+  }
+  
+  // Giải phóng BookCopy về available
+  const BookCopy = require('../models/BookCopy');
+  for (const item of order.items) {
+    if (item.soldCopies && item.soldCopies.length > 0) {
+      await BookCopy.updateMany(
+        { _id: { $in: item.soldCopies } },
+        { 
+          status: 'available',
+          $unset: { 
+            'salesInfo.order': '',
+            'salesInfo.customer': '',
+            'salesInfo.soldAt': '',
+            'salesInfo.soldPrice': '',
+          },
+        }
+      );
+    }
+  }
+  
+  // Cập nhật status thành returned
+  order.status = 'returned';
+  await order.save();
+  
+  res.status(200).json({
+    success: true,
+    message: 'Return confirmed successfully',
     data: { order },
   });
 });
@@ -365,4 +578,7 @@ module.exports = {
   cancelOrder,
   getAllOrders,
   updateOrderStatus,
+  getReviewableItems,
+  requestReturn,
+  confirmReturn,
 };

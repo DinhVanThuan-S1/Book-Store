@@ -54,11 +54,41 @@ export const getAllOrders = (params = {}) => {
  * Cập nhật trạng thái đơn hàng (Admin)
  * @param {String} id
  * @param {String} status
+ * @param {String} cancelReason - Lý do hủy (optional, chỉ khi status = cancelled)
  */
-export const updateOrderStatus = (id, status) => {
-  return axiosInstance.put(API_ENDPOINTS.ORDERS.UPDATE_STATUS(id), {
-    status,
+export const updateOrderStatus = (id, status, cancelReason = null) => {
+  const data = { status };
+  if (cancelReason) {
+    data.cancelReason = cancelReason;
+  }
+  return axiosInstance.put(API_ENDPOINTS.ORDERS.UPDATE_STATUS(id), data);
+};
+
+/**
+ * Lấy danh sách sách có thể review từ đơn hàng
+ * @param {String} id - Order ID
+ */
+export const getReviewableItems = (id) => {
+  return axiosInstance.get(API_ENDPOINTS.ORDERS.GET_REVIEWABLE_ITEMS(id));
+};
+
+/**
+ * Yêu cầu hoàn trả đơn hàng
+ * @param {String} id - Order ID
+ * @param {String} returnReason - Lý do hoàn trả
+ */
+export const requestReturn = (id, returnReason) => {
+  return axiosInstance.put(API_ENDPOINTS.ORDERS.REQUEST_RETURN(id), {
+    returnReason,
   });
+};
+
+/**
+ * Xác nhận hoàn trả đơn hàng (Admin)
+ * @param {String} id - Order ID
+ */
+export const confirmReturn = (id) => {
+  return axiosInstance.put(`/admin/orders/${id}/confirm-return`);
 };
 
 const orderApi = {
@@ -68,6 +98,9 @@ const orderApi = {
   cancelOrder,
   getAllOrders,
   updateOrderStatus,
+  getReviewableItems,
+  requestReturn,
+  confirmReturn,
 };
 
 export default orderApi;

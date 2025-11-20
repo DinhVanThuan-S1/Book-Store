@@ -165,6 +165,17 @@ const orderSchema = new mongoose.Schema({
     type: String,
     trim: true,
   },
+  
+  // Lý do hoàn trả
+  returnReason: {
+    type: String,
+    trim: true,
+  },
+  
+  // Thời gian yêu cầu hoàn trả
+  returnRequestedAt: {
+    type: Date,
+  },
 }, {
   timestamps: true,
   collection: 'orders',

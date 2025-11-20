@@ -5,7 +5,7 @@
  * Quản lý đơn hàng cho admin
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Table,
   Button,
@@ -16,10 +16,13 @@ import {
   Modal,
   Typography,
   Descriptions,
+  Dropdown,
+  Menu,
 } from 'antd';
 import {
   EyeOutlined,
   SearchOutlined,
+  DownOutlined,
 } from '@ant-design/icons';
 import { orderApi } from '@api';
 import { formatPrice } from '@utils/formatPrice';
@@ -34,7 +37,7 @@ import { showSuccess, showError } from '@utils/notification';
 import Loading from '@components/common/Loading';
 import './OrderManagementPage.scss';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 const { Search } = Input;
 
 const OrderManagementPage = () => {
@@ -53,12 +56,14 @@ const OrderManagementPage = () => {
   // Modal states
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [cancelModalVisible, setCancelModalVisible] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [orderToCancel, setOrderToCancel] = useState(null);
 
   /**
    * Fetch orders
    */
-  const fetchOrders = async (page = 1) => {
+  const fetchOrders = useCallback(async (page = 1) => {
     try {
       setLoading(true);
 
@@ -71,22 +76,22 @@ const OrderManagementPage = () => {
       const response = await orderApi.getAllOrders(params);
 
       setOrders(response.data.orders);
-      setPagination({
-        ...pagination,
+      setPagination(prev => ({
+        ...prev,
         current: response.data.pagination.page,
         total: response.data.pagination.total,
-      });
-    } catch (error) {
-      console.error('Error fetching orders:', error);
+      }));
+    } catch (err) {
+      console.error('Error fetching orders:', err);
       showError('Không thể tải danh sách đơn hàng');
     } finally {
       setLoading(false);
     }
-  };
+  }, [pagination.pageSize, filters]);
 
   useEffect(() => {
     fetchOrders();
-  }, [filters]);
+  }, [fetchOrders]);
 
   /**
    * Handle search
@@ -117,7 +122,7 @@ const OrderManagementPage = () => {
       const response = await orderApi.getOrderById(orderId);
       setSelectedOrder(response.data.order);
       setDetailModalVisible(true);
-    } catch (error) {
+    } catch {
       showError('Không thể tải chi tiết đơn hàng');
     }
   };
@@ -125,20 +130,127 @@ const OrderManagementPage = () => {
   /**
    * Handle update status
    */
-  const handleUpdateStatus = async (newStatus) => {
-    try {
-      setUpdatingStatus(true);
-
-      await orderApi.updateOrderStatus(selectedOrder._id, newStatus);
-
-      showSuccess('Đã cập nhật trạng thái đơn hàng');
-      setDetailModalVisible(false);
-      fetchOrders(pagination.current);
-    } catch (error) {
-      showError(error || 'Không thể cập nhật trạng thái');
-    } finally {
-      setUpdatingStatus(false);
+  const handleUpdateStatus = async (orderId, newStatus) => {
+    // Nếu là hủy đơn, yêu cầu nhập lý do
+    if (newStatus === ORDER_STATUS.CANCELLED) {
+      setOrderToCancel(orderId);
+      setCancelModalVisible(true);
+      return;
     }
+
+    try {
+      await orderApi.updateOrderStatus(orderId, newStatus);
+      showSuccess('Đã cập nhật trạng thái đơn hàng');
+      fetchOrders(pagination.current);
+
+      // Nếu đang xem chi tiết, đóng modal
+      if (detailModalVisible) {
+        setDetailModalVisible(false);
+      }
+    } catch (error) {
+      showError(error.message || 'Không thể cập nhật trạng thái');
+    }
+  };
+
+  /**
+   * Handle confirm cancel order
+   */
+  const handleConfirmCancel = async () => {
+    if (!cancelReason.trim()) {
+      showError('Vui lòng nhập lý do hủy đơn');
+      return;
+    }
+
+    if (cancelReason.trim().length < 10) {
+      showError('Lý do hủy phải có ít nhất 10 ký tự');
+      return;
+    }
+
+    try {
+      await orderApi.updateOrderStatus(orderToCancel, ORDER_STATUS.CANCELLED, cancelReason);
+      showSuccess('Đã hủy đơn hàng');
+      fetchOrders(pagination.current);
+
+      // Reset và đóng modal
+      setCancelModalVisible(false);
+      setCancelReason('');
+      setOrderToCancel(null);
+
+      if (detailModalVisible) {
+        setDetailModalVisible(false);
+      }
+    } catch (error) {
+      showError(error.message || 'Không thể hủy đơn hàng');
+    }
+  };
+
+  /**
+   * Handle confirm return
+   */
+  const handleConfirmReturn = async (orderId) => {
+    try {
+      await orderApi.confirmReturn(orderId);
+      showSuccess('Đã xác nhận hoàn trả đơn hàng');
+      fetchOrders(pagination.current);
+
+      if (detailModalVisible) {
+        setDetailModalVisible(false);
+      }
+    } catch (error) {
+      showError(error.message || 'Không thể xác nhận hoàn trả');
+    }
+  };
+
+  /**
+   * Get next possible statuses
+   */
+  const getNextStatuses = (currentStatus) => {
+    const statusFlow = {
+      [ORDER_STATUS.PENDING]: [ORDER_STATUS.CONFIRMED, ORDER_STATUS.CANCELLED],
+      [ORDER_STATUS.CONFIRMED]: [ORDER_STATUS.PREPARING, ORDER_STATUS.CANCELLED],
+      [ORDER_STATUS.PREPARING]: [ORDER_STATUS.SHIPPING],
+      [ORDER_STATUS.SHIPPING]: [ORDER_STATUS.DELIVERED],
+      [ORDER_STATUS.DELIVERED]: [], // ✅ Không có nút chuyển, customer yêu cầu hoàn trả
+      [ORDER_STATUS.CANCELLED]: [],
+      [ORDER_STATUS.RETURNED]: [],
+    };
+
+    return statusFlow[currentStatus] || [];
+  };
+
+  /**
+   * Render status dropdown
+   */
+  const renderStatusDropdown = (record) => {
+    const nextStatuses = getNextStatuses(record.status);
+
+    if (nextStatuses.length === 0) {
+      return null;
+    }
+
+    const menu = (
+      <Menu
+        onClick={({ key }) => handleUpdateStatus(record._id, key)}
+        items={nextStatuses.map(status => ({
+          key: status,
+          label: (
+            <Space>
+              <Tag color={ORDER_STATUS_COLORS[status]}>
+                {ORDER_STATUS_LABELS[status]}
+              </Tag>
+            </Space>
+          ),
+        }))}
+      />
+    );
+
+    return (
+      <Dropdown overlay={menu} trigger={['click']}>
+        <Button size="small">
+          Chuyển trạng thái <DownOutlined />
+        </Button>
+      </Dropdown>
+    );
   };
 
   /**
@@ -176,18 +288,45 @@ const OrderManagementPage = () => {
     },
     {
       title: 'Thanh toán',
-      dataIndex: 'paymentMethod',
-      key: 'paymentMethod',
-      render: (method) => PAYMENT_METHOD_LABELS[method] || method,
+      key: 'payment',
+      render: (_, record) => {
+        // Lấy payment từ relationship hoặc trực tiếp từ order
+        const paymentMethod = record.paymentMethod || record.payment?.paymentMethod;
+        const paymentStatus = record.payment?.status;
+
+        return (
+          <div>
+            <div>{PAYMENT_METHOD_LABELS[paymentMethod] || paymentMethod}</div>
+            {paymentStatus && (
+              <Tag
+                color={paymentStatus === 'paid' ? 'success' : paymentStatus === 'pending' ? 'warning' : 'default'}
+                style={{ fontSize: 10, marginTop: 4 }}
+              >
+                {paymentStatus === 'paid' ? 'Đã thanh toán' :
+                  paymentStatus === 'pending' ? 'Chờ thanh toán' :
+                    paymentStatus === 'failed' ? 'Thất bại' : 'Hoàn tiền'}
+              </Tag>
+            )}
+          </div>
+        );
+      },
     },
     {
       title: 'Trạng thái',
       dataIndex: 'status',
       key: 'status',
-      render: (status) => (
-        <Tag color={ORDER_STATUS_COLORS[status]}>
-          {ORDER_STATUS_LABELS[status]}
-        </Tag>
+      render: (status, record) => (
+        <Space direction="vertical" size="small">
+          <Tag color={ORDER_STATUS_COLORS[status]}>
+            {ORDER_STATUS_LABELS[status]}
+          </Tag>
+          {/* ✅ Hiển thị badge nếu có yêu cầu hoàn trả */}
+          {record.returnRequestedAt && status === ORDER_STATUS.DELIVERED && (
+            <Tag color="orange" style={{ fontSize: 11 }}>
+              ⚠️ Chờ xác nhận hoàn trả
+            </Tag>
+          )}
+        </Space>
       ),
     },
     {
@@ -209,6 +348,18 @@ const OrderManagementPage = () => {
           >
             Xem
           </Button>
+          {/* ✅ Nút xác nhận hoàn trả nếu có yêu cầu */}
+          {record.returnRequestedAt && record.status === ORDER_STATUS.DELIVERED && (
+            <Button
+              type="primary"
+              size="small"
+              danger
+              onClick={() => handleConfirmReturn(record._id)}
+            >
+              Xác nhận hoàn trả
+            </Button>
+          )}
+          {renderStatusDropdown(record)}
         </Space>
       ),
     },
@@ -265,24 +416,45 @@ const OrderManagementPage = () => {
         onCancel={() => setDetailModalVisible(false)}
         width={800}
         footer={
-          selectedOrder?.status === ORDER_STATUS.PENDING ? (
-            <Space>
-              <Button onClick={() => setDetailModalVisible(false)}>
-                Đóng
-              </Button>
-              <Button
-                type="primary"
-                onClick={() => handleUpdateStatus(ORDER_STATUS.CONFIRMED)}
-                loading={updatingStatus}
-              >
-                Xác nhận đơn hàng
-              </Button>
-            </Space>
-          ) : (
+          <Space>
             <Button onClick={() => setDetailModalVisible(false)}>
               Đóng
             </Button>
-          )
+            {/* ✅ Nút xác nhận hoàn trả */}
+            {selectedOrder?.returnRequestedAt && selectedOrder?.status === ORDER_STATUS.DELIVERED && (
+              <Button
+                type="primary"
+                danger
+                onClick={() => handleConfirmReturn(selectedOrder._id)}
+              >
+                Xác nhận hoàn trả
+              </Button>
+            )}
+            {selectedOrder && getNextStatuses(selectedOrder.status).length > 0 && (
+              <Dropdown
+                overlay={
+                  <Menu
+                    onClick={({ key }) => handleUpdateStatus(selectedOrder._id, key)}
+                    items={getNextStatuses(selectedOrder.status).map(status => ({
+                      key: status,
+                      label: (
+                        <Space>
+                          <Tag color={ORDER_STATUS_COLORS[status]}>
+                            {ORDER_STATUS_LABELS[status]}
+                          </Tag>
+                        </Space>
+                      ),
+                    }))}
+                  />
+                }
+                trigger={['click']}
+              >
+                <Button type="primary">
+                  Chuyển trạng thái <DownOutlined />
+                </Button>
+              </Dropdown>
+            )}
+          </Space>
         }
       >
         {selectedOrder && (
@@ -295,15 +467,39 @@ const OrderManagementPage = () => {
                 {selectedOrder.shippingAddress?.phone}
               </Descriptions.Item>
               <Descriptions.Item label="Trạng thái">
-                <Tag color={ORDER_STATUS_COLORS[selectedOrder.status]}>
-                  {ORDER_STATUS_LABELS[selectedOrder.status]}
-                </Tag>
+                <Space direction="vertical" size="small">
+                  <Tag color={ORDER_STATUS_COLORS[selectedOrder.status]}>
+                    {ORDER_STATUS_LABELS[selectedOrder.status]}
+                  </Tag>
+                  {selectedOrder.cancelReason && (
+                    <div style={{ color: '#ff4d4f', fontSize: 12 }}>
+                      <strong>Lý do hủy:</strong> {selectedOrder.cancelReason}
+                    </div>
+                  )}
+                  {selectedOrder.returnReason && (
+                    <div style={{ color: '#fa8c16', fontSize: 12 }}>
+                      <strong>Lý do hoàn trả:</strong> {selectedOrder.returnReason}
+                    </div>
+                  )}
+                </Space>
               </Descriptions.Item>
               <Descriptions.Item label="Địa chỉ giao hàng" span={2}>
                 {`${selectedOrder.shippingAddress?.detailAddress}, ${selectedOrder.shippingAddress?.ward}, ${selectedOrder.shippingAddress?.district}, ${selectedOrder.shippingAddress?.province}`}
               </Descriptions.Item>
               <Descriptions.Item label="Phương thức thanh toán">
-                {PAYMENT_METHOD_LABELS[selectedOrder.paymentMethod]}
+                <Space direction="vertical" size="small">
+                  <div>{PAYMENT_METHOD_LABELS[selectedOrder.paymentMethod]}</div>
+                  {selectedOrder.payment?.status && (
+                    <Tag
+                      color={selectedOrder.payment.status === 'paid' ? 'success' :
+                        selectedOrder.payment.status === 'pending' ? 'warning' : 'default'}
+                    >
+                      {selectedOrder.payment.status === 'paid' ? 'Đã thanh toán' :
+                        selectedOrder.payment.status === 'pending' ? 'Chờ thanh toán' :
+                          selectedOrder.payment.status === 'failed' ? 'Thất bại' : 'Hoàn tiền'}
+                    </Tag>
+                  )}
+                </Space>
               </Descriptions.Item>
               <Descriptions.Item label="Tổng tiền">
                 <span style={{ color: '#f5222d', fontWeight: 'bold' }}>
@@ -345,6 +541,38 @@ const OrderManagementPage = () => {
             />
           </div>
         )}
+      </Modal>
+
+      {/* Cancel Order Modal */}
+      <Modal
+        title="Hủy đơn hàng"
+        open={cancelModalVisible}
+        onCancel={() => {
+          setCancelModalVisible(false);
+          setCancelReason('');
+          setOrderToCancel(null);
+        }}
+        onOk={handleConfirmCancel}
+        okText="Xác nhận hủy"
+        cancelText="Đóng"
+        okButtonProps={{ danger: true }}
+      >
+        <Space direction="vertical" style={{ width: '100%' }} size="middle">
+          <div>
+            <strong>Lý do hủy đơn hàng:</strong>
+          </div>
+          <Input.TextArea
+            value={cancelReason}
+            onChange={(e) => setCancelReason(e.target.value)}
+            placeholder="Nhập lý do hủy đơn hàng (tối thiểu 10 ký tự)..."
+            rows={4}
+            maxLength={500}
+            showCount
+          />
+          <div style={{ color: '#999', fontSize: 12 }}>
+            * Lý do hủy sẽ được gửi cho khách hàng
+          </div>
+        </Space>
       </Modal>
     </div>
   );

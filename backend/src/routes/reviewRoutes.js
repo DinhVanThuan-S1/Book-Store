@@ -35,10 +35,21 @@ const createReviewValidation = [
     .isMongoId()
     .withMessage('Invalid order ID'),
   body('rating')
-    .isInt({ min: 1, max: 5 })
+    .isNumeric()
+    .withMessage('Rating must be a number')
+    .custom((value) => {
+      const num = Number(value);
+      return num >= 1 && num <= 5;
+    })
     .withMessage('Rating must be between 1 and 5'),
+  body('title')
+    .optional()
+    .trim()
+    .isLength({ max: 200 })
+    .withMessage('Title cannot exceed 200 characters'),
   body('comment')
     .optional()
+    .trim()
     .isLength({ max: 2000 })
     .withMessage('Comment cannot exceed 2000 characters'),
   body('images')

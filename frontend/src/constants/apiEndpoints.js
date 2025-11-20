@@ -71,6 +71,8 @@ export const API_ENDPOINTS = {
     GET_MY_ORDERS: '/orders',
     GET_BY_ID: (id) => `/orders/${id}`,
     CANCEL: (id) => `/orders/${id}/cancel`,
+    GET_REVIEWABLE_ITEMS: (id) => `/orders/${id}/reviewable-items`,
+    REQUEST_RETURN: (id) => `/orders/${id}/request-return`,
     // Admin
     GET_ALL: '/admin/orders',
     UPDATE_STATUS: (id) => `/admin/orders/${id}/status`,

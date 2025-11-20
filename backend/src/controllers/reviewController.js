@@ -18,7 +18,20 @@ const { asyncHandler } = require('../middlewares/errorHandler');
  * @access  Private/Customer
  */
 const createReview = asyncHandler(async (req, res) => {
-  const { bookId, orderId, rating, title, comment, images } = req.body;
+  let { bookId, orderId, rating, title, comment, images } = req.body;
+  
+  console.log('Received review data:', { bookId, orderId, rating, title, comment, images });
+  
+  // Convert rating to number if it's string
+  rating = Number(rating);
+  
+  // Validate rating: phải là số nguyên từ 1-5
+  if (!rating || !Number.isInteger(rating) || rating < 1 || rating > 5) {
+    return res.status(400).json({
+      success: false,
+      message: 'Rating must be an integer between 1 and 5',
+    });
+  }
   
   // Kiểm tra sách tồn tại
   const book = await Book.findById(bookId);
@@ -70,16 +83,22 @@ const createReview = asyncHandler(async (req, res) => {
   }
   
   // Tạo review
-  const review = await Review.create({
+  const reviewData = {
     customer: req.user._id,
     book: bookId,
     order: orderId,
     rating,
-    title,
-    comment,
+    title: title || '',
+    comment: comment || '',
     images: images || [],
     isVerified: true, // Verified vì đã mua hàng
-  });
+  };
+  
+  console.log('Creating review with data:', reviewData);
+  
+  const review = await Review.create(reviewData);
+  
+  console.log('Review created:', review);
   
   // Populate customer info
   await review.populate('customer', 'fullName avatar');
