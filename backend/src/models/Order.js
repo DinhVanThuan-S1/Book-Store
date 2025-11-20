@@ -154,6 +154,13 @@ const orderSchema = new mongoose.Schema({
     index: true,
   },
   
+  // Phương thức thanh toán (lưu để tiện tra cứu)
+  paymentMethod: {
+    type: String,
+    enum: ['COD', 'bank_transfer', 'momo', 'zalopay', 'credit_card'],
+    default: 'COD',
+  },
+  
   // Ghi chú
   notes: {
     type: String,

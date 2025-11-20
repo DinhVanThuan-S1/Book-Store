@@ -133,7 +133,12 @@ const orderSlice = createSlice({
       })
       .addCase(fetchOrderById.fulfilled, (state, action) => {
         state.loading = false;
-        state.currentOrder = action.payload.order;
+        // Backend trả về { order, payment }
+        // Gắn payment vào order để dễ truy cập
+        state.currentOrder = {
+          ...action.payload.order,
+          payment: action.payload.payment,
+        };
       })
       .addCase(fetchOrderById.rejected, (state, action) => {
         state.loading = false;

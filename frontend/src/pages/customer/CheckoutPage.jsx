@@ -41,6 +41,10 @@ import { addressApi } from '@api';
 import Loading from '@components/common/Loading';
 import AddressSelector from '@components/address/AddressSelector';
 import AddressForm from '@components/address/AddressForm';
+import BankTransferForm from '@components/payment/BankTransferForm';
+import MoMoForm from '@components/payment/MoMoForm';
+import ZaloPayForm from '@components/payment/ZaloPayForm';
+import CreditCardForm from '@components/payment/CreditCardForm';
 import './CheckoutPage.scss';
 
 const { Title, Text } = Typography;
@@ -57,9 +61,11 @@ const CheckoutPage = () => {
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [hasAddresses, setHasAddresses] = useState(false);
+  const [cartChecked, setCartChecked] = useState(false); // ✅ Track cart check
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(PAYMENT_METHODS.COD); // ✅ Track payment method
 
   // Redux state
-  const { items, totalPrice } = useSelector((state) => state.cart);
+  const { items, totalPrice, loading: cartLoading } = useSelector((state) => state.cart);
   const { user } = useSelector((state) => state.auth);
 
   /**
@@ -78,18 +84,21 @@ const CheckoutPage = () => {
    * Fetch cart
    */
   useEffect(() => {
-    dispatch(fetchCart());
+    dispatch(fetchCart()).then(() => {
+      setCartChecked(true); // ✅ Đánh dấu đã check cart xong
+    });
   }, [dispatch]);
 
   /**
    * Redirect nếu giỏ hàng trống
    */
   useEffect(() => {
-    if (!items || items.length === 0) {
+    // ✅ CHỈ redirect khi đã check cart xong VÀ giỏ hàng trống
+    if (cartChecked && (!items || items.length === 0)) {
       showError('Giỏ hàng trống');
       navigate('/cart');
     }
-  }, [items, navigate]);
+  }, [cartChecked, items, navigate]);
 
   /**
    * Fetch default address and set form values
@@ -123,17 +132,28 @@ const CheckoutPage = () => {
 
           if (addresses.length > 0) {
             setHasAddresses(true);
-          } else {
-            setHasAddresses(false);
-          }
-
-          // Không có địa chỉ mặc định, dùng thông tin user
-          if (user) {
+            // ✅ Lấy địa chỉ đầu tiên nếu không có mặc định
+            const firstAddress = addresses[0];
+            setSelectedAddress(firstAddress);
             form.setFieldsValue({
-              recipientName: user.fullName,
-              phone: user.phone,
+              recipientName: firstAddress.recipientName,
+              phone: firstAddress.phone,
+              province: firstAddress.province,
+              district: firstAddress.district,
+              ward: firstAddress.ward,
+              detailAddress: firstAddress.detailAddress,
               paymentMethod: PAYMENT_METHODS.COD,
             });
+          } else {
+            setHasAddresses(false);
+            // Không có địa chễ nào, dùng thông tin user
+            if (user) {
+              form.setFieldsValue({
+                recipientName: user.fullName,
+                phone: user.phone,
+                paymentMethod: PAYMENT_METHODS.COD,
+              });
+            }
           }
         }
       } catch (error) {
@@ -228,6 +248,22 @@ const CheckoutPage = () => {
         paymentMethod: values.paymentMethod,
         notes: values.notes || '',
       };
+
+      // ✅ Thêm thông tin thanh toán dựa trên phương thức
+      if (values.paymentMethod === 'bank_transfer') {
+        orderData.bankCode = values.bankCode;
+        orderData.accountNumber = values.accountNumber;
+        orderData.accountName = values.accountName;
+      } else if (values.paymentMethod === 'momo') {
+        orderData.momoPhone = values.momoPhone;
+      } else if (values.paymentMethod === 'zalopay') {
+        orderData.zaloPhone = values.zaloPhone;
+      } else if (values.paymentMethod === 'credit_card') {
+        orderData.cardNumber = values.cardNumber;
+        orderData.cardName = values.cardName;
+        orderData.cardExpiry = values.cardExpiry;
+        // CVV không được lưu vào DB (chỉ dùng để validate)
+      }
 
       console.log('Order data to send:', orderData);
 
@@ -387,7 +423,10 @@ const CheckoutPage = () => {
                       { required: true, message: 'Vui lòng chọn phương thức thanh toán!' },
                     ]}
                   >
-                    <Radio.Group className="payment-methods">
+                    <Radio.Group
+                      className="payment-methods"
+                      onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+                    >
                       {Object.values(PAYMENT_METHODS).map((method) => (
                         <Radio key={method} value={method} className="payment-method-item">
                           {PAYMENT_METHOD_LABELS[method]}
@@ -395,6 +434,12 @@ const CheckoutPage = () => {
                       ))}
                     </Radio.Group>
                   </Form.Item>
+
+                  {/* ✅ Render payment form based on selected method */}
+                  {selectedPaymentMethod === PAYMENT_METHODS.BANK_TRANSFER && <BankTransferForm />}
+                  {selectedPaymentMethod === PAYMENT_METHODS.MOMO && <MoMoForm />}
+                  {selectedPaymentMethod === PAYMENT_METHODS.ZALOPAY && <ZaloPayForm />}
+                  {selectedPaymentMethod === PAYMENT_METHODS.CREDIT_CARD && <CreditCardForm />}
                 </Card>
               </Col>
 

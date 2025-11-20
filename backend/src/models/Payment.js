@@ -57,8 +57,38 @@ const paymentSchema = new mongoose.Schema({
     trim: true,
   },
   
+  // Số tài khoản ngân hàng
+  accountNumber: {
+    type: String,
+    trim: true,
+  },
+  
+  // Tên chủ tài khoản
+  accountName: {
+    type: String,
+    trim: true,
+  },
+  
+  // Số điện thoại ví điện tử (MoMo, ZaloPay)
+  walletPhone: {
+    type: String,
+    trim: true,
+  },
+  
   // Số thẻ (mask - chỉ hiển thị 4 số cuối)
   cardNumber: {
+    type: String,
+    trim: true,
+  },
+  
+  // Tên trên thẻ
+  cardName: {
+    type: String,
+    trim: true,
+  },
+  
+  // Ngày hết hạn thẻ (MM/YY)
+  cardExpiry: {
     type: String,
     trim: true,
   },

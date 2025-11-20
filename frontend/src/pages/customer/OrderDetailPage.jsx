@@ -418,7 +418,100 @@ const OrderDetailPage = () => {
                     <Text type="secondary">Phương thức:</Text>
                     <Text strong>{PAYMENT_METHOD_LABELS[order.paymentMethod]}</Text>
                   </div>
-                  {/* Add payment status if needed */}
+
+                  {order.payment && (
+                    <>
+                      {order.payment.status && (
+                        <div className="info-row">
+                          <Text type="secondary">Trạng thái:</Text>
+                          <Tag
+                            color={order.payment.status === 'paid' ? 'success' :
+                              order.payment.status === 'pending' ? 'warning' :
+                                order.payment.status === 'refunded' ? 'purple' : 'default'}
+                          >
+                            {order.payment.status === 'paid' ? 'Đã thanh toán' :
+                              order.payment.status === 'pending' ? 'Chờ thanh toán' :
+                                order.payment.status === 'refunded' ? 'Đã hoàn tiền' : 'Thất bại'}
+                          </Tag>
+                        </div>
+                      )}
+
+                      {order.payment.transactionId && (
+                        <div className="info-row">
+                          <Text type="secondary">Mã GD:</Text>
+                          <Text code style={{ fontSize: 12 }}>{order.payment.transactionId}</Text>
+                        </div>
+                      )}
+
+                      {/* Bank Transfer */}
+                      {(order.paymentMethod === 'bank_transfer' || order.payment.paymentMethod === 'bank_transfer') && (
+                        <>
+                          {order.payment.bankCode && (
+                            <div className="info-row">
+                              <Text type="secondary">Ngân hàng:</Text>
+                              <Text>{order.payment.bankCode}</Text>
+                            </div>
+                          )}
+                          {order.payment.accountNumber && (
+                            <div className="info-row">
+                              <Text type="secondary">Số TK:</Text>
+                              <Text>{order.payment.accountNumber}</Text>
+                            </div>
+                          )}
+                          {order.payment.accountName && (
+                            <div className="info-row">
+                              <Text type="secondary">Chủ TK:</Text>
+                              <Text>{order.payment.accountName}</Text>
+                            </div>
+                          )}
+                        </>
+                      )}
+
+                      {/* MoMo / ZaloPay */}
+                      {((order.paymentMethod === 'momo' || order.paymentMethod === 'zalopay') ||
+                        (order.payment.paymentMethod === 'momo' || order.payment.paymentMethod === 'zalopay')) && (
+                          <>
+                            {order.payment.walletPhone && (
+                              <div className="info-row">
+                                <Text type="secondary">SĐT:</Text>
+                                <Text>{order.payment.walletPhone}</Text>
+                              </div>
+                            )}
+                          </>
+                        )}
+
+                      {/* Credit Card */}
+                      {(order.paymentMethod === 'credit_card' || order.payment.paymentMethod === 'credit_card') && (
+                        <>
+                          {order.payment.cardNumber && (
+                            <div className="info-row">
+                              <Text type="secondary">Số thẻ:</Text>
+                              <Text>{order.payment.cardNumber}</Text>
+                            </div>
+                          )}
+                          {order.payment.cardExpiry && (
+                            <div className="info-row">
+                              <Text type="secondary">Hạn thẻ:</Text>
+                              <Text>{order.payment.cardExpiry}</Text>
+                            </div>
+                          )}
+                          {order.payment.cardName && (
+                            <div className="info-row">
+                              <Text type="secondary">Tên thẻ:</Text>
+                              <Text>{order.payment.cardName}</Text>
+                            </div>
+                          )}
+                        </>
+                      )}
+
+                      {order.payment.paidAt && (
+                        <div className="info-row">
+                          <Text type="secondary">Thanh toán lúc:</Text>
+                          <Text style={{ fontSize: 12 }}>{formatDateTime(order.payment.paidAt)}</Text>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </Space>
               </Card>
             </Col>

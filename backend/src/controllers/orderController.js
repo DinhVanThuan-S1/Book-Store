@@ -20,8 +20,17 @@ const { paginate } = require('../utils/helper');
 const createOrder = asyncHandler(async (req, res) => {
   const {
     shippingAddress, // { recipientName, phone, province, district, ward, detailAddress }
-    paymentMethod,   // COD, bank_transfer, momo, credit_card
+    paymentMethod,   // COD, bank_transfer, momo, zalopay, credit_card
     notes,
+    // ✅ Payment details
+    bankCode,
+    accountNumber,
+    accountName,
+    momoPhone,
+    zaloPhone,
+    cardNumber,
+    cardName,
+    cardExpiry,
   } = req.body;
   
   // Lấy giỏ hàng
@@ -53,7 +62,7 @@ const createOrder = asyncHandler(async (req, res) => {
   
   // Tính toán giá
   const subtotal = cart.totalPrice;
-  const shippingFee = 25000; // Phí ship cố định (có thể tính theo địa chỉ)
+  const shippingFee = subtotal >= 300000 ? 0 : 25000; // ✅ Miễn phí ship khi >= 300K
   const discount = 0; // TODO: Xử lý coupon
   const totalPrice = subtotal + shippingFee - discount;
   
@@ -105,16 +114,51 @@ const createOrder = asyncHandler(async (req, res) => {
     discount,
     totalPrice,
     shippingAddress,
+    paymentMethod, // ✅ Lưu paymentMethod vào order
     notes,
   });
   
-  // Tạo payment
-  const payment = await Payment.create({
+  // Tạo payment với thông tin thanh toán
+  const paymentData = {
     order: order._id,
     paymentMethod,
     amount: totalPrice,
     status: 'pending',
-  });
+  };
+
+  // ✅ Lưu thông tin thanh toán dựa trên phương thức
+  if (paymentMethod === 'bank_transfer') {
+    paymentData.bankCode = bankCode;
+    paymentData.accountNumber = accountNumber;
+    paymentData.accountName = accountName;
+    // ✅ Thanh toán online tự động chuyển sang "paid"
+    paymentData.status = 'paid';
+    paymentData.paidAt = new Date();
+  } else if (paymentMethod === 'momo') {
+    paymentData.walletPhone = momoPhone;
+    // ✅ Thanh toán online tự động chuyển sang "paid"
+    paymentData.status = 'paid';
+    paymentData.paidAt = new Date();
+  } else if (paymentMethod === 'zalopay') {
+    paymentData.walletPhone = zaloPhone;
+    // ✅ Thanh toán online tự động chuyển sang "paid"
+    paymentData.status = 'paid';
+    paymentData.paidAt = new Date();
+  } else if (paymentMethod === 'credit_card') {
+    // Mask số thẻ - chỉ lưu 4 số cuối
+    if (cardNumber) {
+      const cleaned = cardNumber.replace(/\s/g, '');
+      paymentData.cardNumber = '**** **** **** ' + cleaned.slice(-4);
+    }
+    paymentData.cardName = cardName;
+    paymentData.cardExpiry = cardExpiry;
+    // ✅ Thanh toán online tự động chuyển sang "paid"
+    paymentData.status = 'paid';
+    paymentData.paidAt = new Date();
+  }
+  // COD giữ nguyên status = 'pending'
+
+  const payment = await Payment.create(paymentData);
   
   // Xóa giỏ hàng
   await cart.clearCart();
@@ -154,12 +198,25 @@ const getMyOrders = asyncHandler(async (req, res) => {
     .skip(skip)
     .limit(limitNum);
   
+  // Populate payment info cho mỗi order
+  const ordersWithPayment = await Promise.all(
+    orders.map(async (order) => {
+      const payment = await Payment.findOne({ order: order._id }).select('status paymentMethod amount');
+      const orderObj = order.toObject();
+      return {
+        ...orderObj,
+        paymentMethod: payment?.paymentMethod,
+        payment,
+      };
+    })
+  );
+  
   const total = await Order.countDocuments(query);
   
   res.status(200).json({
     success: true,
     data: {
-      orders,
+      orders: ordersWithPayment,
       pagination: {
         page: Number(page),
         limit: limitNum,
@@ -202,10 +259,16 @@ const getOrderById = asyncHandler(async (req, res) => {
   // Lấy thông tin payment
   const payment = await Payment.findOne({ order: order._id });
   
+  // Thêm paymentMethod vào order object để frontend dễ truy cập
+  const orderData = order.toObject();
+  if (payment) {
+    orderData.paymentMethod = payment.paymentMethod;
+  }
+  
   res.status(200).json({
     success: true,
     data: {
-      order,
+      order: orderData,
       payment,
     },
   });
@@ -302,8 +365,10 @@ const getAllOrders = asyncHandler(async (req, res) => {
   const ordersWithPayment = await Promise.all(
     orders.map(async (order) => {
       const payment = await Payment.findOne({ order: order._id }).select('status paymentMethod amount');
+      const orderObj = order.toObject();
       return {
-        ...order.toObject(),
+        ...orderObj,
+        paymentMethod: payment?.paymentMethod,
         payment,
       };
     })
@@ -379,6 +444,24 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
           { status: 'available', $unset: { soldDate: 1, order: 1 } }
         );
       }
+    }
+    
+    // ✅ Hoàn tiền nếu đã thanh toán (không phải COD)
+    const payment = await Payment.findOne({ order: order._id });
+    if (payment && payment.paymentMethod !== 'COD' && payment.status === 'paid') {
+      payment.status = 'refunded';
+      payment.notes = `Refunded: Order cancelled - ${cancelReason}`;
+      await payment.save();
+    }
+  }
+  
+  // ✅ Nếu delivered và COD, chuyển payment sang paid
+  if (status === 'delivered') {
+    const payment = await Payment.findOne({ order: order._id });
+    if (payment && payment.paymentMethod === 'COD' && payment.status === 'pending') {
+      payment.status = 'paid';
+      payment.paidAt = new Date();
+      await payment.save();
     }
   }
   
@@ -558,6 +641,14 @@ const confirmReturn = asyncHandler(async (req, res) => {
         }
       );
     }
+  }
+  
+  // ✅ Hoàn tiền
+  const payment = await Payment.findOne({ order: order._id });
+  if (payment && payment.status === 'paid') {
+    payment.status = 'refunded';
+    payment.notes = `Refunded: Order returned - ${order.returnReason}`;
+    await payment.save();
   }
   
   // Cập nhật status thành returned

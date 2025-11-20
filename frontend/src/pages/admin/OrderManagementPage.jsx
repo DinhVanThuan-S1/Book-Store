@@ -120,9 +120,23 @@ const OrderManagementPage = () => {
   const handleViewDetail = async (orderId) => {
     try {
       const response = await orderApi.getOrderById(orderId);
-      setSelectedOrder(response.data.order);
+
+      // Axios interceptor đã unwrap response.data
+      // Backend trả về: { success: true, data: { order, payment } }
+      // Sau interceptor: response = { success: true, data: { order, payment } }
+      const orderData = response.data?.order || response.order;
+      const paymentData = response.data?.payment || response.payment;
+
+      // Gắn payment vào order để dễ truy cập
+      const orderWithPayment = {
+        ...orderData,
+        payment: paymentData,
+      };
+
+      setSelectedOrder(orderWithPayment);
       setDetailModalVisible(true);
-    } catch {
+    } catch (error) {
+      console.error('Error loading order detail:', error);
       showError('Không thể tải chi tiết đơn hàng');
     }
   };
@@ -508,7 +522,85 @@ const OrderManagementPage = () => {
               </Descriptions.Item>
             </Descriptions>
 
-            <Title level={5} style={{ marginTop: 24 }}>
+            {/* Thông tin thanh toán chi tiết */}
+            {selectedOrder.payment && (selectedOrder.paymentMethod || selectedOrder.payment.paymentMethod) !== 'COD' && (
+              <>
+                <Title level={5} style={{ marginTop: 24 }}>
+                  Thông tin thanh toán
+                </Title>
+                <Descriptions bordered column={2} size="small">
+                  {selectedOrder.payment.transactionId && (
+                    <Descriptions.Item label="Mã giao dịch" span={2}>
+                      <Text code>{selectedOrder.payment.transactionId}</Text>
+                    </Descriptions.Item>
+                  )}
+
+                  {/* Lấy paymentMethod từ order hoặc payment */}
+                  {(selectedOrder.paymentMethod === 'bank_transfer' || selectedOrder.payment.paymentMethod === 'bank_transfer') && (
+                    <>
+                      {selectedOrder.payment.bankCode && (
+                        <Descriptions.Item label="Ngân hàng">
+                          {selectedOrder.payment.bankCode}
+                        </Descriptions.Item>
+                      )}
+                      {selectedOrder.payment.accountNumber && (
+                        <Descriptions.Item label="Số tài khoản">
+                          {selectedOrder.payment.accountNumber}
+                        </Descriptions.Item>
+                      )}
+                      {selectedOrder.payment.accountName && (
+                        <Descriptions.Item label="Chủ tài khoản" span={2}>
+                          {selectedOrder.payment.accountName}
+                        </Descriptions.Item>
+                      )}
+                    </>
+                  )}
+
+                  {((selectedOrder.paymentMethod === 'momo' || selectedOrder.paymentMethod === 'zalopay') ||
+                    (selectedOrder.payment.paymentMethod === 'momo' || selectedOrder.payment.paymentMethod === 'zalopay')) && (
+                      <>
+                        {selectedOrder.payment.walletPhone && (
+                          <Descriptions.Item label="Số điện thoại" span={2}>
+                            {selectedOrder.payment.walletPhone}
+                          </Descriptions.Item>
+                        )}
+                      </>
+                    )}
+
+                  {(selectedOrder.paymentMethod === 'credit_card' || selectedOrder.payment.paymentMethod === 'credit_card') && (
+                    <>
+                      {selectedOrder.payment.cardNumber && (
+                        <Descriptions.Item label="Số thẻ">
+                          {selectedOrder.payment.cardNumber}
+                        </Descriptions.Item>
+                      )}
+                      {selectedOrder.payment.cardExpiry && (
+                        <Descriptions.Item label="Hạn thẻ">
+                          {selectedOrder.payment.cardExpiry}
+                        </Descriptions.Item>
+                      )}
+                      {selectedOrder.payment.cardName && (
+                        <Descriptions.Item label="Tên trên thẻ" span={2}>
+                          {selectedOrder.payment.cardName}
+                        </Descriptions.Item>
+                      )}
+                    </>
+                  )}
+
+                  {selectedOrder.payment.paidAt && (
+                    <Descriptions.Item label="Thời gian thanh toán" span={2}>
+                      {formatDate(selectedOrder.payment.paidAt)}
+                    </Descriptions.Item>
+                  )}
+
+                  {selectedOrder.payment.notes && (
+                    <Descriptions.Item label="Ghi chú" span={2}>
+                      <Text type="secondary">{selectedOrder.payment.notes}</Text>
+                    </Descriptions.Item>
+                  )}
+                </Descriptions>
+              </>
+            )}            <Title level={5} style={{ marginTop: 24 }}>
               Sản phẩm
             </Title>
             <Table
