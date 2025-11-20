@@ -1,7 +1,10 @@
 /**
  * ==============================================
- * ADMIN LAYOUT COMPONENT - FIXED
+ * ADMIN LAYOUT COMPONENT - COMPLETE VERSION
  * ==============================================
+ * Layout chính cho admin dashboard với menu đầy đủ
+ * Author: DinhVanThuan-S1
+ * Date: 2025-11-19
  */
 
 import React, { useState } from 'react';
@@ -15,6 +18,7 @@ import {
   Space,
   Typography,
   Badge,
+  Drawer,
 } from 'antd';
 import {
   DashboardOutlined,
@@ -27,6 +31,13 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   BellOutlined,
+  FileTextOutlined,
+  StarOutlined,
+  TagsOutlined,
+  EditOutlined,
+  HomeOutlined,
+  AppstoreOutlined,
+  ProfileOutlined,
 } from '@ant-design/icons';
 import { logoutUser } from '@redux/slices/authSlice';
 import { showSuccess } from '@utils/notification';
@@ -41,6 +52,7 @@ const AdminLayout = () => {
   const dispatch = useDispatch();
 
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileDrawerVisible, setMobileDrawerVisible] = useState(false);
 
   // Redux state
   const { user } = useSelector((state) => state.auth);
@@ -55,44 +67,123 @@ const AdminLayout = () => {
   };
 
   /**
-   * Menu items
+   * Menu items - COMPLETE VERSION
    */
   const menuItems = [
     {
       key: '/admin',
       icon: <DashboardOutlined />,
       label: 'Dashboard',
-      onClick: () => navigate('/admin'),
+      onClick: () => {
+        navigate('/admin');
+        setMobileDrawerVisible(false);
+      },
     },
     {
-      key: '/admin/books',
+      key: 'catalog',
       icon: <BookOutlined />,
-      label: 'Quản lý sách',
-      onClick: () => navigate('/admin/books'),
+      label: 'Quản lý sản phẩm',
+      children: [
+        {
+          key: '/admin/books',
+          icon: <BookOutlined />,
+          label: 'Sách',
+          onClick: () => {
+            navigate('/admin/books');
+            setMobileDrawerVisible(false);
+          },
+        },
+        {
+          key: '/admin/categories',
+          icon: <TagsOutlined />,
+          label: 'Danh mục',
+          onClick: () => {
+            navigate('/admin/categories');
+            setMobileDrawerVisible(false);
+          },
+        },
+        {
+          key: '/admin/authors',
+          icon: <EditOutlined />,
+          label: 'Tác giả',
+          onClick: () => {
+            navigate('/admin/authors');
+            setMobileDrawerVisible(false);
+          },
+        },
+        {
+          key: '/admin/publishers',
+          icon: <HomeOutlined />,
+          label: 'Nhà xuất bản',
+          onClick: () => {
+            navigate('/admin/publishers');
+            setMobileDrawerVisible(false);
+          },
+        },
+        {
+          key: '/admin/combos',
+          icon: <AppstoreOutlined />,
+          label: 'Combo',
+          onClick: () => {
+            navigate('/admin/combos');
+            setMobileDrawerVisible(false);
+          },
+        },
+      ],
     },
     {
       key: '/admin/orders',
       icon: <ShoppingOutlined />,
       label: 'Quản lý đơn hàng',
-      onClick: () => navigate('/admin/orders'),
+      onClick: () => {
+        navigate('/admin/orders');
+        setMobileDrawerVisible(false);
+      },
     },
     {
       key: '/admin/customers',
       icon: <UserOutlined />,
       label: 'Quản lý khách hàng',
-      onClick: () => navigate('/admin/customers'),
+      onClick: () => {
+        navigate('/admin/customers');
+        setMobileDrawerVisible(false);
+      },
+    },
+    {
+      key: '/admin/book-copies',
+      icon: <FileTextOutlined />,
+      label: 'Quản lý bản sao',
+      onClick: () => {
+        navigate('/admin/book-copies');
+        setMobileDrawerVisible(false);
+      },
+    },
+    {
+      key: '/admin/reviews',
+      icon: <StarOutlined />,
+      label: 'Quản lý đánh giá',
+      onClick: () => {
+        navigate('/admin/reviews');
+        setMobileDrawerVisible(false);
+      },
     },
     {
       key: '/admin/reports',
       icon: <BarChartOutlined />,
       label: 'Báo cáo',
-      onClick: () => navigate('/admin/reports'),
+      onClick: () => {
+        navigate('/admin/reports');
+        setMobileDrawerVisible(false);
+      },
     },
     {
       key: '/admin/settings',
       icon: <SettingOutlined />,
       label: 'Cài đặt',
-      onClick: () => navigate('/admin/settings'),
+      onClick: () => {
+        navigate('/admin/settings');
+        setMobileDrawerVisible(false);
+      },
     },
   ];
 
@@ -102,7 +193,7 @@ const AdminLayout = () => {
   const userMenuItems = [
     {
       key: 'profile',
-      icon: <UserOutlined />,
+      icon: <ProfileOutlined />,
       label: 'Thông tin cá nhân',
       onClick: () => navigate('/admin/profile'),
     },
@@ -124,59 +215,141 @@ const AdminLayout = () => {
     },
   ];
 
-  // Get current selected key
-  const selectedKey = location.pathname;
+  /**
+   * Get selected keys from current path
+   */
+  const getSelectedKeys = () => {
+    const path = location.pathname;
+
+    // Check if in submenu
+    if (path.startsWith('/admin/books') ||
+      path.startsWith('/admin/categories') ||
+      path.startsWith('/admin/authors') ||
+      path.startsWith('/admin/publishers') ||
+      path.startsWith('/admin/combos')) {
+      return [path];
+    }
+
+    return [path];
+  };
+
+  /**
+   * Get open keys for submenu
+   */
+  const getOpenKeys = () => {
+    const path = location.pathname;
+
+    if (path.startsWith('/admin/books') ||
+      path.startsWith('/admin/categories') ||
+      path.startsWith('/admin/authors') ||
+      path.startsWith('/admin/publishers') ||
+      path.startsWith('/admin/combos')) {
+      return ['catalog'];
+    }
+
+    return [];
+  };
+
+  /**
+   * Sidebar content
+   */
+  const sidebarContent = (
+    <>
+      {/* Logo */}
+      <div className="admin-logo">
+        <span className="logo-icon">📚</span>
+        {!collapsed && <span className="logo-text">BookStore Admin</span>}
+      </div>
+
+      {/* Menu */}
+      <Menu
+        mode="inline"
+        selectedKeys={getSelectedKeys()}
+        defaultOpenKeys={getOpenKeys()}
+        items={menuItems}
+        className="admin-menu"
+      />
+    </>
+  );
 
   return (
     <Layout className="admin-layout">
-      {/* Sidebar */}
+      {/* Desktop Sidebar */}
       <Sider
         trigger={null}
         collapsible
         collapsed={collapsed}
         width={250}
         collapsedWidth={80}
-        className="admin-sider"
+        className="admin-sider desktop-sider"
         breakpoint="lg"
         onBreakpoint={(broken) => {
-          if (broken) {
+          // Auto collapse on small screens
+          if (broken && !collapsed) {
             setCollapsed(true);
           }
         }}
       >
-        {/* Logo */}
-        <div className="admin-logo">
-          <span className="logo-icon">📚</span>
-          {!collapsed && <span className="logo-text">Admin Panel</span>}
-        </div>
-
-        {/* Menu */}
-        <Menu
-          mode="inline"
-          selectedKeys={[selectedKey]}
-          items={menuItems}
-          className="admin-menu"
-        />
+        {sidebarContent}
       </Sider>
 
+      {/* Mobile Drawer */}
+      <Drawer
+        placement="left"
+        onClose={() => setMobileDrawerVisible(false)}
+        open={mobileDrawerVisible}
+        className="mobile-drawer"
+        width={250}
+        bodyStyle={{ padding: 0 }}
+      >
+        {sidebarContent}
+      </Drawer>
+
       {/* Main Content Layout */}
-      <Layout>
+      <Layout className="main-layout">
         {/* Header */}
         <Header className="admin-header">
           <div className="header-left">
-            {/* Toggle Button */}
+            {/* Desktop Toggle Button */}
             <div
-              className="trigger"
+              className="trigger desktop-trigger"
               onClick={() => setCollapsed(!collapsed)}
             >
               {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+            </div>
+
+            {/* Mobile Menu Button */}
+            <div
+              className="trigger mobile-trigger"
+              onClick={() => setMobileDrawerVisible(true)}
+            >
+              <MenuUnfoldOutlined />
+            </div>
+
+            {/* Breadcrumb or Title */}
+            <div className="page-title">
+              <Text strong style={{ fontSize: 16 }}>
+                {location.pathname === '/admin' && 'Dashboard'}
+                {location.pathname === '/admin/profile' && 'Thông tin cá nhân'}
+                {location.pathname === '/admin/books' && 'Quản lý sách'}
+                {location.pathname === '/admin/categories' && 'Quản lý danh mục'}
+                {location.pathname === '/admin/authors' && 'Quản lý tác giả'}
+                {location.pathname === '/admin/publishers' && 'Quản lý nhà xuất bản'}
+                {location.pathname === '/admin/combos' && 'Quản lý combo'}
+                {location.pathname === '/admin/orders' && 'Quản lý đơn hàng'}
+                {location.pathname === '/admin/customers' && 'Quản lý khách hàng'}
+                {location.pathname === '/admin/book-copies' && 'Quản lý bản sao'}
+                {location.pathname === '/admin/reviews' && 'Quản lý đánh giá'}
+                {location.pathname === '/admin/reports' && 'Báo cáo'}
+                {location.pathname === '/admin/settings' && 'Cài đặt'}
+              </Text>
             </div>
           </div>
 
           <div className="header-right">
             {/* Notifications */}
             <Badge count={5} className="notification-badge">
-              <BellOutlined style={{ fontSize: 20 }} />
+              <BellOutlined style={{ fontSize: 20, cursor: 'pointer' }} />
             </Badge>
 
             {/* User Menu */}
@@ -184,21 +357,20 @@ const AdminLayout = () => {
               menu={{ items: userMenuItems }}
               placement="bottomRight"
               arrow
+              trigger={['click']}
             >
-              <Space className="user-info">
+              <Space className="user-info" style={{ cursor: 'pointer' }}>
                 <Avatar
                   src={user?.avatar}
                   icon={<UserOutlined />}
                   size={40}
                 />
-                {!collapsed && (
-                  <div className="user-details">
-                    <Text strong>{user?.fullName || 'Admin'}</Text>
-                    <Text type="secondary" style={{ fontSize: 12 }}>
-                      Quản trị viên
-                    </Text>
-                  </div>
-                )}
+                <div className="user-details">
+                  <Text strong>{user?.fullName || 'Admin'}</Text>
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    Quản trị viên
+                  </Text>
+                </div>
               </Space>
             </Dropdown>
           </div>
@@ -208,6 +380,13 @@ const AdminLayout = () => {
         <Content className="admin-content">
           <Outlet />
         </Content>
+
+        {/* Footer */}
+        <div className="admin-footer">
+          <Text type="secondary">
+            © 2025 BookStore Admin Panel. Developed by DinhVanThuan-S1
+          </Text>
+        </div>
       </Layout>
     </Layout>
   );

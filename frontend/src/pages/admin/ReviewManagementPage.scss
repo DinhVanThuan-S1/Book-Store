@@ -1,0 +1,22 @@
+@import '@styles/variables.scss';
+
+.review-management-page {
+  .page-header {
+    margin-bottom: $spacing-xl;
+  }
+  
+  .toolbar {
+    margin-bottom: $spacing-lg;
+    padding: $spacing-lg;
+    background: $bg-tertiary;
+    border-radius: $radius-lg;
+  }
+  
+  .review-detail {
+    .customer-section {
+      padding: $spacing-md;
+      background: $bg-tertiary;
+      border-radius: $radius-md;
+    }
+  }
+}

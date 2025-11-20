@@ -33,6 +33,14 @@ import BookManagementPage from '@pages/admin/BookManagementPage';
 import OrderManagementPage from '@pages/admin/OrderManagementPage';
 import CustomerManagementPage from '@pages/admin/CustomerManagementPage';
 import ReportsPage from '@pages/admin/ReportsPage';
+import SettingsPage from '@pages/admin/SettingsPage';
+import AdminProfilePage from '@pages/admin/AdminProfilePage'; // ⭐ NEW
+import CategoryManagementPage from '@pages/admin/CategoryManagementPage'; // ⭐ NEW
+import AuthorManagementPage from '@pages/admin/AuthorManagementPage'; // ⭐ NEW
+import PublisherManagementPage from '@pages/admin/PublisherManagementPage'; // ⭐ NEW
+import ComboManagementPage from '@pages/admin/ComboManagementPage'; // ⭐ NEW
+import BookCopyManagementPage from '@pages/admin/BookCopyManagementPage'; // ⭐ NEW
+import ReviewManagementPage from '@pages/admin/ReviewManagementPage'; // ⭐ NEW
 
 // Other
 import NotFoundPage from '@components/common/NotFoundPage';
@@ -121,10 +129,18 @@ const AppRoutes = () => {
         }
       >
         <Route index element={<DashboardPage />} />
+        <Route path="profile" element={<AdminProfilePage />} /> {/* ⭐ NEW */}
         <Route path="books" element={<BookManagementPage />} />
         <Route path="orders" element={<OrderManagementPage />} />
         <Route path="customers" element={<CustomerManagementPage />} />
+        <Route path="categories" element={<CategoryManagementPage />} /> {/* ⭐ NEW */}
+        <Route path="authors" element={<AuthorManagementPage />} /> {/* ⭐ NEW */}
+        <Route path="publishers" element={<PublisherManagementPage />} /> {/* ⭐ NEW */}
+        <Route path="combos" element={<ComboManagementPage />} /> {/* ⭐ NEW */}
+        <Route path="book-copies" element={<BookCopyManagementPage />} /> {/* ⭐ NEW */}
+        <Route path="reviews" element={<ReviewManagementPage />} /> {/* ⭐ NEW */}
         <Route path="reports" element={<ReportsPage />} />
+        <Route path="settings" element={<SettingsPage />} />
       </Route>
 
       {/* ==================== 404 NOT FOUND ==================== */}

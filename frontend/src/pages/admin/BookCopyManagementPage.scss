@@ -1,0 +1,14 @@
+@import '@styles/variables.scss';
+
+.book-copy-management-page {
+  .page-header {
+    margin-bottom: $spacing-xl;
+  }
+  
+  .toolbar {
+    margin-bottom: $spacing-lg;
+    padding: $spacing-lg;
+    background: $bg-tertiary;
+    border-radius: $radius-lg;
+  }
+}
