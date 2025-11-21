@@ -25,7 +25,7 @@ const authorSchema = new mongoose.Schema({
   },
   
   // Ảnh tác giả
-  photo: {
+  image: {
     type: String,
     default: 'https://via.placeholder.com/200',
   },

@@ -8,11 +8,13 @@ const {
   createPublisher,
   updatePublisher,
   deletePublisher,
+  getPublisherBooks,
 } = require('../controllers/publisherController');
 
 // Public routes
 router.get('/', getPublishers);
 router.get('/:id', getPublisherById);
+router.get('/:id/books', getPublisherBooks);
 
 // Admin routes
 router.post('/', protect, adminOnly, createPublisher);

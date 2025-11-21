@@ -5,6 +5,7 @@
  */
 
 const Publisher = require('../models/Publisher');
+const Book = require('../models/Book');
 const { asyncHandler } = require('../middlewares/errorHandler');
 
 /**
@@ -16,9 +17,20 @@ const getPublishers = asyncHandler(async (req, res) => {
   // Không filter isActive vì model không có field này
   const publishers = await Publisher.find().sort('name');
   
+  // Đếm số sách cho mỗi nhà xuất bản
+  const publishersWithCount = await Promise.all(
+    publishers.map(async (publisher) => {
+      const bookCount = await Book.countDocuments({ publisher: publisher._id });
+      return {
+        ...publisher.toObject(),
+        bookCount,
+      };
+    })
+  );
+  
   res.status(200).json({
     success: true,
-    data: { publishers },
+    data: { publishers: publishersWithCount },
   });
 });
 
@@ -49,13 +61,14 @@ const getPublisherById = asyncHandler(async (req, res) => {
  * @access  Private/Admin
  */
 const createPublisher = asyncHandler(async (req, res) => {
-  const { name, address, phone, email } = req.body;
+  const { name, address, phone, email, website } = req.body;
   
   const publisher = await Publisher.create({
     name,
     address,
     phone,
     email,
+    website,
   });
   
   res.status(201).json({
@@ -108,11 +121,47 @@ const deletePublisher = asyncHandler(async (req, res) => {
     });
   }
   
-  await publisher.remove();
+  // Kiểm tra xem có sách nào thuộc NXB này không
+  const bookCount = await Book.countDocuments({ publisher: req.params.id });
+  if (bookCount > 0) {
+    return res.status(400).json({
+      success: false,
+      message: `Không thể xóa nhà xuất bản có ${bookCount} sách`,
+    });
+  }
+  
+  await publisher.deleteOne();
   
   res.status(200).json({
     success: true,
     message: 'Publisher deleted successfully',
+  });
+});
+
+/**
+ * @desc    Lấy danh sách sách theo NXB
+ * @route   GET /api/publishers/:id/books
+ * @access  Public
+ */
+const getPublisherBooks = asyncHandler(async (req, res) => {
+  const publisher = await Publisher.findById(req.params.id);
+  
+  if (!publisher) {
+    return res.status(404).json({
+      success: false,
+      message: 'Publisher not found',
+    });
+  }
+  
+  const books = await Book.find({ publisher: req.params.id })
+    .select('title images salePrice availableCopies')
+    .populate('category', 'name')
+    .populate('author', 'name')
+    .sort('-createdAt');
+  
+  res.status(200).json({
+    success: true,
+    data: { books, publisher },
   });
 });
 
@@ -122,4 +171,5 @@ module.exports = {
   createPublisher,
   updatePublisher,
   deletePublisher,
+  getPublisherBooks,
 };

@@ -8,10 +8,12 @@ const {
   createAuthor,
   updateAuthor,
   deleteAuthor,
+  getAuthorBooks,
 } = require('../controllers/authorController');
 
 // Public routes
 router.get('/', getAuthors);
+router.get('/:id/books', getAuthorBooks);
 router.get('/:id', getAuthorById);
 
 // Admin routes

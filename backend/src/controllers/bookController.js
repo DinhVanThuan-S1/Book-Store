@@ -94,7 +94,7 @@ const getBooks = asyncHandler(async (req, res) => {
  */
 const getBookById = asyncHandler(async (req, res) => {
   const book = await Book.findById(req.params.id)
-    .populate('author', 'name bio photo')
+    .populate('author', 'name bio image')
     .populate('publisher', 'name')
     .populate('category', 'name slug');
   
@@ -122,7 +122,7 @@ const getBookById = asyncHandler(async (req, res) => {
  */
 const getBookBySlug = asyncHandler(async (req, res) => {
   const book = await Book.findOne({ slug: req.params.slug, isActive: true })
-    .populate('author', 'name bio photo')
+    .populate('author', 'name bio image')
     .populate('publisher', 'name')
     .populate('category', 'name slug');
   

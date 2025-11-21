@@ -20,6 +20,7 @@ import {
   Popconfirm,
   message,
   Image,
+  Tag,
 } from 'antd';
 import {
   PlusOutlined,
@@ -44,6 +45,7 @@ const CategoryManagementPage = () => {
   const [fileList, setFileList] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [booksModalVisible, setBooksModalVisible] = useState(false);
+  const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [categoryBooks, setCategoryBooks] = useState([]);
   const [booksLoading, setBooksLoading] = useState(false);
@@ -186,6 +188,14 @@ const CategoryManagementPage = () => {
   };
 
   /**
+   * Handle view detail
+   */
+  const handleViewDetail = (category) => {
+    setSelectedCategory(category);
+    setDetailModalVisible(true);
+  };
+
+  /**
    * Columns
    */
   const columns = [
@@ -225,6 +235,7 @@ const CategoryManagementPage = () => {
       title: 'Số sách',
       dataIndex: 'bookCount',
       key: 'bookCount',
+      width: 120,
       render: (count, record) => (
         <Button
           type="link"
@@ -238,15 +249,17 @@ const CategoryManagementPage = () => {
     {
       title: 'Thao tác',
       key: 'actions',
-      width: 200,
+      width: 250,
       render: (_, record) => (
         <Space>
           <Button
             size="small"
             icon={<EyeOutlined />}
-            onClick={() => handleViewBooks(record)}
-            title="Xem sách"
-          />
+            onClick={() => handleViewDetail(record)}
+            title="Xem chi tiết"
+          >
+            Chi tiết
+          </Button>
           <Button
             type="primary"
             size="small"
@@ -408,6 +421,73 @@ const CategoryManagementPage = () => {
           loading={booksLoading}
           pagination={{ pageSize: 10 }}
         />
+      </Modal>
+
+      {/* Detail Modal */}
+      <Modal
+        title="Thông tin chi tiết danh mục"
+        open={detailModalVisible}
+        onCancel={() => setDetailModalVisible(false)}
+        footer={[
+          <Button key="close" onClick={() => setDetailModalVisible(false)}>
+            Đóng
+          </Button>,
+        ]}
+        width={700}
+      >
+        {selectedCategory && (
+          <div style={{ padding: '20px 0' }}>
+            <div style={{ marginBottom: 24, textAlign: 'center' }}>
+              <Image
+                src={selectedCategory.image}
+                alt={selectedCategory.name}
+                width={200}
+                style={{ borderRadius: 8, marginBottom: 16 }}
+              />
+              <div>
+                <Title level={3} style={{ marginBottom: 8 }}>
+                  {selectedCategory.name}
+                </Title>
+                <Tag color="blue">
+                  <BookOutlined /> {selectedCategory.bookCount || 0} sách
+                </Tag>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 16 }}>
+              <strong>Mô tả:</strong>
+              <div style={{ marginLeft: 24, marginTop: 8, color: '#666' }}>
+                {selectedCategory.description || 'Chưa có mô tả'}
+              </div>
+            </div>
+
+            <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid #f0f0f0' }}>
+              <Space>
+                <Button
+                  type="primary"
+                  icon={<EditOutlined />}
+                  onClick={() => {
+                    setDetailModalVisible(false);
+                    handleEdit(selectedCategory);
+                  }}
+                >
+                  Chỉnh sửa
+                </Button>
+                {selectedCategory.bookCount > 0 && (
+                  <Button
+                    icon={<BookOutlined />}
+                    onClick={() => {
+                      setDetailModalVisible(false);
+                      handleViewBooks(selectedCategory);
+                    }}
+                  >
+                    Xem danh sách sách
+                  </Button>
+                )}
+              </Space>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );
