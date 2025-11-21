@@ -16,11 +16,28 @@ const { asyncHandler } = require('../middlewares/errorHandler');
  * @access  Public
  */
 const getCategories = asyncHandler(async (req, res) => {
+  const Book = require('../models/Book');
+  
   const categories = await Category.find({ isActive: true }).sort('name');
+  
+  // Đếm số sách trong mỗi danh mục
+  const categoriesWithCount = await Promise.all(
+    categories.map(async (category) => {
+      const bookCount = await Book.countDocuments({
+        category: category._id,
+        isActive: true,
+      });
+      
+      return {
+        ...category.toObject(),
+        bookCount,
+      };
+    })
+  );
   
   res.status(200).json({
     success: true,
-    data: { categories },
+    data: { categories: categoriesWithCount },
   });
 });
 
@@ -74,9 +91,12 @@ const getCategoryBySlug = asyncHandler(async (req, res) => {
 const createCategory = asyncHandler(async (req, res) => {
   const { name, description, image } = req.body;
   
+  console.log('Creating category with data:', { name, description, image });
+  
   // Check if category already exists
   const existingCategory = await Category.findOne({ name });
   if (existingCategory) {
+    console.log('Category already exists:', name);
     return res.status(400).json({
       success: false,
       message: 'Category already exists',
@@ -88,6 +108,8 @@ const createCategory = asyncHandler(async (req, res) => {
     description,
     image,
   });
+  
+  console.log('Category created successfully:', category);
   
   res.status(201).json({
     success: true,
@@ -102,9 +124,12 @@ const createCategory = asyncHandler(async (req, res) => {
  * @access  Private/Admin
  */
 const updateCategory = asyncHandler(async (req, res) => {
+  console.log('Updating category:', req.params.id, 'with data:', req.body);
+  
   let category = await Category.findById(req.params.id);
   
   if (!category) {
+    console.log('Category not found:', req.params.id);
     return res.status(404).json({
       success: false,
       message: 'Category not found',
@@ -115,6 +140,7 @@ const updateCategory = asyncHandler(async (req, res) => {
   if (req.body.name && req.body.name !== category.name) {
     const existingCategory = await Category.findOne({ name: req.body.name });
     if (existingCategory) {
+      console.log('Category name already exists:', req.body.name);
       return res.status(400).json({
         success: false,
         message: 'Category name already exists',
@@ -127,6 +153,8 @@ const updateCategory = asyncHandler(async (req, res) => {
     req.body,
     { new: true, runValidators: true }
   );
+  
+  console.log('Category updated successfully:', category);
   
   res.status(200).json({
     success: true,
@@ -141,12 +169,27 @@ const updateCategory = asyncHandler(async (req, res) => {
  * @access  Private/Admin
  */
 const deleteCategory = asyncHandler(async (req, res) => {
+  const Book = require('../models/Book');
+  
   const category = await Category.findById(req.params.id);
   
   if (!category) {
     return res.status(404).json({
       success: false,
       message: 'Category not found',
+    });
+  }
+  
+  // Kiểm tra xem danh mục có sách không
+  const bookCount = await Book.countDocuments({
+    category: category._id,
+    isActive: true,
+  });
+  
+  if (bookCount > 0) {
+    return res.status(400).json({
+      success: false,
+      message: `Không thể xóa danh mục đang có ${bookCount} sách`,
     });
   }
   
@@ -193,6 +236,56 @@ const getCategoryStats = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * @desc    Lấy danh sách sách theo danh mục
+ * @route   GET /api/categories/:id/books
+ * @access  Public
+ */
+const getCategoryBooks = asyncHandler(async (req, res) => {
+  const Book = require('../models/Book');
+  const { page = 1, limit = 20 } = req.query;
+  
+  const category = await Category.findById(req.params.id);
+  
+  if (!category) {
+    return res.status(404).json({
+      success: false,
+      message: 'Category not found',
+    });
+  }
+  
+  const skip = (page - 1) * limit;
+  
+  const books = await Book.find({
+    category: req.params.id,
+    isActive: true,
+  })
+    .populate('author', 'name')
+    .populate('publisher', 'name')
+    .sort('-createdAt')
+    .skip(skip)
+    .limit(parseInt(limit));
+  
+  const total = await Book.countDocuments({
+    category: req.params.id,
+    isActive: true,
+  });
+  
+  res.status(200).json({
+    success: true,
+    data: {
+      category,
+      books,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    },
+  });
+});
+
 module.exports = {
   getCategories,
   getCategoryById,
@@ -201,4 +294,5 @@ module.exports = {
   updateCategory,
   deleteCategory,
   getCategoryStats,
+  getCategoryBooks,
 };

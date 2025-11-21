@@ -7,4 +7,13 @@
     align-items: center;
     margin-bottom: $spacing-xl;
   }
+
+  .ant-btn-link {
+    padding: 0;
+    height: auto;
+    
+    &:hover {
+      color: #1890ff;
+    }
+  }
 }

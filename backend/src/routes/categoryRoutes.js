@@ -18,6 +18,7 @@ const {
   updateCategory,
   deleteCategory,
   getCategoryStats,
+  getCategoryBooks,
 } = require('../controllers/categoryController');
 
 /**
@@ -25,8 +26,8 @@ const {
  */
 const categoryValidation = [
   body('name').trim().notEmpty().withMessage('Category name is required'),
-  body('description').optional().trim(),
-  body('image').optional().isURL().withMessage('Invalid image URL'),
+  body('description').optional({ nullable: true, checkFalsy: true }).trim(),
+  body('image').optional({ nullable: true, checkFalsy: true }),
 ];
 
 /**
@@ -34,8 +35,9 @@ const categoryValidation = [
  */
 router.get('/', getCategories);
 router.get('/stats', getCategoryStats);
-router.get('/:id', getCategoryById);
 router.get('/slug/:slug', getCategoryBySlug);
+router.get('/:id/books', getCategoryBooks);
+router.get('/:id', getCategoryById);
 
 /**
  * Admin routes

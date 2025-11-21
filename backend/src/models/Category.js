@@ -59,6 +59,17 @@ categorySchema.pre('save', function(next) {
 });
 
 /**
+ * Middleware: Tạo slug từ name khi update
+ */
+categorySchema.pre('findOneAndUpdate', function(next) {
+  const update = this.getUpdate();
+  if (update.name) {
+    update.slug = slugify(update.name, { lower: true, strict: true });
+  }
+  next();
+});
+
+/**
  * Virtual: Đếm số sách trong danh mục
  */
 categorySchema.virtual('bookCount', {
