@@ -317,6 +317,14 @@ const cancelOrder = asyncHandler(async (req, res) => {
     }
   }
   
+  // ✅ Hoàn tiền nếu đã thanh toán (không phải COD)
+  const payment = await Payment.findOne({ order: order._id });
+  if (payment && payment.paymentMethod !== 'COD' && payment.status === 'paid') {
+    payment.status = 'refunded';
+    payment.notes = `Refunded: Order cancelled by customer - ${cancelReason}`;
+    await payment.save();
+  }
+  
   // Cập nhật trạng thái
   order.status = 'cancelled';
   order.cancelReason = cancelReason;
