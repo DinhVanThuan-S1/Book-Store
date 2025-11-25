@@ -18,6 +18,8 @@ const {
   deleteReview,
   likeReview,
   toggleReviewVisibility,
+  getAllReviews,
+  deleteReviewByAdmin,
 } = require('../controllers/reviewController');
 
 /**
@@ -103,6 +105,13 @@ router.put(
 );
 
 // Admin routes
+router.get(
+  '/admin/all',
+  protect,
+  adminOnly,
+  getAllReviews
+);
+
 router.put(
   '/admin/:id/toggle-visibility',
   protect,
@@ -110,6 +119,15 @@ router.put(
   param('id').isMongoId().withMessage('Invalid review ID'),
   validate,
   toggleReviewVisibility
+);
+
+router.delete(
+  '/admin/:id',
+  protect,
+  adminOnly,
+  param('id').isMongoId().withMessage('Invalid review ID'),
+  validate,
+  deleteReviewByAdmin
 );
 
 module.exports = router;

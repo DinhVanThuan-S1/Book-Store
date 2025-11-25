@@ -246,7 +246,7 @@ const likeReview = asyncHandler(async (req, res) => {
 
 /**
  * @desc    Admin ẩn/hiện review
- * @route   PUT /api/admin/reviews/:id/toggle-visibility
+ * @route   PUT /api/reviews/admin/:id/toggle-visibility
  * @access  Private/Admin
  */
 const toggleReviewVisibility = asyncHandler(async (req, res) => {
@@ -269,6 +269,102 @@ const toggleReviewVisibility = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * @desc    Lấy tất cả reviews (Admin)
+ * @route   GET /api/reviews/admin/all
+ * @access  Private/Admin
+ */
+const getAllReviews = asyncHandler(async (req, res) => {
+  const {
+    page = 1,
+    limit = 10,
+    search,
+    rating,
+    isVisible,
+  } = req.query;
+  
+  // Build query
+  const query = {};
+  
+  // Filter by rating
+  if (rating) {
+    query.rating = Number(rating);
+  }
+  
+  // Filter by visibility (isHidden is opposite of isVisible)
+  if (isVisible !== undefined && isVisible !== null && isVisible !== '') {
+    query.isHidden = isVisible === 'true' ? false : true;
+  }
+  
+  // Search by book title or customer name (cần populate trước)
+  // Tạm thời bỏ qua search, sẽ implement sau nếu cần
+  
+  // Calculate pagination
+  const skip = (Number(page) - 1) * Number(limit);
+  
+  // Fetch reviews
+  const reviews = await Review.find(query)
+    .populate('customer', 'fullName email avatar')
+    .populate({
+      path: 'book',
+      select: 'title images author',
+      populate: {
+        path: 'author',
+        select: 'name',
+      },
+    })
+    .populate('order', 'orderNumber')
+    .sort('-createdAt')
+    .skip(skip)
+    .limit(Number(limit));
+  
+  // Count total
+  const total = await Review.countDocuments(query);
+  
+  // Transform isHidden to isVisible for frontend
+  const transformedReviews = reviews.map(review => {
+    const reviewObj = review.toObject();
+    reviewObj.isVisible = !reviewObj.isHidden;
+    return reviewObj;
+  });
+  
+  res.status(200).json({
+    success: true,
+    data: {
+      reviews: transformedReviews,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        pages: Math.ceil(total / Number(limit)),
+      },
+    },
+  });
+});
+
+/**
+ * @desc    Xóa review (Admin)
+ * @route   DELETE /api/reviews/admin/:id
+ * @access  Private/Admin
+ */
+const deleteReviewByAdmin = asyncHandler(async (req, res) => {
+  const review = await Review.findById(req.params.id);
+  
+  if (!review) {
+    return res.status(404).json({
+      success: false,
+      message: 'Review not found',
+    });
+  }
+  
+  await review.deleteOne();
+  
+  res.status(200).json({
+    success: true,
+    message: 'Review deleted successfully',
+  });
+});
+
 module.exports = {
   createReview,
   getBookReviews,
@@ -277,4 +373,6 @@ module.exports = {
   deleteReview,
   likeReview,
   toggleReviewVisibility,
+  getAllReviews,
+  deleteReviewByAdmin,
 };

@@ -315,7 +315,7 @@ const ComboManagementPage = () => {
     <div className="combo-management-page">
       <div className="page-header">
         <div>
-          <Title level={2}>Quản lý Combo</Title>
+          <Title level={2}>Quản lý combo</Title>
           <Text type="secondary">Tổng số: {combos.length} combo</Text>
         </div>
         <Button

@@ -22,6 +22,7 @@ import {
   Avatar,
   Popconfirm,
   message,
+  Descriptions,
 } from 'antd';
 import {
   SearchOutlined,
@@ -30,7 +31,7 @@ import {
   UserOutlined,
   EyeInvisibleOutlined,
 } from '@ant-design/icons';
-import axios from 'axios';
+import axiosInstance from '@api/axiosConfig';
 import { formatDate } from '@utils/formatDate';
 import './ReviewManagementPage.scss';
 
@@ -63,29 +64,58 @@ const ReviewManagementPage = () => {
       const params = {
         page,
         limit: pagination.pageSize,
-        ...filters,
       };
 
-      // TODO: Create admin API endpoint
-      const response = await axios.get('/admin/reviews', { params });
+      // Thêm filters vào params
+      if (filters.search) {
+        params.search = filters.search;
+      }
+      if (filters.rating) {
+        params.rating = filters.rating;
+      }
+      if (filters.isVisible !== null && filters.isVisible !== undefined) {
+        params.isVisible = filters.isVisible;
+      }
 
-      setReviews(response.data.reviews || []);
-      setPagination({
-        current: response.data.pagination.page,
-        pageSize: response.data.pagination.limit,
-        total: response.data.pagination.total,
-      });
+      // Gọi API
+      console.log('Fetching reviews with params:', params);
+      const response = await axiosInstance.get('/reviews/admin/all', { params });
+      console.log('API Response:', response);
+
+      // Kiểm tra response có data không
+      if (response?.data?.reviews) {
+        setReviews(response.data.reviews);
+        setPagination({
+          current: response.data.pagination?.page || page,
+          pageSize: response.data.pagination?.limit || pagination.pageSize,
+          total: response.data.pagination?.total || 0,
+        });
+      } else {
+        setReviews([]);
+        setPagination({
+          current: page,
+          pageSize: pagination.pageSize,
+          total: 0,
+        });
+      }
     } catch (error) {
       console.error('Error fetching reviews:', error);
       message.error('Không thể tải danh sách đánh giá');
+      setReviews([]);
+      setPagination({
+        current: page,
+        pageSize: pagination.pageSize,
+        total: 0,
+      });
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchReviews();
-  }, [filters]);
+    fetchReviews(1); // Reset về trang 1 khi filter thay đổi
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.search, filters.rating, filters.isVisible]);
 
   /**
    * Handle view detail
@@ -100,7 +130,7 @@ const ReviewManagementPage = () => {
    */
   const handleToggleVisibility = async (reviewId, currentStatus) => {
     try {
-      await axios.put(`/admin/reviews/${reviewId}/toggle-visible`);
+      await axiosInstance.put(`/reviews/admin/${reviewId}/toggle-visibility`);
       message.success(
         currentStatus ? 'Đã ẩn đánh giá' : 'Đã hiển thị đánh giá'
       );
@@ -115,7 +145,7 @@ const ReviewManagementPage = () => {
    */
   const handleDelete = async (reviewId) => {
     try {
-      await axios.delete(`/admin/reviews/${reviewId}`);
+      await axiosInstance.delete(`/reviews/admin/${reviewId}`);
       message.success('Đã xóa đánh giá');
       fetchReviews(pagination.current);
     } catch (error) {
@@ -266,7 +296,7 @@ const ReviewManagementPage = () => {
     <div className="review-management-page">
       <div className="page-header">
         <div>
-          <Title level={2}>Quản lý Đánh giá</Title>
+          <Title level={2}>Quản lý đánh giá</Title>
           <Text type="secondary">Tổng số: {pagination.total} đánh giá</Text>
         </div>
       </div>
@@ -288,11 +318,11 @@ const ReviewManagementPage = () => {
             onChange={(value) => setFilters({ ...filters, rating: value })}
             style={{ width: 150 }}
             options={[
-              { value: 5, label: '⭐⭐⭐⭐⭐ (5 sao)' },
-              { value: 4, label: '⭐⭐⭐⭐ (4 sao)' },
-              { value: 3, label: '⭐⭐⭐ (3 sao)' },
-              { value: 2, label: '⭐⭐ (2 sao)' },
-              { value: 1, label: '⭐ (1 sao)' },
+              { value: 5, label: '⭐⭐⭐⭐⭐' },
+              { value: 4, label: '⭐⭐⭐⭐' },
+              { value: 3, label: '⭐⭐⭐' },
+              { value: 2, label: '⭐⭐' },
+              { value: 1, label: '⭐' },
             ]}
           />
 
@@ -325,75 +355,98 @@ const ReviewManagementPage = () => {
         title="Chi tiết đánh giá"
         open={detailModalVisible}
         onCancel={() => setDetailModalVisible(false)}
-        footer={null}
         width={700}
+        footer={
+          <Button onClick={() => setDetailModalVisible(false)}>
+            Đóng
+          </Button>
+        }
       >
         {selectedReview && (
-          <div className="review-detail">
-            <Space direction="vertical" size="large" style={{ width: '100%' }}>
-              {/* Customer Info */}
-              <div className="customer-section">
+          <div>
+            {/* Customer Info - Header */}
+            <div style={{ textAlign: 'center', marginBottom: 24 }}>
+              <Avatar
+                src={selectedReview.customer?.avatar}
+                icon={<UserOutlined />}
+                size={80}
+              />
+              <Title level={4} style={{ marginTop: 16, marginBottom: 0 }}>
+                {selectedReview.customer?.fullName}
+              </Title>
+              <Text type="secondary">{selectedReview.customer?.email}</Text>
+              {selectedReview.isVerified && (
+                <div style={{ marginTop: 8 }}>
+                  <Tag color="green">✓ Đã mua hàng</Tag>
+                </div>
+              )}
+            </div>
+
+            {/* Review Details */}
+            <Descriptions bordered column={2}>
+              <Descriptions.Item label="Sách" span={2}>
                 <Space>
-                  <Avatar
-                    src={selectedReview.customer?.avatar}
-                    icon={<UserOutlined />}
-                    size={50}
-                  />
+                  {selectedReview.book?.images?.[0] && (
+                    <Image
+                      src={selectedReview.book.images[0]}
+                      alt={selectedReview.book.title}
+                      width={40}
+                      height={40}
+                      style={{ objectFit: 'cover', borderRadius: 4 }}
+                    />
+                  )}
                   <div>
-                    <div style={{ fontWeight: 600, fontSize: 16 }}>
-                      {selectedReview.customer?.fullName}
+                    <div style={{ fontWeight: 600 }}>
+                      {selectedReview.book?.title}
                     </div>
-                    <div style={{ color: '#999', fontSize: 12 }}>
-                      {selectedReview.customer?.email}
-                    </div>
-                    {selectedReview.isVerified && (
-                      <Tag color="green" style={{ marginTop: 4 }}>
-                        ✓ Đã mua hàng
-                      </Tag>
+                    {selectedReview.book?.author?.name && (
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        {selectedReview.book.author.name}
+                      </Text>
                     )}
                   </div>
                 </Space>
-              </div>
+              </Descriptions.Item>
 
-              {/* Book Info */}
-              <div>
-                <Text type="secondary">Sách:</Text>
-                <div style={{ fontWeight: 600, fontSize: 16, marginTop: 4 }}>
-                  {selectedReview.book?.title}
-                </div>
-              </div>
+              <Descriptions.Item label="Đánh giá">
+                <Rate disabled value={selectedReview.rating} style={{ fontSize: 16 }} />
+              </Descriptions.Item>
 
-              {/* Rating */}
-              <div>
-                <Text type="secondary">Đánh giá:</Text>
-                <div style={{ marginTop: 4 }}>
-                  <Rate disabled value={selectedReview.rating} />
-                </div>
-              </div>
+              <Descriptions.Item label="Lượt thích">
+                <Text strong>{selectedReview.likes || 0}</Text>
+              </Descriptions.Item>
 
-              {/* Title */}
-              {selectedReview.title && (
-                <div>
-                  <Text type="secondary">Tiêu đề:</Text>
-                  <div style={{ fontWeight: 600, fontSize: 16, marginTop: 4 }}>
-                    {selectedReview.title}
-                  </div>
-                </div>
-              )}
+              <Descriptions.Item label="Ngày đánh giá" span={2}>
+                {formatDate(selectedReview.createdAt)}
+              </Descriptions.Item>
 
-              {/* Comment */}
-              <div>
-                <Text type="secondary">Nội dung:</Text>
-                <Paragraph style={{ marginTop: 8, fontSize: 15 }}>
-                  {selectedReview.comment}
-                </Paragraph>
-              </div>
+              <Descriptions.Item label="Trạng thái">
+                <Tag color={selectedReview.isVisible ? 'success' : 'default'}>
+                  {selectedReview.isVisible ? 'Hiển thị' : 'Đã ẩn'}
+                </Tag>
+              </Descriptions.Item>
 
-              {/* Images */}
+              <Descriptions.Item label="Tiêu đề" span={2}>
+                {selectedReview.title && selectedReview.title.trim() !== '' ? (
+                  <Text strong>{selectedReview.title}</Text>
+                ) : (
+                  <Text type="secondary" italic>Không có tiêu đề</Text>
+                )}
+              </Descriptions.Item>
+
+              <Descriptions.Item label="Nội dung" span={2}>
+                {selectedReview.comment && selectedReview.comment.trim() !== '' ? (
+                  <Paragraph style={{ marginBottom: 0, whiteSpace: 'pre-wrap' }}>
+                    {selectedReview.comment}
+                  </Paragraph>
+                ) : (
+                  <Text type="secondary" italic>Không có nội dung</Text>
+                )}
+              </Descriptions.Item>
+
               {selectedReview.images && selectedReview.images.length > 0 && (
-                <div>
-                  <Text type="secondary">Hình ảnh:</Text>
-                  <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                <Descriptions.Item label="Hình ảnh" span={2}>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     {selectedReview.images.map((img, index) => (
                       <Image
                         key={index}
@@ -405,23 +458,39 @@ const ReviewManagementPage = () => {
                       />
                     ))}
                   </div>
-                </div>
+                </Descriptions.Item>
               )}
+            </Descriptions>
 
-              {/* Stats */}
-              <div style={{ display: 'flex', gap: 24 }}>
-                <div>
-                  <Text type="secondary">Lượt thích:</Text>
-                  <div style={{ fontSize: 18, fontWeight: 600 }}>
-                    {selectedReview.likes || 0}
-                  </div>
-                </div>
-                <div>
-                  <Text type="secondary">Ngày đánh giá:</Text>
-                  <div>{formatDate(selectedReview.createdAt)}</div>
-                </div>
-              </div>
-            </Space>
+            {/* Action Buttons */}
+            <div style={{ marginTop: 24, display: 'flex', gap: 12 }}>
+              <Button
+                type={selectedReview.isVisible ? 'default' : 'primary'}
+                icon={selectedReview.isVisible ? <EyeInvisibleOutlined /> : <EyeOutlined />}
+                onClick={() => {
+                  handleToggleVisibility(selectedReview._id, selectedReview.isVisible);
+                  setDetailModalVisible(false);
+                }}
+                block
+              >
+                {selectedReview.isVisible ? 'Ẩn đánh giá' : 'Hiện đánh giá'}
+              </Button>
+              <Popconfirm
+                title="Xóa đánh giá?"
+                description="Bạn có chắc chắn muốn xóa đánh giá này?"
+                onConfirm={() => {
+                  handleDelete(selectedReview._id);
+                  setDetailModalVisible(false);
+                }}
+                okText="Xóa"
+                cancelText="Hủy"
+                okButtonProps={{ danger: true }}
+              >
+                <Button danger icon={<DeleteOutlined />} block>
+                  Xóa đánh giá
+                </Button>
+              </Popconfirm>
+            </div>
           </div>
         )}
       </Modal>

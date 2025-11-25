@@ -129,6 +129,17 @@ reviewSchema.post('remove', async function(doc) {
 });
 
 /**
+ * Middleware: Cập nhật Book.averageRating và reviewCount sau khi xóa (deleteOne)
+ */
+reviewSchema.post('deleteOne', { document: true, query: false }, async function(doc) {
+  try {
+    await updateBookRating(doc.book);
+  } catch (error) {
+    console.error('Error updating book rating:', error);
+  }
+});
+
+/**
  * Helper Function: Cập nhật đánh giá trung bình của sách
  * @param {ObjectId} bookId - ID sách
  */
