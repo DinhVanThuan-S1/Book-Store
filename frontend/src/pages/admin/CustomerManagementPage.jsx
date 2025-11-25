@@ -20,18 +20,27 @@ import {
   Descriptions,
   Switch,
   Popconfirm,
+  Form,
+  Select,
+  DatePicker,
+  Upload,
 } from 'antd';
 import {
   UserOutlined,
   SearchOutlined,
   EyeOutlined,
   DeleteOutlined,
+  PlusOutlined,
+  EditOutlined,
+  UploadOutlined,
+  ShoppingOutlined,
+  StarOutlined,
 } from '@ant-design/icons';
-import axios from 'axios';
+import { customerApi, uploadApi } from '@api';
 import { formatPrice } from '@utils/formatPrice';
 import { formatDate } from '@utils/formatDate';
 import { showSuccess, showError } from '@utils/notification';
-import Loading from '@components/common/Loading';
+import dayjs from 'dayjs';
 import './CustomerManagementPage.scss';
 
 const { Title, Text } = Typography;
@@ -52,8 +61,33 @@ const CustomerManagementPage = () => {
 
   // Modal states
   const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [formModalVisible, setFormModalVisible] = useState(false);
+  const [ordersModalVisible, setOrdersModalVisible] = useState(false);
+  const [reviewsModalVisible, setReviewsModalVisible] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [editingCustomer, setEditingCustomer] = useState(null);
   const [customerStats, setCustomerStats] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  // Orders & Reviews data
+  const [customerOrders, setCustomerOrders] = useState([]);
+  const [customerReviews, setCustomerReviews] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [ordersPagination, setOrdersPagination] = useState({
+    current: 1,
+    pageSize: 5,
+    total: 0,
+  });
+  const [reviewsPagination, setReviewsPagination] = useState({
+    current: 1,
+    pageSize: 5,
+    total: 0,
+  });
+
+  const [form] = Form.useForm();
 
   /**
    * Fetch customers
@@ -68,13 +102,13 @@ const CustomerManagementPage = () => {
         ...filters,
       };
 
-      const response = await axios.get('/admin/customers', { params });
+      const response = await customerApi.getCustomers(params);
 
-      setCustomers(response.data.data.customers);
+      setCustomers(response.data.customers);
       setPagination({
         ...pagination,
-        current: response.data.data.pagination.page,
-        total: response.data.data.pagination.total,
+        current: response.data.pagination.page,
+        total: response.data.pagination.total,
       });
     } catch (error) {
       console.error('Error fetching customers:', error);
@@ -107,9 +141,9 @@ const CustomerManagementPage = () => {
    */
   const handleViewDetail = async (customerId) => {
     try {
-      const response = await axios.get(`/admin/customers/${customerId}`);
-      setSelectedCustomer(response.data.data.customer);
-      setCustomerStats(response.data.data.stats);
+      const response = await customerApi.getCustomerById(customerId);
+      setSelectedCustomer(response.data.customer);
+      setCustomerStats(response.data.stats);
       setDetailModalVisible(true);
     } catch (error) {
       showError('Không thể tải thông tin khách hàng');
@@ -121,14 +155,14 @@ const CustomerManagementPage = () => {
    */
   const handleToggleActive = async (customerId, currentStatus) => {
     try {
-      await axios.put(`/admin/customers/${customerId}/toggle-active`);
+      await customerApi.toggleCustomerActive(customerId);
 
       showSuccess(
         `Đã ${currentStatus ? 'vô hiệu hóa' : 'kích hoạt'} tài khoản`
       );
       fetchCustomers(pagination.current);
     } catch (error) {
-      showError(error || 'Không thể cập nhật trạng thái');
+      showError(error?.message || 'Không thể cập nhật trạng thái');
     }
   };
 
@@ -137,11 +171,151 @@ const CustomerManagementPage = () => {
    */
   const handleDeleteCustomer = async (customerId) => {
     try {
-      await axios.delete(`/admin/customers/${customerId}`);
+      await customerApi.deleteCustomer(customerId);
       showSuccess('Đã xóa khách hàng');
       fetchCustomers(pagination.current);
     } catch (error) {
-      showError(error || 'Không thể xóa khách hàng');
+      showError(error?.message || 'Không thể xóa khách hàng');
+    }
+  };
+
+  /**
+   * Handle create customer
+   */
+  const handleCreateCustomer = () => {
+    setEditingCustomer(null);
+    setAvatarUrl('');
+    form.resetFields();
+    setFormModalVisible(true);
+  };
+
+  /**
+   * Handle edit customer
+   */
+  const handleEditCustomer = (customer) => {
+    setEditingCustomer(customer);
+    setAvatarUrl(customer.avatar || '');
+
+    form.setFieldsValue({
+      fullName: customer.fullName,
+      phone: customer.phone,
+      gender: customer.gender,
+      dateOfBirth: customer.dateOfBirth ? dayjs(customer.dateOfBirth) : null,
+    });
+
+    setFormModalVisible(true);
+  };
+
+  /**
+   * Handle submit form
+   */
+  const handleSubmitForm = async (values) => {
+    try {
+      setSubmitting(true);
+
+      const customerData = {
+        fullName: values.fullName,
+        phone: values.phone,
+        gender: values.gender,
+        dateOfBirth: values.dateOfBirth ? values.dateOfBirth.toISOString() : null,
+        avatar: avatarUrl || 'https://via.placeholder.com/150',
+      };
+
+      if (editingCustomer) {
+        // Update existing customer
+        await customerApi.updateCustomer(editingCustomer._id, customerData);
+        showSuccess('Cập nhật khách hàng thành công');
+      } else {
+        // Create new customer
+        customerData.email = values.email;
+        customerData.password = values.password;
+        await customerApi.createCustomer(customerData);
+        showSuccess('Tạo khách hàng mới thành công');
+      }
+
+      setFormModalVisible(false);
+      form.resetFields();
+      setAvatarUrl('');
+      setEditingCustomer(null);
+      fetchCustomers(pagination.current);
+    } catch (error) {
+      console.error('Submit form error:', error);
+      showError(error?.message || 'Không thể lưu thông tin khách hàng');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  /**
+   * Handle upload avatar
+   */
+  const handleUploadAvatar = async (file) => {
+    try {
+      setUploading(true);
+      const response = await uploadApi.uploadImage(file);
+      const url = response.data?.url || response.url;
+      setAvatarUrl(url);
+      showSuccess('Upload ảnh thành công!');
+      return false; // Prevent auto upload
+    } catch (error) {
+      showError('Upload ảnh thất bại!');
+      return false;
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  /**
+   * Handle view orders history
+   */
+  const handleViewOrders = async (customer, page = 1) => {
+    try {
+      setSelectedCustomer(customer);
+      setOrdersLoading(true);
+      setOrdersModalVisible(true);
+
+      const response = await customerApi.getCustomerOrders(customer._id, {
+        page,
+        limit: ordersPagination.pageSize,
+      });
+
+      setCustomerOrders(response.data.orders);
+      setOrdersPagination({
+        ...ordersPagination,
+        current: response.data.pagination.page,
+        total: response.data.pagination.total,
+      });
+    } catch (error) {
+      showError('Không thể tải lịch sử đơn hàng');
+    } finally {
+      setOrdersLoading(false);
+    }
+  };
+
+  /**
+   * Handle view reviews history
+   */
+  const handleViewReviews = async (customer, page = 1) => {
+    try {
+      setSelectedCustomer(customer);
+      setReviewsLoading(true);
+      setReviewsModalVisible(true);
+
+      const response = await customerApi.getCustomerReviews(customer._id, {
+        page,
+        limit: reviewsPagination.pageSize,
+      });
+
+      setCustomerReviews(response.data.reviews);
+      setReviewsPagination({
+        ...reviewsPagination,
+        current: response.data.pagination.page,
+        total: response.data.pagination.total,
+      });
+    } catch (error) {
+      showError('Không thể tải lịch sử đánh giá');
+    } finally {
+      setReviewsLoading(false);
     }
   };
 
@@ -214,9 +388,10 @@ const CustomerManagementPage = () => {
     {
       title: 'Thao tác',
       key: 'actions',
-      width: 150,
+      width: 200,
+      fixed: 'right',
       render: (_, record) => (
-        <Space>
+        <Space size="small">
           <Button
             type="primary"
             size="small"
@@ -224,6 +399,14 @@ const CustomerManagementPage = () => {
             onClick={() => handleViewDetail(record._id)}
           >
             Xem
+          </Button>
+          <Button
+            type="default"
+            size="small"
+            icon={<EditOutlined />}
+            onClick={() => handleEditCustomer(record)}
+          >
+            Sửa
           </Button>
           <Popconfirm
             title="Xóa khách hàng?"
@@ -258,6 +441,15 @@ const CustomerManagementPage = () => {
             style={{ width: 400 }}
           />
         </Space>
+
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          size="large"
+          onClick={handleCreateCustomer}
+        >
+          Thêm khách hàng mới
+        </Button>
       </div>
 
       {/* Table */}
@@ -266,7 +458,12 @@ const CustomerManagementPage = () => {
         dataSource={customers}
         rowKey="_id"
         loading={loading}
-        pagination={pagination}
+        pagination={{
+          ...pagination,
+          showSizeChanger: true,
+          showTotal: (total) => `Tổng ${total} khách hàng`,
+          size: 'default',
+        }}
         onChange={handleTableChange}
       />
 
@@ -337,8 +534,425 @@ const CustomerManagementPage = () => {
                 </Descriptions>
               </div>
             )}
+
+            {/* Action Buttons */}
+            <div style={{ marginTop: 24, display: 'flex', gap: 12 }}>
+              <Button
+                type="primary"
+                icon={<ShoppingOutlined />}
+                onClick={() => {
+                  setDetailModalVisible(false);
+                  handleViewOrders(selectedCustomer);
+                }}
+                block
+              >
+                Xem lịch sử đơn hàng
+              </Button>
+              <Button
+                type="default"
+                icon={<StarOutlined />}
+                onClick={() => {
+                  setDetailModalVisible(false);
+                  handleViewReviews(selectedCustomer);
+                }}
+                block
+              >
+                Xem lịch sử đánh giá
+              </Button>
+            </div>
           </div>
         )}
+      </Modal>
+
+      {/* Form Modal (Create/Edit) */}
+      <Modal
+        title={
+          <Space>
+            {editingCustomer ? <EditOutlined /> : <PlusOutlined />}
+            <span>{editingCustomer ? 'Chỉnh sửa khách hàng' : 'Thêm khách hàng mới'}</span>
+          </Space>
+        }
+        open={formModalVisible}
+        onCancel={() => {
+          setFormModalVisible(false);
+          form.resetFields();
+          setAvatarUrl('');
+          setEditingCustomer(null);
+        }}
+        footer={null}
+        width={600}
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleSubmitForm}
+        >
+          {/* Avatar Upload */}
+          <Form.Item label="Ảnh đại diện">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              <Avatar
+                src={avatarUrl || 'https://via.placeholder.com/150'}
+                icon={<UserOutlined />}
+                size={80}
+              />
+              <Upload
+                beforeUpload={handleUploadAvatar}
+                showUploadList={false}
+                accept="image/*"
+              >
+                <Button icon={<UploadOutlined />} loading={uploading}>
+                  {uploading ? 'Đang upload...' : 'Upload ảnh'}
+                </Button>
+              </Upload>
+            </div>
+          </Form.Item>
+
+          {/* Email (only for create) */}
+          {!editingCustomer && (
+            <>
+              <Form.Item
+                name="email"
+                label="Email"
+                rules={[
+                  { required: true, message: 'Vui lòng nhập email!' },
+                  { type: 'email', message: 'Email không hợp lệ!' },
+                ]}
+              >
+                <Input placeholder="example@email.com" />
+              </Form.Item>
+
+              <Form.Item
+                name="password"
+                label="Mật khẩu"
+                rules={[
+                  { required: true, message: 'Vui lòng nhập mật khẩu!' },
+                  { min: 6, message: 'Mật khẩu phải có ít nhất 6 ký tự!' },
+                ]}
+              >
+                <Input.Password placeholder="Nhập mật khẩu" />
+              </Form.Item>
+            </>
+          )}
+
+          {/* Full Name */}
+          <Form.Item
+            name="fullName"
+            label="Họ tên"
+            rules={[{ required: true, message: 'Vui lòng nhập họ tên!' }]}
+          >
+            <Input placeholder="Nguyễn Văn A" />
+          </Form.Item>
+
+          {/* Phone */}
+          <Form.Item
+            name="phone"
+            label="Số điện thoại"
+            rules={[
+              { required: true, message: 'Vui lòng nhập số điện thoại!' },
+              {
+                pattern: /^[0-9]{10,11}$/,
+                message: 'Số điện thoại phải có 10-11 chữ số!',
+              },
+            ]}
+          >
+            <Input placeholder="0123456789" />
+          </Form.Item>
+
+          {/* Gender */}
+          <Form.Item name="gender" label="Giới tính">
+            <Select placeholder="Chọn giới tính">
+              <Select.Option value="male">Nam</Select.Option>
+              <Select.Option value="female">Nữ</Select.Option>
+              <Select.Option value="other">Khác</Select.Option>
+            </Select>
+          </Form.Item>
+
+          {/* Date of Birth */}
+          <Form.Item name="dateOfBirth" label="Ngày sinh">
+            <DatePicker
+              style={{ width: '100%' }}
+              format="DD/MM/YYYY"
+              placeholder="Chọn ngày sinh"
+            />
+          </Form.Item>
+
+          {/* Submit Buttons */}
+          <Form.Item style={{ marginBottom: 0, marginTop: 24 }}>
+            <Space>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={submitting}
+                icon={editingCustomer ? <EditOutlined /> : <PlusOutlined />}
+              >
+                {editingCustomer ? 'Cập nhật' : 'Tạo mới'}
+              </Button>
+              <Button
+                onClick={() => {
+                  setFormModalVisible(false);
+                  form.resetFields();
+                  setAvatarUrl('');
+                  setEditingCustomer(null);
+                }}
+              >
+                Hủy
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Orders History Modal */}
+      <Modal
+        title={
+          <Space>
+            <ShoppingOutlined />
+            <span>Lịch sử đơn hàng - {selectedCustomer?.fullName}</span>
+          </Space>
+        }
+        open={ordersModalVisible}
+        onCancel={() => {
+          setOrdersModalVisible(false);
+          setCustomerOrders([]);
+        }}
+        footer={
+          <Space>
+            <Button
+              icon={<EyeOutlined />}
+              onClick={() => {
+                setOrdersModalVisible(false);
+                setDetailModalVisible(true);
+              }}
+            >
+              Quay lại
+            </Button>
+            <Button onClick={() => setOrdersModalVisible(false)}>
+              Đóng
+            </Button>
+          </Space>
+        }
+        width={900}
+      >
+        <Table
+          columns={[
+            {
+              title: 'Mã đơn',
+              dataIndex: 'orderNumber',
+              key: 'orderNumber',
+              width: 150,
+              render: (orderNumber) => (
+                <Text strong style={{ color: '#1890ff' }}>
+                  {orderNumber}
+                </Text>
+              ),
+            },
+            {
+              title: 'Ngày đặt',
+              dataIndex: 'createdAt',
+              key: 'createdAt',
+              width: 120,
+              render: (date) => formatDate(date),
+            },
+            {
+              title: 'Tổng tiền',
+              dataIndex: 'totalPrice',
+              key: 'totalPrice',
+              width: 120,
+              render: (price) => (
+                <Text strong style={{ color: '#f5222d' }}>
+                  {formatPrice(price)}
+                </Text>
+              ),
+            },
+            {
+              title: 'Trạng thái',
+              dataIndex: 'status',
+              key: 'status',
+              width: 120,
+              render: (status) => {
+                const statusMap = {
+                  pending: { color: 'default', text: 'Chờ xác nhận' },
+                  confirmed: { color: 'blue', text: 'Đã xác nhận' },
+                  preparing: { color: 'cyan', text: 'Đang chuẩn bị' },
+                  shipping: { color: 'processing', text: 'Đang giao' },
+                  delivered: { color: 'success', text: 'Đã giao' },
+                  cancelled: { color: 'error', text: 'Đã hủy' },
+                  returned: { color: 'warning', text: 'Hoàn trả' },
+                };
+                const statusInfo = statusMap[status] || statusMap.pending;
+                return <Tag color={statusInfo.color}>{statusInfo.text}</Tag>;
+              },
+            },
+            {
+              title: 'Số sản phẩm',
+              dataIndex: 'items',
+              key: 'items',
+              width: 100,
+              render: (items) => items?.length || 0,
+            },
+          ]}
+          dataSource={customerOrders}
+          rowKey="_id"
+          loading={ordersLoading}
+          pagination={{
+            ...ordersPagination,
+            onChange: (page) => handleViewOrders(selectedCustomer, page),
+            showTotal: (total) => `Tổng ${total} đơn hàng`,
+            size: 'default',
+          }}
+          size="small"
+        />
+      </Modal>
+
+      {/* Reviews History Modal */}
+      <Modal
+        title={
+          <Space>
+            <StarOutlined />
+            <span>Lịch sử đánh giá - {selectedCustomer?.fullName}</span>
+          </Space>
+        }
+        open={reviewsModalVisible}
+        onCancel={() => {
+          setReviewsModalVisible(false);
+          setCustomerReviews([]);
+        }}
+        footer={
+          <Space>
+            <Button
+              icon={<EyeOutlined />}
+              onClick={() => {
+                setReviewsModalVisible(false);
+                setDetailModalVisible(true);
+              }}
+            >
+              Quay lại
+            </Button>
+            <Button onClick={() => setReviewsModalVisible(false)}>
+              Đóng
+            </Button>
+          </Space>
+        }
+        width={900}
+      >
+        <Table
+          columns={[
+            {
+              title: 'Sách',
+              dataIndex: 'book',
+              key: 'book',
+              width: 300,
+              render: (book) => (
+                <Space>
+                  {book?.images?.[0] && (
+                    <img
+                      src={book.images[0]}
+                      alt={book.title}
+                      style={{
+                        width: 40,
+                        height: 56,
+                        objectFit: 'cover',
+                        borderRadius: 4,
+                      }}
+                    />
+                  )}
+                  <Text>{book?.title || 'N/A'}</Text>
+                </Space>
+              ),
+            },
+            {
+              title: 'Đánh giá',
+              dataIndex: 'rating',
+              key: 'rating',
+              width: 100,
+              render: (rating) => (
+                <Space>
+                  {'⭐'.repeat(rating)}
+
+                </Space>
+              ),
+            },
+            {
+              title: 'Tiêu đề',
+              dataIndex: 'title',
+              key: 'title',
+              width: 150,
+              render: (title) => title || '-',
+            },
+            {
+              title: 'Nội dung',
+              dataIndex: 'comment',
+              key: 'comment',
+              width: 200,
+              render: (comment) => (
+                <Text ellipsis style={{ maxWidth: 200 }}>
+                  {comment || '-'}
+                </Text>
+              ),
+            },
+            {
+              title: 'Ngày',
+              dataIndex: 'createdAt',
+              key: 'createdAt',
+              width: 120,
+              render: (date) => formatDate(date),
+            },
+            {
+              title: 'Trạng thái',
+              dataIndex: 'isHidden',
+              key: 'isHidden',
+              width: 100,
+              render: (isHidden) => (
+                <Tag color={isHidden ? 'error' : 'success'}>
+                  {isHidden ? 'Đã ẩn' : 'Hiển thị'}
+                </Tag>
+              ),
+            },
+          ]}
+          dataSource={customerReviews}
+          rowKey="_id"
+          loading={reviewsLoading}
+          pagination={{
+            ...reviewsPagination,
+            onChange: (page) => handleViewReviews(selectedCustomer, page),
+            showTotal: (total) => `Tổng ${total} đánh giá`,
+            size: 'default',
+          }}
+          size="small"
+          expandable={{
+            expandedRowRender: (record) => (
+              <div style={{ padding: '12px 24px' }}>
+                <div style={{ marginBottom: 8 }}>
+                  <Text strong>Nội dung đầy đủ:</Text>
+                </div>
+                <div style={{ marginBottom: 8 }}>
+                  <Text>{record.comment || 'Không có nội dung'}</Text>
+                </div>
+                {record.images && record.images.length > 0 && (
+                  <div>
+                    <Text strong>Hình ảnh:</Text>
+                    <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
+                      {record.images.map((img, idx) => (
+                        <img
+                          key={idx}
+                          src={img}
+                          alt={`Review ${idx + 1}`}
+                          style={{
+                            width: 80,
+                            height: 80,
+                            objectFit: 'cover',
+                            borderRadius: 4,
+                            cursor: 'pointer',
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ),
+          }}
+        />
       </Modal>
     </div>
   );

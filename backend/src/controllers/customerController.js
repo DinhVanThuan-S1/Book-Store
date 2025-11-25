@@ -110,6 +110,75 @@ const getCustomerById = asyncHandler(async (req, res) => {
 });
 
 /**
+ * @desc    Tạo customer mới (Admin)
+ * @route   POST /api/admin/customers
+ * @access  Private/Admin
+ */
+const createCustomer = asyncHandler(async (req, res) => {
+  const { email, password, fullName, phone, dateOfBirth, gender, avatar } = req.body;
+  
+  // Kiểm tra email đã tồn tại
+  const existingCustomer = await Customer.findOne({ email });
+  if (existingCustomer) {
+    return res.status(400).json({
+      success: false,
+      message: 'Email already exists',
+    });
+  }
+  
+  // Tạo customer mới
+  const customer = await Customer.create({
+    email,
+    password,
+    fullName,
+    phone,
+    dateOfBirth,
+    gender,
+    avatar,
+    isActive: true,
+  });
+  
+  res.status(201).json({
+    success: true,
+    message: 'Customer created successfully',
+    data: { customer },
+  });
+});
+
+/**
+ * @desc    Cập nhật customer (Admin)
+ * @route   PUT /api/admin/customers/:id
+ * @access  Private/Admin
+ */
+const updateCustomer = asyncHandler(async (req, res) => {
+  const { fullName, phone, dateOfBirth, gender, avatar } = req.body;
+  
+  const customer = await Customer.findById(req.params.id);
+  
+  if (!customer) {
+    return res.status(404).json({
+      success: false,
+      message: 'Customer not found',
+    });
+  }
+  
+  // Cập nhật thông tin (không cho phép thay đổi email và password)
+  if (fullName) customer.fullName = fullName;
+  if (phone) customer.phone = phone;
+  if (dateOfBirth) customer.dateOfBirth = dateOfBirth;
+  if (gender) customer.gender = gender;
+  if (avatar) customer.avatar = avatar;
+  
+  await customer.save();
+  
+  res.status(200).json({
+    success: true,
+    message: 'Customer updated successfully',
+    data: { customer },
+  });
+});
+
+/**
  * @desc    Block/Unblock customer (Admin)
  * @route   PUT /api/admin/customers/:id/toggle-active
  * @access  Private/Admin
@@ -167,9 +236,118 @@ const deleteCustomer = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * @desc    Lấy lịch sử đơn hàng của customer (Admin)
+ * @route   GET /api/admin/customers/:id/orders
+ * @access  Private/Admin
+ */
+const getCustomerOrders = asyncHandler(async (req, res) => {
+  const {
+    page = 1,
+    limit = 10,
+    status,
+    sortBy = '-createdAt',
+  } = req.query;
+  
+  const customer = await Customer.findById(req.params.id);
+  
+  if (!customer) {
+    return res.status(404).json({
+      success: false,
+      message: 'Customer not found',
+    });
+  }
+  
+  const query = { customer: customer._id };
+  
+  // Filter by status
+  if (status) {
+    query.status = status;
+  }
+  
+  // Pagination
+  const { skip, limit: limitNum } = require('../utils/helper').paginate(page, limit);
+  
+  const orders = await Order.find(query)
+    .sort(sortBy)
+    .skip(skip)
+    .limit(limitNum)
+    .populate('items.book', 'title images')
+    .populate('items.combo', 'name image');
+  
+  const total = await Order.countDocuments(query);
+  
+  res.status(200).json({
+    success: true,
+    data: {
+      orders,
+      pagination: {
+        page: Number(page),
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum),
+      },
+    },
+  });
+});
+
+/**
+ * @desc    Lấy lịch sử đánh giá của customer (Admin)
+ * @route   GET /api/admin/customers/:id/reviews
+ * @access  Private/Admin
+ */
+const getCustomerReviews = asyncHandler(async (req, res) => {
+  const {
+    page = 1,
+    limit = 10,
+    sortBy = '-createdAt',
+  } = req.query;
+  
+  const customer = await Customer.findById(req.params.id);
+  
+  if (!customer) {
+    return res.status(404).json({
+      success: false,
+      message: 'Customer not found',
+    });
+  }
+  
+  const query = { customer: customer._id };
+  
+  // Pagination
+  const { skip, limit: limitNum } = require('../utils/helper').paginate(page, limit);
+  
+  const Review = require('../models/Review');
+  const reviews = await Review.find(query)
+    .sort(sortBy)
+    .skip(skip)
+    .limit(limitNum)
+    .populate('book', 'title images slug')
+    .populate('order', 'orderNumber');
+  
+  const total = await Review.countDocuments(query);
+  
+  res.status(200).json({
+    success: true,
+    data: {
+      reviews,
+      pagination: {
+        page: Number(page),
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum),
+      },
+    },
+  });
+});
+
 module.exports = {
   getAllCustomers,
   getCustomerById,
+  createCustomer,
+  updateCustomer,
   toggleCustomerActive,
   deleteCustomer,
+  getCustomerOrders,
+  getCustomerReviews,
 };

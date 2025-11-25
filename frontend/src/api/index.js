@@ -18,3 +18,4 @@ export { default as paymentApi } from './paymentApi';
 export { default as authorApi } from './authorApi';
 export { default as publisherApi } from './publisherApi';
 export { default as uploadApi } from './uploadApi';
+export { default as customerApi } from './customerApi';

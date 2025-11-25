@@ -36,6 +36,7 @@ import {
   DeleteOutlined,
   SearchOutlined,
   PlusCircleOutlined,
+  EyeOutlined,
 } from '@ant-design/icons';
 import { bookApi, categoryApi, authorApi, publisherApi, uploadApi } from '@api';
 import { formatPrice } from '@utils/formatPrice';
@@ -72,6 +73,7 @@ const BookManagementPage = () => {
   // Modal states
   const [addCopiesModalVisible, setAddCopiesModalVisible] = useState(false);
   const [bookFormModalVisible, setBookFormModalVisible] = useState(false);
+  const [bookDetailModalVisible, setBookDetailModalVisible] = useState(false);
   const [selectedBook, setSelectedBook] = useState(null);
   const [editingBook, setEditingBook] = useState(null);
   const [addingCopies, setAddingCopies] = useState(false);
@@ -476,6 +478,14 @@ const BookManagementPage = () => {
   };
 
   /**
+   * Handle view book detail
+   */
+  const handleViewDetail = (book) => {
+    setSelectedBook(book);
+    setBookDetailModalVisible(true);
+  };
+
+  /**
    * Upload button
    */
   const uploadButton = (
@@ -610,10 +620,19 @@ const BookManagementPage = () => {
     {
       title: 'Thao tác',
       key: 'actions',
-      width: 220,
+      width: 280,
       fixed: 'right',
       render: (_, record) => (
         <Space size="small">
+          <Button
+            type="primary"
+            ghost
+            size="small"
+            icon={<EyeOutlined />}
+            onClick={() => handleViewDetail(record)}
+          >
+            Chi tiết
+          </Button>
           <Button
             type="primary"
             size="small"
@@ -697,7 +716,12 @@ const BookManagementPage = () => {
         dataSource={books}
         rowKey="_id"
         loading={loading}
-        pagination={pagination}
+        pagination={{
+          ...pagination,
+          showSizeChanger: true,
+          showTotal: (total) => `Tổng ${total} sách`,
+          size: 'default',
+        }}
         onChange={handleTableChange}
         scroll={{ x: 1500 }}
         size="middle"
@@ -1137,6 +1161,295 @@ const BookManagementPage = () => {
             </Space>
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* ==================== BOOK DETAIL MODAL ==================== */}
+      <Modal
+        title={
+          <Space>
+            <EyeOutlined />
+            <span>Chi tiết sách</span>
+          </Space>
+        }
+        open={bookDetailModalVisible}
+        onCancel={() => {
+          setBookDetailModalVisible(false);
+          setSelectedBook(null);
+        }}
+        footer={[
+          <Button key="close" onClick={() => setBookDetailModalVisible(false)}>
+            Đóng
+          </Button>,
+          <Button
+            key="edit"
+            type="primary"
+            icon={<EditOutlined />}
+            onClick={() => {
+              setBookDetailModalVisible(false);
+              handleEditBook(selectedBook);
+            }}
+          >
+            Chỉnh sửa
+          </Button>,
+        ]}
+        width={900}
+      >
+        {selectedBook && (
+          <div className="book-detail-content">
+            {/* Images Section */}
+            <Row gutter={24}>
+              <Col span={8}>
+                <div className="book-images">
+                  <Image.PreviewGroup>
+                    {selectedBook.images?.map((img, index) => (
+                      <Image
+                        key={index}
+                        src={img}
+                        alt={`${selectedBook.title} - ${index + 1}`}
+                        style={{
+                          width: '100%',
+                          marginBottom: 8,
+                          borderRadius: 8,
+                          objectFit: 'cover',
+                        }}
+                      />
+                    ))}
+                  </Image.PreviewGroup>
+                </div>
+              </Col>
+
+              <Col span={16}>
+                {/* Basic Info */}
+                <Title level={3} style={{ marginTop: 0 }}>
+                  {selectedBook.title}
+                </Title>
+
+                <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                  <div>
+                    <Text type="secondary">Tác giả: </Text>
+                    <Text strong>{selectedBook.author?.name || 'N/A'}</Text>
+                  </div>
+
+                  <div>
+                    <Text type="secondary">Nhà xuất bản: </Text>
+                    <Text strong>{selectedBook.publisher?.name || 'N/A'}</Text>
+                  </div>
+
+                  <div>
+                    <Text type="secondary">Danh mục: </Text>
+                    <Tag color="blue">{selectedBook.category?.name || 'N/A'}</Tag>
+                  </div>
+
+                  {selectedBook.isbn && (
+                    <div>
+                      <Text type="secondary">ISBN: </Text>
+                      <Text code>{selectedBook.isbn}</Text>
+                    </div>
+                  )}
+
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      {selectedBook.publishYear && (
+                        <div>
+                          <Text type="secondary">Năm xuất bản: </Text>
+                          <Text>{selectedBook.publishYear}</Text>
+                        </div>
+                      )}
+                    </Col>
+                    <Col span={12}>
+                      {selectedBook.pages && (
+                        <div>
+                          <Text type="secondary">Số trang: </Text>
+                          <Text>{selectedBook.pages}</Text>
+                        </div>
+                      )}
+                    </Col>
+                  </Row>
+
+                  {selectedBook.bookLanguage && (
+                    <div>
+                      <Text type="secondary">Ngôn ngữ: </Text>
+                      <Text>{selectedBook.bookLanguage}</Text>
+                    </div>
+                  )}
+
+                  {selectedBook.format && (
+                    <div>
+                      <Text type="secondary">Hình thức: </Text>
+                      <Tag>{BOOK_FORMAT_LABELS[selectedBook.format] || selectedBook.format}</Tag>
+                    </div>
+                  )}
+
+                  {/* Price Section */}
+                  <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: 16, marginTop: 8 }}>
+                    <Row gutter={16}>
+                      <Col span={8}>
+                        <div>
+                          <Text type="secondary" style={{ fontSize: 12 }}>
+                            Giá gốc
+                          </Text>
+                          <div style={{ fontSize: 16, marginTop: 4 }}>
+                            {formatPrice(selectedBook.originalPrice)}
+                          </div>
+                        </div>
+                      </Col>
+                      <Col span={8}>
+                        <div>
+                          <Text type="secondary" style={{ fontSize: 12 }}>
+                            Giá bán
+                          </Text>
+                          <div style={{ fontSize: 18, color: '#f5222d', fontWeight: 600, marginTop: 4 }}>
+                            {formatPrice(selectedBook.salePrice)}
+                          </div>
+                        </div>
+                      </Col>
+                      <Col span={8}>
+                        {selectedBook.discountPercent > 0 && (
+                          <div>
+                            <Text type="secondary" style={{ fontSize: 12 }}>
+                              Giảm giá
+                            </Text>
+                            <div style={{ marginTop: 4 }}>
+                              <Tag color="red" style={{ fontSize: 14 }}>
+                                -{selectedBook.discountPercent}%
+                              </Tag>
+                            </div>
+                          </div>
+                        )}
+                      </Col>
+                    </Row>
+                  </div>
+
+                  {/* Stock Section */}
+                  <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: 16 }}>
+                    <Row gutter={16}>
+                      <Col span={8}>
+                        <div>
+                          <Text type="secondary" style={{ fontSize: 12 }}>
+                            Tổng bản sao
+                          </Text>
+                          <div style={{ fontSize: 16, fontWeight: 600, marginTop: 4 }}>
+                            {selectedBook.totalCopies || 0}
+                          </div>
+                        </div>
+                      </Col>
+                      <Col span={8}>
+                        <div>
+                          <Text type="secondary" style={{ fontSize: 12 }}>
+                            Còn lại
+                          </Text>
+                          <div style={{ marginTop: 4 }}>
+                            <Tag
+                              color={
+                                selectedBook.availableCopies > 10
+                                  ? 'green'
+                                  : selectedBook.availableCopies > 0
+                                    ? 'orange'
+                                    : 'red'
+                              }
+                              style={{ fontSize: 14 }}
+                            >
+                              {selectedBook.availableCopies || 0} quyển
+                            </Tag>
+                          </div>
+                        </div>
+                      </Col>
+                      <Col span={8}>
+                        <div>
+                          <Text type="secondary" style={{ fontSize: 12 }}>
+                            Đã bán (bản sao)
+                          </Text>
+                          <div style={{ fontSize: 16, color: '#f5222d', fontWeight: 600, marginTop: 4 }}>
+                            {selectedBook.soldCopies || 0} quyển
+                          </div>
+                        </div>
+                      </Col>
+                    </Row>
+                  </div>                  {/* Stats Section */}
+                  <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: 16 }}>
+                    <Row gutter={16}>
+                      <Col span={8}>
+                        <div>
+                          <Text type="secondary" style={{ fontSize: 12 }}>
+                            Lượt xem
+                          </Text>
+                          <div style={{ fontSize: 16, fontWeight: 600, marginTop: 4 }}>
+                            {selectedBook.viewCount || 0}
+                          </div>
+                        </div>
+                      </Col>
+                      <Col span={8}>
+                        <div>
+                          <Text type="secondary" style={{ fontSize: 12 }}>
+                            Lượt mua (đơn hàng)
+                          </Text>
+                          <div style={{ fontSize: 16, fontWeight: 600, marginTop: 4, color: '#1890ff' }}>
+                            {selectedBook.purchaseCount || 0}
+                          </div>
+                        </div>
+                      </Col>
+                      <Col span={8}>
+                        <div>
+                          <Text type="secondary" style={{ fontSize: 12 }}>
+                            Đánh giá
+                          </Text>
+                          <div style={{ marginTop: 4 }}>
+                            <Text style={{ fontSize: 16 }}>
+                              ⭐ {selectedBook.averageRating?.toFixed(1) || 0}
+                            </Text>
+                            <Text type="secondary" style={{ fontSize: 12, marginLeft: 4 }}>
+                              ({selectedBook.reviewCount || 0})
+                            </Text>
+                          </div>
+                        </div>
+                      </Col>
+                    </Row>
+                  </div>
+
+                  {/* Status */}
+                  <div>
+                    <Text type="secondary">Trạng thái: </Text>
+                    <Tag color={selectedBook.isActive ? 'success' : 'default'}>
+                      {selectedBook.isActive ? 'Đang bán' : 'Ngừng bán'}
+                    </Tag>
+                  </div>
+                </Space>
+              </Col>
+            </Row>
+
+            {/* Description Section */}
+            {selectedBook.description && (
+              <div style={{ marginTop: 24, borderTop: '1px solid #f0f0f0', paddingTop: 16 }}>
+                <Title level={5}>Mô tả sách</Title>
+                <Text>{selectedBook.description}</Text>
+              </div>
+            )}
+
+            {/* Full Description Section */}
+            {selectedBook.fullDescription && (
+              <div style={{ marginTop: 16 }}>
+                <Title level={5}>Mô tả chi tiết</Title>
+                <div dangerouslySetInnerHTML={{ __html: selectedBook.fullDescription }} />
+              </div>
+            )}
+
+            {/* Metadata */}
+            <div style={{ marginTop: 24, borderTop: '1px solid #f0f0f0', paddingTop: 16 }}>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    Ngày tạo: {new Date(selectedBook.createdAt).toLocaleString('vi-VN')}
+                  </Text>
+                </Col>
+                <Col span={12}>
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    Cập nhật: {new Date(selectedBook.updatedAt).toLocaleString('vi-VN')}
+                  </Text>
+                </Col>
+              </Row>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );
