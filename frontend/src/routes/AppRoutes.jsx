@@ -25,6 +25,8 @@ import OrderHistoryPage from '@pages/customer/OrderHistoryPage';
 import OrderDetailPage from '@pages/customer/OrderDetailPage';
 import ProfilePage from '@pages/customer/ProfilePage';
 import WishlistPage from '@pages/customer/WishlistPage';
+import ComboPage from '@pages/customer/ComboPage';
+import ComboDetailPage from '@pages/customer/ComboDetailPage';
 
 // Admin Pages
 import AdminLoginPage from '@pages/admin/AdminLoginPage';
@@ -59,6 +61,8 @@ const AppRoutes = () => {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/books" element={<BookListPage />} />
         <Route path="/books/:slug" element={<BookDetailPage />} />
+        <Route path="/combos" element={<ComboPage />} />
+        <Route path="/combos/:id" element={<ComboDetailPage />} />
 
         {/* Protected Customer Routes */}
         <Route

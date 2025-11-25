@@ -126,6 +126,10 @@ const Header = () => {
               label: <Link to="/books">Sách</Link>,
             },
             {
+              key: 'combos',
+              label: <Link to="/combos">Combo</Link>,
+            },
+            {
               key: 'about',
               label: <Link to="/about">Giới thiệu</Link>,
             },

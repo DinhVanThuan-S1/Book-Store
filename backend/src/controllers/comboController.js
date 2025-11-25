@@ -25,7 +25,7 @@ const getCombos = asyncHandler(async (req, res) => {
   const { skip, limit: limitNum } = paginate(page, limit);
   
   const combos = await Combo.find(query)
-    .populate('books.book', 'title slug images salePrice author')
+    .populate('books.book', 'title slug images salePrice originalPrice author')
     .sort(sortBy)
     .skip(skip)
     .limit(limitNum);
@@ -94,7 +94,7 @@ const createCombo = asyncHandler(async (req, res) => {
   await combo.save();
   
   // Populate
-  await combo.populate('books.book', 'title images salePrice');
+  await combo.populate('books.book', 'title images salePrice originalPrice');
   
   res.status(201).json({
     success: true,
@@ -127,7 +127,7 @@ const updateCombo = asyncHandler(async (req, res) => {
   }
   
   await combo.save();
-  await combo.populate('books.book', 'title images salePrice');
+  await combo.populate('books.book', 'title images salePrice originalPrice');
   
   res.status(200).json({
     success: true,

@@ -29,7 +29,11 @@ const getCart = asyncHandler(async (req, res) => {
     })
     .populate({
       path: 'items.combo',
-      select: 'name slug image comboPrice',
+      select: 'name slug image comboPrice books',
+      populate: {
+        path: 'books.book',
+        select: 'title slug images salePrice',
+      },
     });
   
   if (!cart) {

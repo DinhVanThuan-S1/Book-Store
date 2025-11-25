@@ -23,6 +23,7 @@ import {
   message,
   Image,
   Tag,
+  Descriptions,
 } from 'antd';
 import {
   PlusOutlined,
@@ -30,8 +31,9 @@ import {
   DeleteOutlined,
   UploadOutlined,
   MinusCircleOutlined,
+  EyeOutlined,
 } from '@ant-design/icons';
-import { comboApi, bookApi } from '@api';
+import { comboApi, bookApi, uploadApi } from '@api';
 import { formatPrice } from '@utils/formatPrice';
 import './ComboManagementPage.scss';
 
@@ -43,9 +45,12 @@ const ComboManagementPage = () => {
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
+  const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [selectedCombo, setSelectedCombo] = useState(null);
   const [editingCombo, setEditingCombo] = useState(null);
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState([]);
+  const [selectedBooks, setSelectedBooks] = useState([]);
 
   /**
    * Fetch combos
@@ -109,10 +114,30 @@ const ComboManagementPage = () => {
    */
   const handleSubmit = async (values) => {
     try {
+      let imageUrl = null;
+
+      // Upload ảnh nếu có file mới (không phải URL từ server)
+      if (fileList.length > 0) {
+        if (fileList[0].originFileObj) {
+          // File mới cần upload
+          message.loading({ content: 'Đang tải ảnh lên...', key: 'upload' });
+          const uploadResponse = await uploadApi.uploadImage(fileList[0].originFileObj);
+          console.log('Upload response:', uploadResponse);
+          // Response có thể là: { data: { data: { url } } } hoặc { data: { url } }
+          imageUrl = uploadResponse.data?.data?.url || uploadResponse.data?.url || uploadResponse.url;
+          message.success({ content: 'Tải ảnh thành công!', key: 'upload', duration: 2 });
+        } else if (fileList[0].url) {
+          // Ảnh cũ đã có từ server
+          imageUrl = fileList[0].url;
+        }
+      }
+
       const data = {
         ...values,
-        image: fileList.length > 0 ? fileList[0].url : null,
+        image: imageUrl,
       };
+
+      console.log('Data gửi lên server:', data);
 
       if (editingCombo) {
         await comboApi.updateCombo(editingCombo._id, data);
@@ -125,7 +150,8 @@ const ComboManagementPage = () => {
       setModalVisible(false);
       fetchCombos();
     } catch (error) {
-      message.error(error || 'Không thể lưu combo');
+      console.error('Lỗi khi lưu combo:', error);
+      message.error(error?.response?.data?.message || 'Không thể lưu combo');
     }
   };
 
@@ -140,6 +166,35 @@ const ComboManagementPage = () => {
     } catch (error) {
       message.error('Không thể xóa combo');
     }
+  };
+
+  /**
+   * Handle view detail
+   */
+  const handleView = (combo) => {
+    setSelectedCombo(combo);
+    setDetailModalVisible(true);
+  };
+
+  /**
+   * Calculate total prices based on selected books
+   */
+  const calculateTotalPrices = () => {
+    const formBooks = form.getFieldValue('books') || [];
+    let totalOriginal = 0;
+    let totalSale = 0;
+
+    formBooks.forEach(item => {
+      if (item && item.book && item.quantity) {
+        const book = books.find(b => b._id === item.book);
+        if (book) {
+          totalOriginal += (book.originalPrice || 0) * item.quantity;
+          totalSale += (book.salePrice || 0) * item.quantity;
+        }
+      }
+    });
+
+    return { totalOriginal, totalSale };
   };
 
   /**
@@ -171,6 +226,7 @@ const ComboManagementPage = () => {
       title: 'Sách trong combo',
       dataIndex: 'books',
       key: 'books',
+      width: 300,
       render: (books) => (
         <div>
           {books.slice(0, 2).map((item, index) => (
@@ -222,10 +278,18 @@ const ComboManagementPage = () => {
     {
       title: 'Thao tác',
       key: 'actions',
-      width: 150,
+      width: 200,
       fixed: 'right',
       render: (_, record) => (
         <Space>
+          <Button
+            type="default"
+            size="small"
+            icon={<EyeOutlined />}
+            onClick={() => handleView(record)}
+          >
+            Xem
+          </Button>
           <Button
             type="primary"
             size="small"
@@ -301,47 +365,88 @@ const ComboManagementPage = () => {
 
           <Form.Item label="Sách trong combo">
             <Form.List name="books">
-              {(fields, { add, remove }) => (
-                <>
-                  {fields.map(({ key, name, ...restField }) => (
-                    <Space key={key} style={{ display: 'flex', marginBottom: 8 }} align="baseline">
-                      <Form.Item
-                        {...restField}
-                        name={[name, 'book']}
-                        rules={[{ required: true, message: 'Chọn sách!' }]}
-                        style={{ width: 400 }}
-                      >
-                        <Select
-                          placeholder="Chọn sách"
-                          showSearch
-                          filterOption={(input, option) =>
-                            (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-                          }
-                          options={books.map(book => ({
-                            value: book._id,
-                            label: book.title,
-                          }))}
-                        />
-                      </Form.Item>
+              {(fields, { add, remove }) => {
+                const { totalOriginal, totalSale } = calculateTotalPrices();
+                return (
+                  <>
+                    {fields.map(({ key, name, ...restField }) => {
+                      const bookId = form.getFieldValue(['books', name, 'book']);
+                      const quantity = form.getFieldValue(['books', name, 'quantity']) || 1;
+                      const book = books.find(b => b._id === bookId);
 
-                      <Form.Item
-                        {...restField}
-                        name={[name, 'quantity']}
-                        rules={[{ required: true, message: 'Nhập số lượng!' }]}
-                      >
-                        <InputNumber min={1} placeholder="SL" style={{ width: 80 }} />
-                      </Form.Item>
+                      return (
+                        <div key={key} style={{ marginBottom: 16, padding: 12, background: '#f5f5f5', borderRadius: 8 }}>
+                          <Space style={{ display: 'flex', marginBottom: 8 }} align="baseline">
+                            <Form.Item
+                              {...restField}
+                              name={[name, 'book']}
+                              rules={[{ required: true, message: 'Chọn sách!' }]}
+                              style={{ width: 400, marginBottom: 0 }}
+                            >
+                              <Select
+                                placeholder="Chọn sách"
+                                showSearch
+                                filterOption={(input, option) =>
+                                  (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                                }
+                                options={books.map(book => ({
+                                  value: book._id,
+                                  label: book.title,
+                                }))}
+                                onChange={() => form.setFieldsValue({})}
+                              />
+                            </Form.Item>
 
-                      <MinusCircleOutlined onClick={() => remove(name)} />
-                    </Space>
-                  ))}
-                  <Form.Item>
-                    <Button type="dashed" onClick={() => add()} icon={<PlusOutlined />}>
-                      Thêm sách
-                    </Button>
-                  </Form.Item>
-                </>
-              )}
+                            <Form.Item
+                              {...restField}
+                              name={[name, 'quantity']}
+                              rules={[{ required: true, message: 'Nhập số lượng!' }]}
+                              style={{ marginBottom: 0 }}
+                            >
+                              <InputNumber
+                                min={1}
+                                placeholder="SL"
+                                style={{ width: 80 }}
+                                onChange={() => form.setFieldsValue({})}
+                              />
+                            </Form.Item>
+
+                            <MinusCircleOutlined onClick={() => remove(name)} />
+                          </Space>
+
+                          {book && (
+                            <div style={{ marginLeft: 8, fontSize: 13 }}>
+                              <Text type="secondary">
+                                Giá gốc: <Text>{formatPrice(book.originalPrice)}</Text>
+                                {' | '}
+                                Giá giảm: <Text strong style={{ color: '#f5222d' }}>{formatPrice(book.salePrice)}</Text>
+                                {' | '}
+                                Tổng: <Text strong style={{ color: '#1890ff' }}>{formatPrice(book.salePrice * quantity)}</Text>
+                              </Text>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+
+                    {fields.length > 0 && (
+                      <div style={{ padding: 12, background: '#e6f7ff', borderRadius: 8, marginBottom: 16 }}>
+                        <Text strong style={{ fontSize: 14 }}>
+                          Tổng giá gốc: <Text>{formatPrice(totalOriginal)}</Text>
+                          {' | '}
+                          Tổng giá giảm: <Text strong style={{ color: '#f5222d', fontSize: 16 }}>{formatPrice(totalSale)}</Text>
+                        </Text>
+                      </div>
+                    )}
+
+                    <Form.Item>
+                      <Button type="dashed" onClick={() => add()} icon={<PlusOutlined />}>
+                        Thêm sách
+                      </Button>
+                    </Form.Item>
+                  </>
+                );
+              }}
             </Form.List>
           </Form.Item>
 
@@ -366,9 +471,18 @@ const ComboManagementPage = () => {
               onChange={({ fileList }) => setFileList(fileList)}
               beforeUpload={() => false}
               maxCount={1}
-              listType="picture"
+              listType="picture-card"
+              onPreview={(file) => {
+                const url = file.url || URL.createObjectURL(file.originFileObj);
+                window.open(url);
+              }}
             >
-              <Button icon={<UploadOutlined />}>Chọn ảnh</Button>
+              {fileList.length < 1 && (
+                <div>
+                  <UploadOutlined />
+                  <div style={{ marginTop: 8 }}>Chọn ảnh</div>
+                </div>
+              )}
             </Upload>
           </Form.Item>
 
@@ -383,6 +497,138 @@ const ComboManagementPage = () => {
             </Space>
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* Detail Modal */}
+      <Modal
+        title="Chi tiết Combo"
+        open={detailModalVisible}
+        onCancel={() => setDetailModalVisible(false)}
+        footer={
+          <Button onClick={() => setDetailModalVisible(false)}>
+            Đóng
+          </Button>
+        }
+        width={900}
+      >
+        {selectedCombo && (
+          <div>
+            <div style={{ marginBottom: 24, textAlign: 'center' }}>
+              {selectedCombo.image && (
+                <Image
+                  src={selectedCombo.image}
+                  alt={selectedCombo.name}
+                  width={200}
+                  style={{ borderRadius: 8 }}
+                />
+              )}
+            </div>
+
+            <Descriptions bordered column={2}>
+              <Descriptions.Item label="Tên combo" span={2}>
+                <Text strong style={{ fontSize: 16 }}>{selectedCombo.name}</Text>
+              </Descriptions.Item>
+
+              <Descriptions.Item label="Mô tả" span={2}>
+                {selectedCombo.description || 'Chưa có mô tả'}
+              </Descriptions.Item>
+
+              <Descriptions.Item label="Giá gốc">
+                <Text style={{ fontSize: 16 }}>{formatPrice(selectedCombo.totalOriginalPrice)}</Text>
+              </Descriptions.Item>
+
+              <Descriptions.Item label="Giá combo">
+                <Text strong style={{ color: '#f5222d', fontSize: 18 }}>
+                  {formatPrice(selectedCombo.comboPrice)}
+                </Text>
+              </Descriptions.Item>
+
+              <Descriptions.Item label="Tiết kiệm">
+                <Tag color="red" style={{ fontSize: 14 }}>
+                  -{Math.round(((selectedCombo.totalOriginalPrice - selectedCombo.comboPrice) / selectedCombo.totalOriginalPrice) * 100)}%
+                </Tag>
+                <Text style={{ marginLeft: 8 }}>
+                  ({formatPrice(selectedCombo.totalOriginalPrice - selectedCombo.comboPrice)})
+                </Text>
+              </Descriptions.Item>
+
+              <Descriptions.Item label="Trạng thái">
+                <Tag color={selectedCombo.isActive ? 'success' : 'default'}>
+                  {selectedCombo.isActive ? 'Đang bán' : 'Ngừng bán'}
+                </Tag>
+              </Descriptions.Item>
+            </Descriptions>
+
+            <div style={{ marginTop: 24 }}>
+              <Title level={5}>Sách trong combo ({selectedCombo.books.length})</Title>
+              <Table
+                dataSource={selectedCombo.books}
+                rowKey={(item, index) => index}
+                pagination={false}
+                size="small"
+                columns={[
+                  {
+                    title: 'Hình ảnh',
+                    dataIndex: ['book', 'images'],
+                    key: 'image',
+                    width: 80,
+                    render: (images) => (
+                      images?.[0] && (
+                        <Image
+                          src={images[0]}
+                          alt="Book"
+                          width={50}
+                          height={70}
+                          style={{ objectFit: 'cover', borderRadius: 4 }}
+                        />
+                      )
+                    ),
+                  },
+                  {
+                    title: 'Tên sách',
+                    dataIndex: ['book', 'title'],
+                    key: 'title',
+                    render: (title) => <Text strong>{title || 'N/A'}</Text>,
+                  },
+                  {
+                    title: 'Số lượng',
+                    dataIndex: 'quantity',
+                    key: 'quantity',
+                    width: 100,
+                    align: 'center',
+                    render: (qty) => <Tag color="blue">x{qty}</Tag>,
+                  },
+                  {
+                    title: 'Giá gốc',
+                    dataIndex: ['book', 'originalPrice'],
+                    key: 'originalPrice',
+                    width: 120,
+                    render: (price) => <Text>{formatPrice(price)}</Text>,
+                  },
+                  {
+                    title: 'Giá giảm',
+                    dataIndex: ['book', 'salePrice'],
+                    key: 'salePrice',
+                    width: 120,
+                    render: (price) => (
+                      <Text strong style={{ color: '#f5222d' }}>{formatPrice(price)}</Text>
+                    ),
+                  },
+                  {
+                    title: 'Thành tiền',
+                    key: 'subtotal',
+                    width: 120,
+                    render: (_, record) => (
+                      <Text strong style={{ color: '#1890ff' }}>
+                        {formatPrice((record.book?.salePrice || 0) * record.quantity)}
+                      </Text>
+                    ),
+                  },
+                ]}
+              />
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

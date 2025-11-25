@@ -99,7 +99,13 @@ const createOrder = asyncHandler(async (req, res) => {
         image: item.combo.image || '',
       };
       
-      // TODO: Xử lý bản sao cho combo
+      // Xử lý bản sao cho combo
+      if (item.reservedCopies && item.reservedCopies.length > 0) {
+        await BookCopy.updateMany(
+          { _id: { $in: item.reservedCopies } },
+          { status: 'sold', soldDate: new Date() }
+        );
+      }
     }
     
     orderItems.push(orderItem);
@@ -471,6 +477,41 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
       payment.paidAt = new Date();
       await payment.save();
     }
+
+    // ✅ Cộng lượt mua và số lượng đã bán cho từng item
+    const Book = require('../models/Book');
+    const Combo = require('../models/Combo');
+    
+    for (const item of order.items) {
+      if (item.type === 'book' && item.book) {
+        await Book.findByIdAndUpdate(item.book, {
+          $inc: {
+            purchaseCount: item.quantity,
+            soldCopies: item.quantity,
+          },
+        });
+      } else if (item.type === 'combo' && item.combo) {
+        // Tăng soldCount của combo
+        await Combo.findByIdAndUpdate(item.combo, {
+          $inc: { soldCount: item.quantity },
+        });
+        
+        // Lấy thông tin combo để cộng purchaseCount cho từng sách
+        const combo = await Combo.findById(item.combo).populate('books.book');
+        if (combo && combo.books) {
+          for (const bookItem of combo.books) {
+            if (bookItem.book) {
+              await Book.findByIdAndUpdate(bookItem.book._id, {
+                $inc: {
+                  purchaseCount: bookItem.quantity * item.quantity,
+                  soldCopies: bookItem.quantity * item.quantity,
+                },
+              });
+            }
+          }
+        }
+      }
+    }
   }
   
   // Cập nhật trạng thái
@@ -494,6 +535,14 @@ const getReviewableItems = asyncHandler(async (req, res) => {
     .populate({
       path: 'items.book',
       populate: { path: 'author', select: 'name' }
+    })
+    .populate({
+      path: 'items.combo',
+      populate: {
+        path: 'books.book',
+        select: 'title images author',
+        populate: { path: 'author', select: 'name' }
+      }
     });
   
   if (!order) {
@@ -528,16 +577,42 @@ const getReviewableItems = asyncHandler(async (req, res) => {
   
   const reviewedBookIds = existingReviews.map(r => r.book.toString());
   
-  // Filter items chưa review
-  const reviewableItems = order.items
-    .filter(item => item.type === 'book' && item.book)
-    .map(item => ({
-      _id: item._id,
-      book: item.book,
-      bookSnapshot: item.bookSnapshot,
-      quantity: item.quantity,
-      isReviewed: reviewedBookIds.includes(item.book._id.toString()),
-    }));
+  // Tạo danh sách sách có thể review (bao gồm sách từ combo)
+  const reviewableItems = [];
+  
+  for (const item of order.items) {
+    if (item.type === 'book' && item.book) {
+      // Sách đơn lẻ
+      reviewableItems.push({
+        _id: item._id,
+        book: item.book,
+        bookSnapshot: item.bookSnapshot,
+        quantity: item.quantity,
+        isReviewed: reviewedBookIds.includes(item.book._id.toString()),
+        fromCombo: false,
+      });
+    } else if (item.type === 'combo' && item.combo && item.combo.books) {
+      // Tách combo thành các sách riêng
+      for (const bookItem of item.combo.books) {
+        if (bookItem.book) {
+          const totalQuantity = bookItem.quantity * item.quantity;
+          reviewableItems.push({
+            _id: `${item._id}_${bookItem.book._id}`, // Unique ID
+            book: bookItem.book,
+            bookSnapshot: {
+              title: bookItem.book.title,
+              author: bookItem.book.author ? bookItem.book.author.name : 'Unknown',
+              image: bookItem.book.images && bookItem.book.images.length > 0 ? bookItem.book.images[0] : '',
+            },
+            quantity: totalQuantity,
+            isReviewed: reviewedBookIds.includes(bookItem.book._id.toString()),
+            fromCombo: true,
+            comboName: item.combo.name,
+          });
+        }
+      }
+    }
+  }
   
   res.status(200).json({
     success: true,

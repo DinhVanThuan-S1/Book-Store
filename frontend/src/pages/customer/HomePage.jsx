@@ -12,9 +12,10 @@ import { Row, Col, Typography, Button, Carousel } from 'antd';
 import { ArrowRightOutlined } from '@ant-design/icons';
 import BookList from '@components/book/BookList';
 import Loading from '@components/common/Loading';
-import { bookApi, categoryApi } from '@api';
+import { bookApi, categoryApi, comboApi } from '@api';
 import { addToCart } from '@redux/slices/cartSlice';
 import { showSuccess, showError } from '@utils/notification';
+import { formatPrice } from '@utils/formatPrice';
 import './HomePage.scss';
 
 const { Title, Paragraph } = Typography;
@@ -30,6 +31,7 @@ const HomePage = () => {
   const [featuredBooks, setFeaturedBooks] = useState([]);
   const [newBooks, setNewBooks] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [combos, setCombos] = useState([]);
 
   /**
    * Fetch data
@@ -56,6 +58,12 @@ const HomePage = () => {
           limit: 8,
         });
         setNewBooks(newResponse.data.books || []);
+
+        // Fetch combos
+        const comboResponse = await comboApi.getCombos({
+          limit: 4,
+        });
+        setCombos(comboResponse.data.combos || []);
       } catch (error) {
         console.error('Error fetching data:', error);
       } finally {
@@ -193,6 +201,51 @@ const HomePage = () => {
           />
         </div>
       </section>
+
+      {/* Combos */}
+      {combos.length > 0 && (
+        <section className="combo-section">
+          <div className="container">
+            <div className="section-header">
+              <Title level={2} className="section-title">
+                Sale siêu khủng
+              </Title>
+              <Button
+                type="link"
+                onClick={() => navigate('/combos')}
+              >
+                Xem tất cả <ArrowRightOutlined />
+              </Button>
+            </div>
+
+            <Row gutter={[16, 16]}>
+              {combos.map((combo) => {
+                const discount = combo.totalOriginalPrice - combo.comboPrice;
+                const percent = Math.round((discount / combo.totalOriginalPrice) * 100);
+
+                return (
+                  <Col key={combo._id} xs={24} sm={12} lg={6}>
+                    <div className="combo-card" onClick={() => navigate(`/combos/${combo._id}`)}>
+                      <div className="combo-image">
+                        <img src={combo.image} alt={combo.name} />
+                        <div className="combo-discount">-{percent}%</div>
+                      </div>
+                      <div className="combo-info">
+                        <h3>{combo.name}</h3>
+                        <p className="combo-books">{combo.books.length} sách</p>
+                        <div className="combo-price">
+                          <span className="original-price">{formatPrice(combo.totalOriginalPrice)}</span>
+                          <span className="sale-price">{formatPrice(combo.comboPrice)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </Col>
+                );
+              })}
+            </Row>
+          </div>
+        </section>
+      )}
 
       {/* New Books */}
       <section className="new-books-section">

@@ -68,6 +68,7 @@
   // Sections
   .categories-section,
   .featured-section,
+  .combo-section,
   .new-books-section {
     padding: $spacing-3xl 0;
   }
@@ -78,6 +79,10 @@
   
   .featured-section {
     background: $bg-secondary;
+  }
+
+  .combo-section {
+    background: #fff5f0;
   }
   
   .new-books-section {
@@ -127,6 +132,84 @@
     .category-name {
       font-weight: $font-medium;
       color: $text-primary;
+    }
+  }
+
+  // Combo Card
+  .combo-card {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+    &:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    }
+
+    .combo-image {
+      position: relative;
+      height: 250px;
+      overflow: hidden;
+
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .combo-discount {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        background: #f5222d;
+        color: white;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 16px;
+      }
+    }
+
+    .combo-info {
+      padding: 16px;
+
+      h3 {
+        font-size: 16px;
+        margin-bottom: 8px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        min-height: 48px;
+      }
+
+      .combo-books {
+        color: #666;
+        font-size: 13px;
+        margin-bottom: 12px;
+      }
+
+      .combo-price {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+
+        .original-price {
+          text-decoration: line-through;
+          color: #999;
+          font-size: 14px;
+        }
+
+        .sale-price {
+          color: #f5222d;
+          font-size: 20px;
+          font-weight: bold;
+        }
+      }
     }
   }
 }

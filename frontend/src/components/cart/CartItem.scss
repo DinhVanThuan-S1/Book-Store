@@ -42,6 +42,7 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+      transition: color 0.2s;
       
       &:hover {
         color: $primary-color;
@@ -53,6 +54,31 @@
       color: $text-secondary;
       font-size: $font-sm;
       margin-bottom: $spacing-sm;
+    }
+
+    .combo-books-list {
+      .combo-book-item {
+        padding: 8px 0;
+        border-bottom: 1px solid #f0f0f0;
+
+        &:last-child {
+          border-bottom: none;
+        }
+
+        > div {
+          padding: 4px;
+          border-radius: 4px;
+          transition: background 0.2s;
+
+          &:hover {
+            background: #fafafa;
+
+            div:first-of-type {
+              color: $primary-color;
+            }
+          }
+        }
+      }
     }
     
     .cart-item-price {
