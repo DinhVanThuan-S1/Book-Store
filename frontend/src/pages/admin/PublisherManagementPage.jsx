@@ -19,6 +19,8 @@ import {
   Popconfirm,
   message,
   Tag,
+  Descriptions,
+  Avatar,
 } from 'antd';
 import {
   PlusOutlined,
@@ -160,12 +162,14 @@ const PublisherManagementPage = () => {
       title: 'Tên nhà xuất bản',
       dataIndex: 'name',
       key: 'name',
+      width: 250,
       render: (name) => <strong>{name}</strong>,
     },
     {
       title: 'Địa chỉ',
       dataIndex: 'address',
       key: 'address',
+      width: 300,
       ellipsis: true,
     },
     {
@@ -182,18 +186,6 @@ const PublisherManagementPage = () => {
           </div>
         </div>
       ),
-    },
-    {
-      title: 'Liên kết',
-      dataIndex: 'website',
-      key: 'website',
-      width: 200,
-      ellipsis: true,
-      render: (website) => website ? (
-        <a href={website} target="_blank" rel="noopener noreferrer">
-          {website}
-        </a>
-      ) : '-',
     },
     {
       title: 'Số sách',
@@ -369,8 +361,18 @@ const PublisherManagementPage = () => {
       <Modal
         title={`Danh sách sách - ${selectedPublisher?.name}`}
         open={booksModalVisible}
-        onCancel={() => setBooksModalVisible(false)}
-        footer={null}
+        onCancel={() => {
+          setBooksModalVisible(false);
+          setDetailModalVisible(true);
+        }}
+        footer={
+          <Button onClick={() => {
+            setBooksModalVisible(false);
+            setDetailModalVisible(true);
+          }}>
+            Quay lại
+          </Button>
+        }
         width={1000}
       >
         <Table
@@ -430,58 +432,51 @@ const PublisherManagementPage = () => {
 
       {/* Detail Modal */}
       <Modal
-        title="Thông tin chi tiết nhà xuất bản"
+        title="Thông tin nhà xuất bản"
         open={detailModalVisible}
         onCancel={() => setDetailModalVisible(false)}
-        footer={[
-          <Button key="close" onClick={() => setDetailModalVisible(false)}>
-            Đóng
-          </Button>,
-        ]}
         width={700}
+        footer={
+          <Button onClick={() => setDetailModalVisible(false)}>
+            Đóng
+          </Button>
+        }
       >
         {selectedPublisher && (
-          <div style={{ padding: '20px 0' }}>
-            <div style={{ marginBottom: 24 }}>
-              <Text strong style={{ fontSize: 18, display: 'block', marginBottom: 8 }}>
+          <div>
+            {/* Publisher Info - Header */}
+            <div style={{ textAlign: 'center', marginBottom: 24 }}>
+              <Avatar
+                icon={<HomeOutlined />}
+                size={80}
+                style={{ backgroundColor: '#1890ff' }}
+              />
+              <Title level={4} style={{ marginTop: 16, marginBottom: 0 }}>
                 {selectedPublisher.name}
-              </Text>
-              <Tag color="blue">
-                <BookOutlined /> {selectedPublisher.bookCount || 0} sách
-              </Tag>
-            </div>
-
-            <div style={{ marginBottom: 16 }}>
-              <Text strong>
-                <HomeOutlined /> Địa chỉ:
-              </Text>
-              <div style={{ marginLeft: 24, marginTop: 4 }}>
-                {selectedPublisher.address || 'Chưa cập nhật'}
+              </Title>
+              <div style={{ marginTop: 8 }}>
+                <Tag color="blue">
+                  <BookOutlined /> {selectedPublisher.bookCount || 0} sách
+                </Tag>
               </div>
             </div>
 
-            <div style={{ marginBottom: 16 }}>
-              <Text strong>
-                <PhoneOutlined /> Số điện thoại:
-              </Text>
-              <div style={{ marginLeft: 24, marginTop: 4 }}>
-                {selectedPublisher.phone || 'Chưa cập nhật'}
-              </div>
-            </div>
+            {/* Publisher Details */}
+            <Descriptions bordered column={2}>
+              <Descriptions.Item label="Địa chỉ" span={2}>
+                {selectedPublisher.address || <Text type="secondary" italic>Chưa cập nhật</Text>}
+              </Descriptions.Item>
 
-            <div style={{ marginBottom: 16 }}>
-              <Text strong>
-                <MailOutlined /> Email:
-              </Text>
-              <div style={{ marginLeft: 24, marginTop: 4 }}>
-                {selectedPublisher.email || 'Chưa cập nhật'}
-              </div>
-            </div>
+              <Descriptions.Item label="Số điện thoại">
+                {selectedPublisher.phone || <Text type="secondary" italic>Chưa cập nhật</Text>}
+              </Descriptions.Item>
 
-            {selectedPublisher.website && (
-              <div style={{ marginBottom: 16 }}>
-                <Text strong>Website:</Text>
-                <div style={{ marginLeft: 24, marginTop: 4 }}>
+              <Descriptions.Item label="Email">
+                {selectedPublisher.email || <Text type="secondary" italic>Chưa cập nhật</Text>}
+              </Descriptions.Item>
+
+              {selectedPublisher.website && (
+                <Descriptions.Item label="Website" span={2}>
                   <a
                     href={selectedPublisher.website}
                     target="_blank"
@@ -489,34 +484,42 @@ const PublisherManagementPage = () => {
                   >
                     {selectedPublisher.website}
                   </a>
-                </div>
-              </div>
-            )}
+                </Descriptions.Item>
+              )}
 
-            <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid #f0f0f0' }}>
-              <Space>
+              <Descriptions.Item label="Số lượng sách" span={2}>
+                <Text strong style={{ fontSize: 16 }}>
+                  {selectedPublisher.bookCount || 0} sách
+                </Text>
+              </Descriptions.Item>
+            </Descriptions>
+
+            {/* Action Buttons */}
+            <div style={{ marginTop: 24, display: 'flex', gap: 12 }}>
+              <Button
+                type="primary"
+                icon={<EditOutlined />}
+                onClick={() => {
+                  setDetailModalVisible(false);
+                  handleEdit(selectedPublisher);
+                }}
+                block
+              >
+                Chỉnh sửa nhà xuất bản
+              </Button>
+              {selectedPublisher.bookCount > 0 && (
                 <Button
-                  type="primary"
-                  icon={<EditOutlined />}
+                  type="default"
+                  icon={<BookOutlined />}
                   onClick={() => {
                     setDetailModalVisible(false);
-                    handleEdit(selectedPublisher);
+                    handleViewBooks(selectedPublisher);
                   }}
+                  block
                 >
-                  Chỉnh sửa
+                  Xem danh sách sách
                 </Button>
-                {selectedPublisher.bookCount > 0 && (
-                  <Button
-                    icon={<BookOutlined />}
-                    onClick={() => {
-                      setDetailModalVisible(false);
-                      handleViewBooks(selectedPublisher);
-                    }}
-                  >
-                    Xem danh sách sách
-                  </Button>
-                )}
-              </Space>
+              )}
             </div>
           </div>
         )}

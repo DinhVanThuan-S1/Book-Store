@@ -22,6 +22,7 @@ import {
   Avatar,
   Image,
   Tag,
+  Descriptions,
 } from 'antd';
 import {
   PlusOutlined,
@@ -35,7 +36,7 @@ import {
 import { authorApi, uploadApi } from '@api';
 import './AuthorManagementPage.scss';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 const { TextArea } = Input;
 
 const AuthorManagementPage = () => {
@@ -220,23 +221,27 @@ const AuthorManagementPage = () => {
       title: 'Tiểu sử',
       dataIndex: 'bio',
       key: 'bio',
+      width: 350,
       ellipsis: true,
     },
     {
-      title: 'Quốc tịch',
+      title: 'Địa chỉ',
       dataIndex: 'nationality',
       key: 'nationality',
+      width: 200,
     },
     {
       title: 'Số sách',
       dataIndex: 'bookCount',
       key: 'bookCount',
       width: 120,
+      align: 'left',
       render: (count, record) => (
         <Button
           type="link"
           onClick={() => handleViewBooks(record)}
           icon={<BookOutlined />}
+          style={{ padding: 0, textAlign: 'left' }}
         >
           {count || 0} sách
         </Button>
@@ -328,8 +333,8 @@ const AuthorManagementPage = () => {
             <TextArea rows={4} placeholder="Nhập tiểu sử tác giả" />
           </Form.Item>
 
-          <Form.Item name="nationality" label="Quốc tịch">
-            <Input placeholder="Nhập quốc tịch tác giả" />
+          <Form.Item name="nationality" label="Địa chỉ">
+            <Input placeholder="Nhập địa chỉ tác giả" />
           </Form.Item>
 
           <Form.Item label="Ảnh đại diện">
@@ -367,8 +372,18 @@ const AuthorManagementPage = () => {
       <Modal
         title={`Danh sách sách - ${selectedAuthor?.name}`}
         open={booksModalVisible}
-        onCancel={() => setBooksModalVisible(false)}
-        footer={null}
+        onCancel={() => {
+          setBooksModalVisible(false);
+          setDetailModalVisible(true);
+        }}
+        footer={
+          <Button onClick={() => {
+            setBooksModalVisible(false);
+            setDetailModalVisible(true);
+          }}>
+            Quay lại
+          </Button>
+        }
         width={900}
       >
         <Table
@@ -425,75 +440,88 @@ const AuthorManagementPage = () => {
 
       {/* Detail Modal */}
       <Modal
-        title="Thông tin chi tiết tác giả"
+        title="Thông tin tác giả"
         open={detailModalVisible}
         onCancel={() => setDetailModalVisible(false)}
-        footer={[
-          <Button key="close" onClick={() => setDetailModalVisible(false)}>
-            Đóng
-          </Button>,
-        ]}
         width={700}
+        footer={
+          <Button onClick={() => setDetailModalVisible(false)}>
+            Đóng
+          </Button>
+        }
       >
         {selectedAuthor && (
-          <div style={{ padding: '20px 0' }}>
-            <div style={{ marginBottom: 24, textAlign: 'center' }}>
+          <div>
+            {/* Author Info - Header */}
+            <div style={{ textAlign: 'center', marginBottom: 24 }}>
               <Avatar
                 src={selectedAuthor.image}
-                size={120}
                 icon={<UserOutlined />}
-                style={{ marginBottom: 16 }}
+                size={80}
               />
-              <div>
-                <Title level={3} style={{ marginBottom: 8 }}>
-                  {selectedAuthor.name}
-                </Title>
+              <Title level={4} style={{ marginTop: 16, marginBottom: 0 }}>
+                {selectedAuthor.name}
+              </Title>
+              <div style={{ marginTop: 8 }}>
                 <Tag color="blue">
                   <BookOutlined /> {selectedAuthor.bookCount || 0} sách
                 </Tag>
               </div>
             </div>
 
-            {selectedAuthor.nationality && (
-              <div style={{ marginBottom: 16 }}>
-                <strong>Quốc tịch:</strong>
-                <div style={{ marginLeft: 24, marginTop: 8, color: '#666' }}>
-                  {selectedAuthor.nationality}
-                </div>
-              </div>
-            )}
+            {/* Author Details */}
+            <Descriptions bordered column={2}>
+              <Descriptions.Item label="Địa chỉ" span={2}>
+                {selectedAuthor.nationality ? (
+                  selectedAuthor.nationality
+                ) : (
+                  <Text type="secondary" italic>Chưa cập nhật</Text>
+                )}
+              </Descriptions.Item>
 
-            <div style={{ marginBottom: 16 }}>
-              <strong>Tiểu sử:</strong>
-              <div style={{ marginLeft: 24, marginTop: 8, color: '#666', whiteSpace: 'pre-wrap' }}>
-                {selectedAuthor.bio || 'Chưa có tiểu sử'}
-              </div>
-            </div>
+              <Descriptions.Item label="Tiểu sử" span={2}>
+                {selectedAuthor.bio && selectedAuthor.bio.trim() !== '' ? (
+                  <div style={{ whiteSpace: 'pre-wrap' }}>
+                    {selectedAuthor.bio}
+                  </div>
+                ) : (
+                  <Text type="secondary" italic>Chưa có tiểu sử</Text>
+                )}
+              </Descriptions.Item>
 
-            <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid #f0f0f0' }}>
-              <Space>
+              <Descriptions.Item label="Số lượng sách" span={2}>
+                <Text strong style={{ fontSize: 16 }}>
+                  {selectedAuthor.bookCount || 0} sách
+                </Text>
+              </Descriptions.Item>
+            </Descriptions>
+
+            {/* Action Buttons */}
+            <div style={{ marginTop: 24, display: 'flex', gap: 12 }}>
+              <Button
+                type="primary"
+                icon={<EditOutlined />}
+                onClick={() => {
+                  setDetailModalVisible(false);
+                  handleEdit(selectedAuthor);
+                }}
+                block
+              >
+                Chỉnh sửa tác giả
+              </Button>
+              {selectedAuthor.bookCount > 0 && (
                 <Button
-                  type="primary"
-                  icon={<EditOutlined />}
+                  type="default"
+                  icon={<BookOutlined />}
                   onClick={() => {
                     setDetailModalVisible(false);
-                    handleEdit(selectedAuthor);
+                    handleViewBooks(selectedAuthor);
                   }}
+                  block
                 >
-                  Chỉnh sửa
+                  Xem danh sách sách
                 </Button>
-                {selectedAuthor.bookCount > 0 && (
-                  <Button
-                    icon={<BookOutlined />}
-                    onClick={() => {
-                      setDetailModalVisible(false);
-                      handleViewBooks(selectedAuthor);
-                    }}
-                  >
-                    Xem danh sách sách
-                  </Button>
-                )}
-              </Space>
+              )}
             </div>
           </div>
         )}

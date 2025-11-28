@@ -21,6 +21,8 @@ import {
   message,
   Image,
   Tag,
+  Descriptions,
+  Avatar,
 } from 'antd';
 import {
   PlusOutlined,
@@ -33,7 +35,7 @@ import {
 import { categoryApi, uploadApi } from '@api';
 import './CategoryManagementPage.scss';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 const { TextArea } = Input;
 
 const CategoryManagementPage = () => {
@@ -218,17 +220,14 @@ const CategoryManagementPage = () => {
       title: 'Tên danh mục',
       dataIndex: 'name',
       key: 'name',
+      width: 200,
       render: (name) => <strong>{name}</strong>,
-    },
-    {
-      title: 'Slug',
-      dataIndex: 'slug',
-      key: 'slug',
     },
     {
       title: 'Mô tả',
       dataIndex: 'description',
       key: 'description',
+      width: 400,
       ellipsis: true,
     },
     {
@@ -367,8 +366,18 @@ const CategoryManagementPage = () => {
       <Modal
         title={`Danh sách sách - ${selectedCategory?.name}`}
         open={booksModalVisible}
-        onCancel={() => setBooksModalVisible(false)}
-        footer={null}
+        onCancel={() => {
+          setBooksModalVisible(false);
+          setDetailModalVisible(true);
+        }}
+        footer={
+          <Button onClick={() => {
+            setBooksModalVisible(false);
+            setDetailModalVisible(true);
+          }}>
+            Quay lại
+          </Button>
+        }
         width={900}
       >
         <Table
@@ -425,66 +434,82 @@ const CategoryManagementPage = () => {
 
       {/* Detail Modal */}
       <Modal
-        title="Thông tin chi tiết danh mục"
+        title="Thông tin danh mục"
         open={detailModalVisible}
         onCancel={() => setDetailModalVisible(false)}
-        footer={[
-          <Button key="close" onClick={() => setDetailModalVisible(false)}>
-            Đóng
-          </Button>,
-        ]}
         width={700}
+        footer={
+          <Button onClick={() => setDetailModalVisible(false)}>
+            Đóng
+          </Button>
+        }
       >
         {selectedCategory && (
-          <div style={{ padding: '20px 0' }}>
-            <div style={{ marginBottom: 24, textAlign: 'center' }}>
+          <div>
+            {/* Category Info - Header */}
+            <div style={{ textAlign: 'center', marginBottom: 24 }}>
               <Image
                 src={selectedCategory.image}
                 alt={selectedCategory.name}
-                width={200}
-                style={{ borderRadius: 8, marginBottom: 16 }}
+                width={120}
+                height={120}
+                style={{ borderRadius: 8, objectFit: 'cover' }}
               />
-              <div>
-                <Title level={3} style={{ marginBottom: 8 }}>
-                  {selectedCategory.name}
-                </Title>
+              <Title level={4} style={{ marginTop: 16, marginBottom: 0 }}>
+                {selectedCategory.name}
+              </Title>
+              <div style={{ marginTop: 8 }}>
                 <Tag color="blue">
                   <BookOutlined /> {selectedCategory.bookCount || 0} sách
                 </Tag>
               </div>
             </div>
 
-            <div style={{ marginBottom: 16 }}>
-              <strong>Mô tả:</strong>
-              <div style={{ marginLeft: 24, marginTop: 8, color: '#666' }}>
-                {selectedCategory.description || 'Chưa có mô tả'}
-              </div>
-            </div>
+            {/* Category Details */}
+            <Descriptions bordered column={2}>
+              <Descriptions.Item label="Mô tả" span={2}>
+                {selectedCategory.description && selectedCategory.description.trim() !== '' ? (
+                  <div style={{ whiteSpace: 'pre-wrap' }}>
+                    {selectedCategory.description}
+                  </div>
+                ) : (
+                  <Text type="secondary" italic>Chưa có mô tả</Text>
+                )}
+              </Descriptions.Item>
 
-            <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid #f0f0f0' }}>
-              <Space>
+              <Descriptions.Item label="Số lượng sách" span={2}>
+                <Text strong style={{ fontSize: 16 }}>
+                  {selectedCategory.bookCount || 0} sách
+                </Text>
+              </Descriptions.Item>
+            </Descriptions>
+
+            {/* Action Buttons */}
+            <div style={{ marginTop: 24, display: 'flex', gap: 12 }}>
+              <Button
+                type="primary"
+                icon={<EditOutlined />}
+                onClick={() => {
+                  setDetailModalVisible(false);
+                  handleEdit(selectedCategory);
+                }}
+                block
+              >
+                Chỉnh sửa danh mục
+              </Button>
+              {selectedCategory.bookCount > 0 && (
                 <Button
-                  type="primary"
-                  icon={<EditOutlined />}
+                  type="default"
+                  icon={<BookOutlined />}
                   onClick={() => {
                     setDetailModalVisible(false);
-                    handleEdit(selectedCategory);
+                    handleViewBooks(selectedCategory);
                   }}
+                  block
                 >
-                  Chỉnh sửa
+                  Xem danh sách sách
                 </Button>
-                {selectedCategory.bookCount > 0 && (
-                  <Button
-                    icon={<BookOutlined />}
-                    onClick={() => {
-                      setDetailModalVisible(false);
-                      handleViewBooks(selectedCategory);
-                    }}
-                  >
-                    Xem danh sách sách
-                  </Button>
-                )}
-              </Space>
+              )}
             </div>
           </div>
         )}
