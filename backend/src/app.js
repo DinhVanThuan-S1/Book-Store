@@ -88,6 +88,7 @@ app.use('/api/payments', require('./routes/paymentRoutes'));
 app.use('/api/combos', require('./routes/comboRoutes'));
 app.use('/api/addresses', require('./routes/addressRoutes'));
 app.use('/api/admin/customers', require('./routes/customerRoutes'));
+app.use('/api/book-copies', require('./routes/bookCopyRoutes'));
 
 // 404 Handler
 app.use((req, res) => {

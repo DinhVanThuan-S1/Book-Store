@@ -29,7 +29,7 @@ import {
   ClockCircleOutlined,
   ShoppingOutlined,
 } from '@ant-design/icons';
-import { bookApi } from '@api';
+import { bookCopyApi } from '@api';
 import { formatPrice } from '@utils/formatPrice';
 import { formatDate } from '@utils/formatDate';
 import './BookCopyManagementPage.scss';
@@ -65,39 +65,42 @@ const BookCopyManagementPage = () => {
     try {
       setLoading(true);
 
-      // TODO: Create API endpoint /api/book-copies
-      // For now, mock data
-      const mockData = {
-        bookCopies: [],
-        stats: {
-          total: 450,
-          available: 320,
-          reserved: 45,
-          sold: 85,
-        },
-        pagination: {
-          page: 1,
-          limit: 20,
-          total: 450,
-        },
+      // Gọi API thực
+      const params = {
+        page,
+        limit: pagination.pageSize,
+        ...filters,
       };
 
-      setBookCopies(mockData.bookCopies);
-      setStats(mockData.stats);
-      setPagination({
-        current: mockData.pagination.page,
-        pageSize: mockData.pagination.limit,
-        total: mockData.pagination.total,
+      // Xóa các filter null/undefined
+      Object.keys(params).forEach(key => {
+        if (params[key] === null || params[key] === undefined || params[key] === '') {
+          delete params[key];
+        }
       });
+
+      const response = await bookCopyApi.getAllBookCopies(params);
+
+      if (response.success) {
+        setBookCopies(response.data.bookCopies);
+        setStats(response.data.stats);
+        setPagination({
+          current: response.data.pagination.page,
+          pageSize: response.data.pagination.limit,
+          total: response.data.pagination.total,
+        });
+      }
     } catch (error) {
       console.error('Error fetching book copies:', error);
+      // Có thể hiển thị message error cho user
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchBookCopies();
+    fetchBookCopies(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
   /**
@@ -106,10 +109,10 @@ const BookCopyManagementPage = () => {
   const columns = [
     {
       title: 'Mã bản sao',
-      dataIndex: '_id',
-      key: '_id',
-      width: 100,
-      render: (id) => <Text code>{id.slice(-8)}</Text>,
+      dataIndex: 'copyCode',
+      key: 'copyCode',
+      width: 120,
+      render: (copyCode) => <Text code>{copyCode}</Text>,
     },
     {
       title: 'Sách',
@@ -178,14 +181,14 @@ const BookCopyManagementPage = () => {
     },
     {
       title: 'Ngày nhập',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
+      dataIndex: 'importDate',
+      key: 'importDate',
       render: (date) => formatDate(date),
     },
     {
       title: 'Ngày bán',
-      dataIndex: 'soldAt',
-      key: 'soldAt',
+      dataIndex: 'soldDate',
+      key: 'soldDate',
       render: (date) => (date ? formatDate(date) : '-'),
     },
   ];
@@ -194,7 +197,7 @@ const BookCopyManagementPage = () => {
     <div className="book-copy-management-page">
       <div className="page-header">
         <div>
-          <Title level={2}>Quản lý Bản sao sách</Title>
+          <Title level={2}>Quản lý bản sao</Title>
           <Text type="secondary">Quản lý kho sách vật lý</Text>
         </div>
       </div>
@@ -289,7 +292,7 @@ const BookCopyManagementPage = () => {
         rowKey="_id"
         loading={loading}
         pagination={pagination}
-        onChange={(newPagination, filters, sorter) => {
+        onChange={(newPagination) => {
           fetchBookCopies(newPagination.current);
         }}
         scroll={{ x: 1400 }}
