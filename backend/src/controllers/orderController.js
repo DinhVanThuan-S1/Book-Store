@@ -9,6 +9,8 @@ const Order = require('../models/Order');
 const Cart = require('../models/Cart');
 const Payment = require('../models/Payment');
 const BookCopy = require('../models/BookCopy');
+const Book = require('../models/Book');
+const Combo = require('../models/Combo');
 const { asyncHandler } = require('../middlewares/errorHandler');
 const { paginate } = require('../utils/helper');
 
@@ -74,7 +76,7 @@ const createOrder = asyncHandler(async (req, res) => {
       type: item.type,
       quantity: item.quantity,
       price: item.price,
-      soldCopies: item.reservedCopies || [],
+      soldCopies: [], // Sẽ được gán khi confirmed
     };
     
     if (item.type === 'book') {
@@ -85,13 +87,21 @@ const createOrder = asyncHandler(async (req, res) => {
         image: item.book.images && item.book.images.length > 0 ? item.book.images[0] : '',
       };
       
-      // Cập nhật trạng thái bản sao từ reserved → sold
-      if (item.reservedCopies && item.reservedCopies.length > 0) {
-        await BookCopy.updateMany(
-          { _id: { $in: item.reservedCopies } },
-          { status: 'sold', soldDate: new Date() }
-        );
+      // ⚠️ Tìm và lưu BookCopy IDs để xử lý sau khi confirmed
+      const availableCopies = await BookCopy.find({
+        book: item.book._id,
+        status: 'available'
+      }).limit(item.quantity);
+      
+      if (availableCopies.length < item.quantity) {
+        return res.status(400).json({
+          success: false,
+          message: `Not enough copies available for ${item.book.title}`,
+        });
       }
+      
+      orderItem.soldCopies = availableCopies.map(copy => copy._id);
+      
     } else if (item.type === 'combo') {
       orderItem.combo = item.combo._id;
       orderItem.comboSnapshot = {
@@ -99,12 +109,29 @@ const createOrder = asyncHandler(async (req, res) => {
         image: item.combo.image || '',
       };
       
-      // Xử lý bản sao cho combo
-      if (item.reservedCopies && item.reservedCopies.length > 0) {
-        await BookCopy.updateMany(
-          { _id: { $in: item.reservedCopies } },
-          { status: 'sold', soldDate: new Date() }
-        );
+      // ⚠️ Tìm và lưu BookCopy IDs cho combo (sẽ xử lý khi confirmed)
+      const combo = await Combo.findById(item.combo._id).populate('books.book');
+      if (combo && combo.books) {
+        const comboSoldCopies = [];
+        for (const bookItem of combo.books) {
+          if (bookItem.book) {
+            const totalQuantityNeeded = bookItem.quantity * item.quantity;
+            const availableCopies = await BookCopy.find({
+              book: bookItem.book._id,
+              status: 'available'
+            }).limit(totalQuantityNeeded);
+            
+            if (availableCopies.length < totalQuantityNeeded) {
+              return res.status(400).json({
+                success: false,
+                message: `Not enough copies available for ${bookItem.book.title} in combo`,
+              });
+            }
+            
+            comboSoldCopies.push(...availableCopies.map(copy => copy._id));
+          }
+        }
+        orderItem.soldCopies = comboSoldCopies;
       }
     }
     
@@ -281,14 +308,14 @@ const getOrderById = asyncHandler(async (req, res) => {
 });
 
 /**
- * @desc    Hủy đơn hàng (chỉ khi status = pending)
+ * @desc    Hủy đơn hàng (Customer)
  * @route   PUT /api/orders/:id/cancel
  * @access  Private/Customer
  */
 const cancelOrder = asyncHandler(async (req, res) => {
   const { cancelReason } = req.body;
   
-  const order = await Order.findById(req.params.id);
+  const order = await Order.findById(req.params.id).populate('items.book items.combo');
   
   if (!order) {
     return res.status(404).json({
@@ -313,17 +340,76 @@ const cancelOrder = asyncHandler(async (req, res) => {
     });
   }
   
-  // Giải phóng bản sao về available
-  for (const item of order.items) {
-    if (item.soldCopies && item.soldCopies.length > 0) {
-      await BookCopy.updateMany(
-        { _id: { $in: item.soldCopies } },
-        { status: 'available', $unset: { soldDate: 1, order: 1 } }
-      );
+  const oldStatus = order.status;
+  
+  // ============================================
+  // HỦY ĐƠN (từ Customer)
+  // ============================================
+  
+  if (oldStatus === 'pending') {
+    // Hủy từ pending: Chỉ giải phóng reserved (nếu có), không cần cập nhật inventory
+    for (const item of order.items) {
+      if (item.soldCopies && item.soldCopies.length > 0) {
+        await BookCopy.updateMany(
+          { _id: { $in: item.soldCopies } },
+          { 
+            status: 'available',
+            $unset: { reservedBy: 1, reservedUntil: 1 }
+          }
+        );
+      }
+    }
+  } else if (oldStatus === 'confirmed') {
+    // Hủy từ confirmed: Tăng tồn kho, giảm lượt mua, giải phóng reserved
+    for (const item of order.items) {
+      if (item.soldCopies && item.soldCopies.length > 0) {
+        await BookCopy.updateMany(
+          { _id: { $in: item.soldCopies } },
+          { 
+            status: 'available',
+            $unset: { reservedBy: 1, reservedUntil: 1, soldDate: 1 }
+          }
+        );
+      }
+      
+      if (item.type === 'book' && item.book) {
+        // Đồng bộ availableCopies sau khi updateMany
+        const availableCount = await BookCopy.countDocuments({
+          book: item.book._id,
+          status: 'available',
+        });
+        
+        await Book.findByIdAndUpdate(item.book._id, {
+          availableCopies: availableCount,
+        });
+      } else if (item.type === 'combo' && item.combo) {
+        // Cập nhật availableCopies cho từng sách trong combo
+        const combo = await Combo.findById(item.combo).populate('books.book');
+        if (combo && combo.books) {
+          for (const bookItem of combo.books) {
+            if (bookItem.book) {
+              // Đồng bộ availableCopies
+              const availableCount = await BookCopy.countDocuments({
+                book: bookItem.book._id,
+                status: 'available',
+              });
+              
+              await Book.findByIdAndUpdate(bookItem.book._id, {
+                availableCopies: availableCount,
+              });
+            }
+          }
+        }
+        
+        // Giảm soldCount của combo
+        await Combo.findByIdAndUpdate(item.combo._id, {
+          $inc: { soldCount: -item.quantity }
+        });
+      }
     }
   }
   
-  // ✅ Hoàn tiền nếu đã thanh toán (không phải COD)
+  // Hoàn tiền nếu đã thanh toán
   const payment = await Payment.findOne({ order: order._id });
   if (payment && payment.paymentMethod !== 'COD' && payment.status === 'paid') {
     payment.status = 'refunded';
@@ -412,7 +498,7 @@ const getAllOrders = asyncHandler(async (req, res) => {
 const updateOrderStatus = asyncHandler(async (req, res) => {
   const { status, cancelReason } = req.body;
   
-  const order = await Order.findById(req.params.id);
+  const order = await Order.findById(req.params.id).populate('items.book items.combo');
   
   if (!order) {
     return res.status(404).json({
@@ -439,7 +525,90 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
     });
   }
   
-  // Nếu hủy đơn, yêu cầu lý do
+  const oldStatus = order.status;
+  
+  // ============================================
+  // 2️⃣ ĐÃ XÁC NHẬN (confirmed)
+  // ============================================
+  if (status === 'confirmed' && oldStatus === 'pending') {
+    for (const item of order.items) {
+      if (item.type === 'book' && item.book) {
+        // Chuyển BookCopy: available → reserved
+        if (item.soldCopies && item.soldCopies.length > 0) {
+          await BookCopy.updateMany(
+            { _id: { $in: item.soldCopies } },
+            { 
+              status: 'reserved',
+              reservedBy: order.customer,
+              reservedUntil: null // Không hết hạn vì đã confirm
+            }
+          );
+          
+          // ⚠️ QUAN TRỌNG: Cập nhật Book.availableCopies sau updateMany
+          // Vì middleware post('save') không chạy với updateMany()
+          const availableCount = await BookCopy.countDocuments({
+            book: item.book._id,
+            status: 'available',
+          });
+          
+          await Book.findByIdAndUpdate(item.book._id, {
+            availableCopies: availableCount,
+          });
+        }
+        
+        // Tăng lượt mua
+        await Book.findByIdAndUpdate(item.book._id, {
+          $inc: { purchaseCount: item.quantity }
+        });
+        
+      } else if (item.type === 'combo' && item.combo) {
+        // Chuyển BookCopy đã có trong soldCopies: available → reserved
+        if (item.soldCopies && item.soldCopies.length > 0) {
+          await BookCopy.updateMany(
+            { _id: { $in: item.soldCopies } },
+            { 
+              status: 'reserved',
+              reservedBy: order.customer,
+              reservedUntil: null
+            }
+          );
+        }
+        
+        // Lấy thông tin combo và cập nhật availableCopies + purchaseCount
+        const combo = await Combo.findById(item.combo).populate('books.book');
+        if (combo && combo.books) {
+          for (const bookItem of combo.books) {
+            if (bookItem.book) {
+              // ⚠️ Cập nhật Book.availableCopies cho sách trong combo
+              const availableCountForBook = await BookCopy.countDocuments({
+                book: bookItem.book._id,
+                status: 'available',
+              });
+              
+              await Book.findByIdAndUpdate(bookItem.book._id, {
+                availableCopies: availableCountForBook,
+              });
+              
+              // Tăng lượt mua cho từng sách trong combo
+              const totalQuantityNeeded = bookItem.quantity * item.quantity;
+              await Book.findByIdAndUpdate(bookItem.book._id, {
+                $inc: { purchaseCount: totalQuantityNeeded }
+              });
+            }
+          }
+        }
+        
+        // Tăng soldCount của combo
+        await Combo.findByIdAndUpdate(item.combo._id, {
+          $inc: { soldCount: item.quantity }
+        });
+      }
+    }
+  }
+  
+  // ============================================
+  // 3️⃣ ĐÃ HỦY (cancelled)
+  // ============================================
   if (status === 'cancelled') {
     if (!cancelReason || cancelReason.trim().length < 10) {
       return res.status(400).json({
@@ -449,18 +618,76 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
     }
     order.cancelReason = cancelReason;
     
-    // Giải phóng bản sao về available
-    const BookCopy = require('../models/BookCopy');
-    for (const item of order.items) {
-      if (item.soldCopies && item.soldCopies.length > 0) {
-        await BookCopy.updateMany(
-          { _id: { $in: item.soldCopies } },
-          { status: 'available', $unset: { soldDate: 1, order: 1 } }
-        );
+    // Nếu hủy từ confirmed trở đi → cần trả lại
+    if (['confirmed', 'preparing', 'shipping'].includes(oldStatus)) {
+      for (const item of order.items) {
+        // Chuyển BookCopy: reserved → available
+        if (item.soldCopies && item.soldCopies.length > 0) {
+          await BookCopy.updateMany(
+            { _id: { $in: item.soldCopies } },
+            { 
+              status: 'available',
+              $unset: { reservedBy: 1, reservedUntil: 1, soldDate: 1 }
+            }
+          );
+          
+          // ⚠️ Cập nhật Book.availableCopies
+          if (item.type === 'book' && item.book) {
+            const availableCount = await BookCopy.countDocuments({
+              book: item.book._id,
+              status: 'available',
+            });
+            
+            await Book.findByIdAndUpdate(item.book._id, {
+              availableCopies: availableCount,
+            });
+          } else if (item.type === 'combo' && item.combo) {
+            // Cập nhật availableCopies cho từng sách trong combo
+            const combo = await Combo.findById(item.combo).populate('books.book');
+            if (combo && combo.books) {
+              for (const bookItem of combo.books) {
+                if (bookItem.book) {
+                  const availableCount = await BookCopy.countDocuments({
+                    book: bookItem.book._id,
+                    status: 'available',
+                  });
+                  
+                  await Book.findByIdAndUpdate(bookItem.book._id, {
+                    availableCopies: availableCount,
+                  });
+                }
+              }
+            }
+          }
+        }
+        
+        // Không đổi lượt mua (vì chưa delivered)
+        
+        if (item.type === 'combo' && item.combo) {
+          // Giảm soldCount của combo
+          await Combo.findByIdAndUpdate(item.combo._id, {
+            $inc: { soldCount: -item.quantity }
+          });
+        }
       }
     }
     
-    // ✅ Hoàn tiền nếu đã thanh toán (không phải COD)
+    // Nếu hủy từ pending → chỉ giải phóng reserved (nếu có)
+    if (oldStatus === 'pending') {
+      for (const item of order.items) {
+        if (item.soldCopies && item.soldCopies.length > 0) {
+          await BookCopy.updateMany(
+            { _id: { $in: item.soldCopies } },
+            { 
+              status: 'available',
+              $unset: { reservedBy: 1, reservedUntil: 1 }
+            }
+          );
+        }
+      }
+    }
+    
+    // Hoàn tiền nếu đã thanh toán
     const payment = await Payment.findOne({ order: order._id });
     if (payment && payment.paymentMethod !== 'COD' && payment.status === 'paid') {
       payment.status = 'refunded';
@@ -469,8 +696,11 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
     }
   }
   
-  // ✅ Nếu delivered và COD, chuyển payment sang paid
-  if (status === 'delivered') {
+  // ============================================
+  // 6️⃣ ĐÃ GIAO (delivered)
+  // ============================================
+  if (status === 'delivered' && oldStatus !== 'delivered') {
+    // Chuyển payment sang paid nếu COD
     const payment = await Payment.findOne({ order: order._id });
     if (payment && payment.paymentMethod === 'COD' && payment.status === 'pending') {
       payment.status = 'paid';
@@ -478,34 +708,44 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
       await payment.save();
     }
 
-    // ✅ Cộng lượt mua và số lượng đã bán cho từng item
-    const Book = require('../models/Book');
-    const Combo = require('../models/Combo');
-    
+    // Tăng đã bán, chuyển BookCopy: reserved → sold
     for (const item of order.items) {
-      if (item.type === 'book' && item.book) {
-        await Book.findByIdAndUpdate(item.book, {
-          $inc: {
-            purchaseCount: item.quantity,
-            soldCopies: item.quantity,
-          },
-        });
-      } else if (item.type === 'combo' && item.combo) {
-        // Tăng soldCount của combo
-        await Combo.findByIdAndUpdate(item.combo, {
-          $inc: { soldCount: item.quantity },
-        });
+      if (item.soldCopies && item.soldCopies.length > 0) {
+        await BookCopy.updateMany(
+          { _id: { $in: item.soldCopies } },
+          { 
+            status: 'sold',
+            soldDate: new Date(),
+            $unset: { reservedBy: 1, reservedUntil: 1 }
+          }
+        );
         
-        // Lấy thông tin combo để cộng purchaseCount cho từng sách
+        // ⚠️ Cập nhật Book.soldCopies
+        if (item.type === 'book' && item.book) {
+          const soldCount = await BookCopy.countDocuments({
+            book: item.book._id,
+            status: 'sold',
+          });
+          
+          await Book.findByIdAndUpdate(item.book._id, {
+            soldCopies: soldCount,
+          });
+        }
+      }
+      
+      if (item.type === 'combo' && item.combo) {
+        // Tăng soldCopies cho từng sách trong combo
         const combo = await Combo.findById(item.combo).populate('books.book');
         if (combo && combo.books) {
           for (const bookItem of combo.books) {
             if (bookItem.book) {
+              const soldCount = await BookCopy.countDocuments({
+                book: bookItem.book._id,
+                status: 'sold',
+              });
+              
               await Book.findByIdAndUpdate(bookItem.book._id, {
-                $inc: {
-                  purchaseCount: bookItem.quantity * item.quantity,
-                  soldCopies: bookItem.quantity * item.quantity,
-                },
+                soldCopies: soldCount,
               });
             }
           }
@@ -514,8 +754,9 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
     }
   }
   
-  // Cập nhật trạng thái
-  await order.updateStatus(status);
+  // Cập nhật trạng thái đơn hàng
+  order.status = status;
+  await order.save();
   
   res.status(200).json({
     success: true,
@@ -682,7 +923,7 @@ const requestReturn = asyncHandler(async (req, res) => {
  * @access  Private/Admin
  */
 const confirmReturn = asyncHandler(async (req, res) => {
-  const order = await Order.findById(req.params.id);
+  const order = await Order.findById(req.params.id).populate('items.book items.combo');
   
   if (!order) {
     return res.status(404).json({
@@ -707,26 +948,76 @@ const confirmReturn = asyncHandler(async (req, res) => {
     });
   }
   
-  // Giải phóng BookCopy về available
-  const BookCopy = require('../models/BookCopy');
+  // ============================================
+  // 7️⃣ HOÀN TRẢ (returned)
+  // ============================================
+  
+  // Tăng tồn kho, giảm đã bán, chuyển BookCopy: sold → available
   for (const item of order.items) {
     if (item.soldCopies && item.soldCopies.length > 0) {
       await BookCopy.updateMany(
         { _id: { $in: item.soldCopies } },
         { 
           status: 'available',
+          condition: 'like_new', // Hạ condition
           $unset: { 
-            'salesInfo.order': '',
-            'salesInfo.customer': '',
-            'salesInfo.soldAt': '',
-            'salesInfo.soldPrice': '',
-          },
+            reservedBy: 1,
+            reservedUntil: 1,
+            soldDate: 1
+          }
         }
       );
     }
+    
+    if (item.type === 'book' && item.book) {
+      // Đếm lại soldCopies chính xác
+      const soldCount = await BookCopy.countDocuments({
+        book: item.book._id,
+        status: 'sold',
+      });
+      
+      // Đếm lại availableCopies chính xác
+      const availableCount = await BookCopy.countDocuments({
+        book: item.book._id,
+        status: 'available',
+      });
+      
+      await Book.findByIdAndUpdate(item.book._id, {
+        soldCopies: soldCount,
+        availableCopies: availableCount,
+      });
+    } else if (item.type === 'combo' && item.combo) {
+      // Cập nhật soldCopies và availableCopies cho từng sách trong combo
+      const combo = await Combo.findById(item.combo).populate('books.book');
+      if (combo && combo.books) {
+        for (const bookItem of combo.books) {
+          if (bookItem.book) {
+            const soldCount = await BookCopy.countDocuments({
+              book: bookItem.book._id,
+              status: 'sold',
+            });
+            
+            const availableCount = await BookCopy.countDocuments({
+              book: bookItem.book._id,
+              status: 'available',
+            });
+            
+            await Book.findByIdAndUpdate(bookItem.book._id, {
+              soldCopies: soldCount,
+              availableCopies: availableCount,
+            });
+          }
+        }
+      }
+      
+      // Giảm soldCount của combo
+      await Combo.findByIdAndUpdate(item.combo._id, {
+        $inc: { soldCount: -item.quantity }
+      });
+    }
   }
   
-  // ✅ Hoàn tiền
+  // Hoàn tiền
   const payment = await Payment.findOne({ order: order._id });
   if (payment && payment.status === 'paid') {
     payment.status = 'refunded';

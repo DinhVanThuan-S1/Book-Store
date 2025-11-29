@@ -2,7 +2,8 @@
  * ==============================================
  * CART CLEANUP JOB
  * ==============================================
- * Tự động giải phóng bản sao đã hết hạn reserve
+ * ⚠️ DISABLED - Không còn reserve trong giỏ hàng
+ * Reserve chỉ diễn ra khi Order = confirmed
  */
 
 const cron = require('node-cron');
@@ -10,26 +11,13 @@ const BookCopy = require('../models/BookCopy');
 const Cart = require('../models/Cart');
 
 /**
- * Chạy mỗi 5 phút
+ * Chạy mỗi 5 phút (DISABLED)
  */
 const startCartCleanupJob = () => {
-  // cron.schedule('*/5 * * * *', async () => {
-  //   try {
-  //     console.log('🧹 Running cart cleanup job...');
-      
-  //     // 1. Release expired book copy reservations
-  //     await BookCopy.releaseExpiredReservations();
-      
-  //     // 2. Remove expired items from carts
-  //     await Cart.removeExpiredItems();
-      
-  //     console.log('✅ Cart cleanup completed');
-  //   } catch (error) {
-  //     console.error('❌ Cart cleanup error:', error);
-  //   }
-  // });
+  // ⚠️ DISABLED - Không cần cleanup giỏ hàng nữa
+  // Vì không reserve khi thêm vào giỏ
   
-  console.log('✅ Cart cleanup job scheduled (every 5 minutes)');
+  console.log('⚠️  Cart cleanup job DISABLED (no reserve in cart)');
 };
 
 module.exports = startCartCleanupJob;

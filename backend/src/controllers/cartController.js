@@ -95,22 +95,8 @@ const addToCart = asyncHandler(async (req, res) => {
       });
     }
     
-    // Tìm bản sao available để reserve
-    const availableCopies = await BookCopy.findAvailableCopies(bookId, quantity);
-    
-    if (availableCopies.length < quantity) {
-      return res.status(400).json({
-        success: false,
-        message: 'Not enough copies available',
-      });
-    }
-    
-    // Reserve bản sao (15 phút)
-    const reserveMinutes = parseInt(process.env.CART_RESERVE_MINUTES) || 15;
-    const reservedUntil = new Date(Date.now() + reserveMinutes * 60 * 1000);
-    
-    const copyIds = availableCopies.map(copy => copy._id);
-    await BookCopy.reserveCopies(copyIds, reservedUntil);
+    // ⚠️ KHÔNG RESERVE khi thêm vào giỏ
+    // Chỉ kiểm tra số lượng, reserve sẽ thực hiện khi Order = confirmed
     
     // Kiểm tra sách đã có trong giỏ chưa
     const existingItem = cart.items.find(
@@ -120,17 +106,13 @@ const addToCart = asyncHandler(async (req, res) => {
     if (existingItem) {
       // Tăng số lượng
       existingItem.quantity += quantity;
-      existingItem.reservedCopies.push(...copyIds);
-      existingItem.reservedUntil = reservedUntil;
     } else {
-      // Thêm mới
+      // Thêm mới (không có reservedCopies)
       cart.items.push({
         type: 'book',
         book: bookId,
         quantity,
         price: book.salePrice,
-        reservedCopies: copyIds,
-        reservedUntil,
       });
     }
   }
@@ -156,10 +138,10 @@ const addToCart = asyncHandler(async (req, res) => {
       });
     }
     
-    // TODO: Reserve bản sao cho các sách trong combo
-    // (Logic phức tạp hơn, có thể implement sau)
+    // ⚠️ KHÔNG RESERVE khi thêm vào giỏ
+    // Chỉ kiểm tra số lượng, reserve sẽ thực hiện khi Order = confirmed
     
-    // Thêm combo vào giỏ
+    // Thêm combo vào giỏ (không có reservedCopies)
     cart.items.push({
       type: 'combo',
       combo: comboId,
@@ -260,13 +242,7 @@ const removeCartItem = asyncHandler(async (req, res) => {
     });
   }
   
-  // Giải phóng bản sao đã reserve (nếu có)
-  if (item.reservedCopies && item.reservedCopies.length > 0) {
-    await BookCopy.updateMany(
-      { _id: { $in: item.reservedCopies } },
-      { status: 'available', $unset: { reservedUntil: 1 } }
-    );
-  }
+  // ⚠️ KHÔNG CẦN giải phóng bản sao vì không reserve khi thêm vào giỏ
   
   // Xóa item (sử dụng pull thay vì remove)
   cart.items.pull(req.params.itemId);
@@ -299,15 +275,7 @@ const clearCart = asyncHandler(async (req, res) => {
     });
   }
   
-  // Giải phóng tất cả bản sao đã reserve
-  for (const item of cart.items) {
-    if (item.reservedCopies && item.reservedCopies.length > 0) {
-      await BookCopy.updateMany(
-        { _id: { $in: item.reservedCopies } },
-        { status: 'available', $unset: { reservedUntil: 1 } }
-      );
-    }
-  }
+  // ⚠️ KHÔNG CẦN giải phóng bản sao vì không reserve khi thêm vào giỏ
   
   // Xóa tất cả items
   await cart.clearCart();
