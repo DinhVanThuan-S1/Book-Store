@@ -19,6 +19,7 @@ import {
   Tag,
   DatePicker,
   Select,
+  Spin,
 } from 'antd';
 import {
   ArrowUpOutlined,
@@ -44,10 +45,12 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { dashboardApi } from '@api';
+import { orderApi } from '@api';
 import { formatPrice } from '@utils/formatPrice';
 import { formatDate } from '@utils/formatDate';
 import { ORDER_STATUS_LABELS, ORDER_STATUS_COLORS } from '@constants/appConstants';
-import Loading from '@components/common/Loading';
+import dayjs from 'dayjs';
+import './DashboardPage.scss';
 import './DashboardPage.scss';
 
 const { Title, Text } = Typography;
@@ -60,6 +63,47 @@ const DashboardPage = () => {
   const [topBooks, setTopBooks] = useState([]);
   const [orderStats, setOrderStats] = useState([]);
   const [recentOrders, setRecentOrders] = useState([]);
+
+  /**
+   * Fill missing dates in chart data
+   */
+  const fillMissingDates = (chartData) => {
+    const today = dayjs();
+    const startDate = today.subtract(29, 'days'); // 30 days including today
+    const result = [];
+    const dataMap = {};
+
+    // Create map from existing data
+    chartData.forEach(item => {
+      dataMap[item._id] = item;
+    });
+
+    // Generate all dates in range
+    let currentDate = startDate;
+
+    for (let i = 0; i < 30; i++) {
+      const dateKey = currentDate.format('YYYY-MM-DD');
+      let displayDate;
+
+      // Add year to first and last date
+      if (i === 0 || i === 29) {
+        displayDate = currentDate.format('DD/MM/YYYY');
+      } else {
+        displayDate = currentDate.format('DD/MM');
+      }
+
+      result.push({
+        _id: dateKey,
+        displayDate,
+        revenue: dataMap[dateKey]?.revenue || 0,
+        count: dataMap[dateKey]?.count || 0,
+      });
+
+      currentDate = currentDate.add(1, 'day');
+    }
+
+    return result;
+  };
 
   /**
    * Fetch dashboard data
@@ -76,7 +120,8 @@ const DashboardPage = () => {
 
         // Fetch revenue data (last 30 days)
         const revenueRes = await dashboardApi.getRevenueStats({ groupBy: 'day' });
-        setRevenueData(revenueRes.data.stats || []);
+        const filledRevenue = fillMissingDates(revenueRes.data.stats || []);
+        setRevenueData(filledRevenue);
 
         // Fetch top books
         const booksRes = await dashboardApi.getTopBooks(5);
@@ -84,11 +129,27 @@ const DashboardPage = () => {
 
         // Fetch order stats
         const orderStatsRes = await dashboardApi.getOrderStats();
-        setOrderStats(orderStatsRes.data.stats || []);
+        // Transform data to include Vietnamese labels and colors
+        const transformedStats = (orderStatsRes.data.stats || []).map(stat => ({
+          status: stat._id,
+          label: ORDER_STATUS_LABELS[stat._id] || stat._id,
+          count: stat.count,
+          color: ORDER_STATUS_COLORS[stat._id] || '#999',
+        }));
+
+        // Sort by status order: pending -> confirmed -> preparing -> shipping -> delivered -> cancelled -> returned
+        const statusOrder = ['pending', 'confirmed', 'preparing', 'shipping', 'delivered', 'cancelled', 'returned'];
+        transformedStats.sort((a, b) => {
+          const indexA = statusOrder.indexOf(a.status);
+          const indexB = statusOrder.indexOf(b.status);
+          return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
+        });
+
+        setOrderStats(transformedStats);
 
         // Fetch recent orders (using order API)
-        const ordersRes = await dashboardApi.getRecentOrders({ page: 1, limit: 10 });
-        setRecentOrders(ordersRes.data.data.orders || []);
+        const ordersRes = await orderApi.getAllOrders({ page: 1, limit: 10 });
+        setRecentOrders(ordersRes.data.orders || []);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
@@ -99,17 +160,13 @@ const DashboardPage = () => {
     fetchDashboardData();
   }, []);
 
-  if (loading || !overviewStats) {
-    return <Loading />;
-  }
-
   /**
    * Stat cards data
    */
   const statCards = [
     {
       title: 'Tổng sách',
-      value: overviewStats.totalBooks,
+      value: overviewStats?.totalBooks || 0,
       prefix: <BookOutlined />,
       valueStyle: { color: '#3f8600' },
       icon: BookOutlined,
@@ -117,7 +174,7 @@ const DashboardPage = () => {
     },
     {
       title: 'Khách hàng',
-      value: overviewStats.totalCustomers,
+      value: overviewStats?.totalCustomers || 0,
       prefix: <UserOutlined />,
       valueStyle: { color: '#1890ff' },
       icon: UserOutlined,
@@ -125,7 +182,7 @@ const DashboardPage = () => {
     },
     {
       title: 'Đơn hàng',
-      value: overviewStats.totalOrders,
+      value: overviewStats?.totalOrders || 0,
       prefix: <ShoppingOutlined />,
       valueStyle: { color: '#faad14' },
       icon: ShoppingOutlined,
@@ -133,7 +190,7 @@ const DashboardPage = () => {
     },
     {
       title: 'Doanh thu tháng',
-      value: formatPrice(overviewStats.monthlyRevenue),
+      value: formatPrice(overviewStats?.monthlyRevenue || 0),
       prefix: <DollarOutlined />,
       valueStyle: { color: '#cf1322' },
       icon: DollarOutlined,
@@ -233,120 +290,130 @@ const DashboardPage = () => {
         <Text type="secondary">Tổng quan hệ thống</Text>
       </div>
 
-      {/* Stat Cards */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        {statCards.map((stat, index) => (
-          <Col xs={24} sm={12} lg={6} key={index}>
-            <Card className="stat-card" hoverable>
-              <Statistic
-                title={stat.title}
-                value={stat.value}
-                valueStyle={stat.valueStyle}
-                prefix={<stat.icon style={{ fontSize: 24 }} />}
+      <Spin spinning={loading}>
+        {/* Stat Cards */}
+        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+          {statCards.map((stat, index) => (
+            <Col xs={24} sm={12} lg={6} key={index}>
+              <Card className="stat-card" hoverable>
+                <Statistic
+                  title={stat.title}
+                  value={stat.value}
+                  valueStyle={stat.valueStyle}
+                  prefix={<stat.icon style={{ fontSize: 24 }} />}
+                />
+              </Card>
+            </Col>
+          ))}
+        </Row>
+
+        {/* Charts Row */}
+        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+          {/* Revenue Chart */}
+          <Col xs={24} lg={16}>
+            <Card title="Doanh thu 30 ngày qua">
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={revenueData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="displayDate" />
+                  <YAxis />
+                  <Tooltip
+                    formatter={(value) => formatPrice(value)}
+                  />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="revenue"
+                    stroke="#8884d8"
+                    name="Doanh thu"
+                    strokeWidth={2}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </Card>
+          </Col>
+
+          {/* Order Status Chart */}
+          <Col xs={24} lg={8}>
+            <Card title="Trạng thái đơn hàng">
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={orderStats}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={(entry) => entry.count}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="count"
+                  >
+                    {orderStats.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={entry.color}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value, name, props) => {
+                      return [value, props.payload.label];
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </Card>
+          </Col>
+        </Row>
+
+        {/* Tables Row */}
+        <Row gutter={[16, 16]}>
+          {/* Top Books */}
+          <Col xs={24} lg={12}>
+            <Card
+              title="Sách bán chạy"
+              extra={<Text type="secondary" style={{ fontSize: 12 }}>(Tổng lượt mua)</Text>}
+            >
+              <Table
+                dataSource={topBooks}
+                columns={bookColumns}
+                rowKey="_id"
+                pagination={false}
+                size="small"
               />
             </Card>
           </Col>
-        ))}
-      </Row>
 
-      {/* Charts Row */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        {/* Revenue Chart */}
-        <Col xs={24} lg={16}>
-          <Card title="Doanh thu 30 ngày qua">
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={revenueData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="_id" />
-                <YAxis />
-                <Tooltip
-                  formatter={(value) => formatPrice(value)}
-                />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="revenue"
-                  stroke="#8884d8"
-                  name="Doanh thu"
-                />
-              </LineChart>
-            </ResponsiveContainer>
+          {/* Recent Orders */}
+          <Col xs={24} lg={12}>
+            <Card title="Đơn hàng gần đây">
+              <Table
+                dataSource={recentOrders}
+                columns={orderColumns}
+                rowKey="_id"
+                pagination={false}
+                size="small"
+              />
+            </Card>
+          </Col>
+        </Row>
+
+        {/* Pending Orders Alert */}
+        {overviewStats?.pendingOrders > 0 && (
+          <Card
+            style={{ marginTop: 24, background: '#fff7e6', borderColor: '#ffa940' }}
+          >
+            <Space>
+              <ShoppingOutlined style={{ fontSize: 24, color: '#fa8c16' }} />
+              <div>
+                <Text strong>Có {overviewStats.pendingOrders} đơn hàng đang chờ xử lý</Text>
+                <br />
+                <Text type="secondary">Vui lòng xác nhận đơn hàng sớm nhất có thể</Text>
+              </div>
+            </Space>
           </Card>
-        </Col>
-
-        {/* Order Status Chart */}
-        <Col xs={24} lg={8}>
-          <Card title="Trạng thái đơn hàng">
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={orderStats}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={(entry) => `${entry._id}: ${entry.count}`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="count"
-                >
-                  {orderStats.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </Card>
-        </Col>
-      </Row>
-
-      {/* Tables Row */}
-      <Row gutter={[16, 16]}>
-        {/* Top Books */}
-        <Col xs={24} lg={12}>
-          <Card title="Sách bán chạy">
-            <Table
-              dataSource={topBooks}
-              columns={bookColumns}
-              rowKey="_id"
-              pagination={false}
-              size="small"
-            />
-          </Card>
-        </Col>
-
-        {/* Recent Orders */}
-        <Col xs={24} lg={12}>
-          <Card title="Đơn hàng gần đây">
-            <Table
-              dataSource={recentOrders}
-              columns={orderColumns}
-              rowKey="_id"
-              pagination={false}
-              size="small"
-            />
-          </Card>
-        </Col>
-      </Row>
-
-      {/* Pending Orders Alert */}
-      {overviewStats.pendingOrders > 0 && (
-        <Card
-          style={{ marginTop: 24, background: '#fff7e6', borderColor: '#ffa940' }}
-        >
-          <Space>
-            <ShoppingOutlined style={{ fontSize: 24, color: '#fa8c16' }} />
-            <div>
-              <Text strong>Có {overviewStats.pendingOrders} đơn hàng đang chờ xử lý</Text>
-              <br />
-              <Text type="secondary">Vui lòng xác nhận đơn hàng sớm nhất có thể</Text>
-            </div>
-          </Space>
-        </Card>
-      )}
+        )}
+      </Spin>
     </div>
   );
 };

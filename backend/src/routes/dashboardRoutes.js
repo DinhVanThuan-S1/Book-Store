@@ -14,6 +14,7 @@ const {
   getTopBooks,
   getOrderStats,
   getNewCustomers,
+  getDetailedReports,
 } = require('../controllers/dashboardController');
 
 /**
@@ -29,5 +30,6 @@ router.get('/revenue', getRevenueStats);
 router.get('/top-books', getTopBooks);
 router.get('/order-stats', getOrderStats);
 router.get('/new-customers', getNewCustomers);
+router.get('/reports', getDetailedReports);
 
 module.exports = router;

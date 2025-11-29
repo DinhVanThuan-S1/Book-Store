@@ -45,12 +45,21 @@ export const getNewCustomers = () => {
   return axiosInstance.get('/admin/dashboard/new-customers');
 };
 
+/**
+ * Lấy báo cáo chi tiết
+ * @param {Object} params - { startDate, endDate }
+ */
+export const getDetailedReports = (params = {}) => {
+  return axiosInstance.get('/admin/dashboard/reports', { params });
+};
+
 const dashboardApi = {
   getOverviewStats,
   getRevenueStats,
   getTopBooks,
   getOrderStats,
   getNewCustomers,
+  getDetailedReports,
 };
 
 export default dashboardApi;
