@@ -25,6 +25,9 @@ const getAllBookCopies = asyncHandler(async (req, res) => {
     condition,
     search,
     bookId,
+    startDate,
+    endDate,
+    dateType = 'import', // 'import' hoặc 'sold'
   } = req.query;
   
   // Build query
@@ -48,6 +51,23 @@ const getAllBookCopies = asyncHandler(async (req, res) => {
   // Search theo copyCode
   if (search) {
     query.copyCode = new RegExp(search, 'i');
+  }
+  
+  // Filter theo date range
+  if (startDate || endDate) {
+    const dateField = dateType === 'sold' ? 'soldDate' : 'importDate';
+    query[dateField] = {};
+    
+    if (startDate) {
+      query[dateField].$gte = new Date(startDate);
+    }
+    
+    if (endDate) {
+      // Thêm 23:59:59 để include cả ngày endDate
+      const endDateTime = new Date(endDate);
+      endDateTime.setHours(23, 59, 59, 999);
+      query[dateField].$lte = endDateTime;
+    }
   }
   
   // Pagination

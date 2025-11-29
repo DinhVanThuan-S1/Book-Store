@@ -269,7 +269,8 @@ const getOrderById = asyncHandler(async (req, res) => {
   const order = await Order.findById(req.params.id)
     .populate('customer', 'fullName email phone')
     .populate('items.book', 'title slug images')
-    .populate('items.combo', 'name slug image');
+    .populate('items.combo', 'name slug image')
+    .populate('items.soldCopies'); // Populate thông tin bản sao
   
   if (!order) {
     return res.status(404).json({

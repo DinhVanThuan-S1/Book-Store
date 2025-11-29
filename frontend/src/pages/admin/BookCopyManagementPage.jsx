@@ -52,6 +52,8 @@ const BookCopyManagementPage = () => {
     status: null,
     condition: null,
   });
+  const [dateRange, setDateRange] = useState(null);
+  const [dateType, setDateType] = useState('import'); // 'import' hoặc 'sold'
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 20,
@@ -71,6 +73,13 @@ const BookCopyManagementPage = () => {
         limit: pagination.pageSize,
         ...filters,
       };
+
+      // Thêm date range nếu có
+      if (dateRange && dateRange.length === 2) {
+        params.startDate = dateRange[0].format('YYYY-MM-DD');
+        params.endDate = dateRange[1].format('YYYY-MM-DD');
+        params.dateType = dateType; // 'import' hoặc 'sold'
+      }
 
       // Xóa các filter null/undefined
       Object.keys(params).forEach(key => {
@@ -101,7 +110,7 @@ const BookCopyManagementPage = () => {
   useEffect(() => {
     fetchBookCopies(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters]);
+  }, [filters, dateRange, dateType]);
 
   /**
    * Columns
@@ -111,13 +120,14 @@ const BookCopyManagementPage = () => {
       title: 'Mã bản sao',
       dataIndex: 'copyCode',
       key: 'copyCode',
-      width: 120,
+      width: 130,
       render: (copyCode) => <Text code>{copyCode}</Text>,
     },
     {
       title: 'Sách',
       dataIndex: 'book',
       key: 'book',
+      width: 240,
       render: (book) => (
         <div>
           <div style={{ fontWeight: 600 }}>{book?.title}</div>
@@ -131,11 +141,7 @@ const BookCopyManagementPage = () => {
       title: 'Trạng thái',
       dataIndex: 'status',
       key: 'status',
-      filters: [
-        { text: 'Có sẵn', value: 'available' },
-        { text: 'Đã đặt', value: 'reserved' },
-        { text: 'Đã bán', value: 'sold' },
-      ],
+      width: 100,
       render: (status) => {
         const statusMap = {
           available: { color: 'success', text: 'Có sẵn' },
@@ -153,11 +159,7 @@ const BookCopyManagementPage = () => {
       title: 'Tình trạng',
       dataIndex: 'condition',
       key: 'condition',
-      filters: [
-        { text: 'Mới', value: 'new' },
-        { text: 'Như mới', value: 'like_new' },
-        { text: 'Tốt', value: 'good' },
-      ],
+      width: 100,
       render: (condition) => {
         const conditionMap = {
           new: 'Mới',
@@ -171,24 +173,28 @@ const BookCopyManagementPage = () => {
       title: 'Giá nhập',
       dataIndex: 'importPrice',
       key: 'importPrice',
+      width: 110,
       render: (price) => formatPrice(price),
     },
     {
       title: 'Vị trí kho',
       dataIndex: 'warehouseLocation',
       key: 'warehouseLocation',
+      width: 120,
       render: (location) => <Text type="secondary">{location}</Text>,
     },
     {
       title: 'Ngày nhập',
       dataIndex: 'importDate',
       key: 'importDate',
+      width: 110,
       render: (date) => formatDate(date),
     },
     {
       title: 'Ngày bán',
       dataIndex: 'soldDate',
       key: 'soldDate',
+      width: 110,
       render: (date) => (date ? formatDate(date) : '-'),
     },
   ];
@@ -281,7 +287,22 @@ const BookCopyManagementPage = () => {
             ]}
           />
 
-          <RangePicker placeholder={['Từ ngày', 'Đến ngày']} />
+          <Select
+            placeholder="Lọc theo ngày"
+            value={dateType}
+            onChange={(value) => setDateType(value)}
+            style={{ width: 150 }}
+            options={[
+              { value: 'import', label: 'Ngày nhập' },
+              { value: 'sold', label: 'Ngày bán' },
+            ]}
+          />
+
+          <RangePicker
+            placeholder={['Từ ngày', 'Đến ngày']}
+            onChange={(dates) => setDateRange(dates)}
+            format="DD/MM/YYYY"
+          />
         </Space>
       </div>
 
@@ -295,7 +316,6 @@ const BookCopyManagementPage = () => {
         onChange={(newPagination) => {
           fetchBookCopies(newPagination.current);
         }}
-        scroll={{ x: 1400 }}
       />
     </div>
   );

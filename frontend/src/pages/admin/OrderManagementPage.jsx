@@ -18,13 +18,15 @@ import {
   Descriptions,
   Dropdown,
   Menu,
+  Spin,
+  Alert,
 } from 'antd';
 import {
   EyeOutlined,
   SearchOutlined,
   DownOutlined,
 } from '@ant-design/icons';
-import { orderApi } from '@api';
+import { orderApi, bookCopyApi } from '@api';
 import { formatPrice } from '@utils/formatPrice';
 import { formatDate } from '@utils/formatDate';
 import {
@@ -59,6 +61,219 @@ const OrderManagementPage = () => {
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [orderToCancel, setOrderToCancel] = useState(null);
+  const [confirmModalVisible, setConfirmModalVisible] = useState(false);
+  const [orderToConfirm, setOrderToConfirm] = useState(null);
+  const [availableCopies, setAvailableCopies] = useState([]);
+
+  // Batch processing states
+  const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+  const [batchStatusModalVisible, setBatchStatusModalVisible] = useState(false);
+  const [batchTargetStatus, setBatchTargetStatus] = useState(null);
+  const [batchProcessing, setBatchProcessing] = useState(false);
+  const [batchResults, setBatchResults] = useState([]);
+
+  /**
+   * Check available copies for order
+   */
+  const checkAvailableCopies = async (order) => {
+    const copiesData = [];
+    let hasEnoughCopies = true;
+
+    for (const item of order.items) {
+      if (item.type === 'book' && item.book) {
+        const copiesResponse = await bookCopyApi.getAllBookCopies({
+          bookId: item.book._id,
+          status: 'available',
+          limit: 100,
+        });
+
+        const availableCount = copiesResponse.data.bookCopies?.length || 0;
+        if (availableCount < item.quantity) {
+          hasEnoughCopies = false;
+        }
+
+        copiesData.push({
+          item,
+          copies: copiesResponse.data.bookCopies || [],
+          needed: item.quantity,
+          available: availableCount,
+        });
+      } else if (item.type === 'combo' && item.combo) {
+        const comboBooks = item.combo.books || [];
+        const comboCopies = [];
+
+        for (const bookItem of comboBooks) {
+          if (bookItem.book) {
+            const copiesResponse = await bookCopyApi.getAllBookCopies({
+              bookId: bookItem.book._id,
+              status: 'available',
+              limit: 100,
+            });
+
+            const needed = bookItem.quantity * item.quantity;
+            const availableCount = copiesResponse.data.bookCopies?.length || 0;
+
+            if (availableCount < needed) {
+              hasEnoughCopies = false;
+            }
+
+            comboCopies.push({
+              book: bookItem.book,
+              quantity: needed,
+              copies: copiesResponse.data.bookCopies || [],
+              available: availableCount,
+            });
+          }
+        }
+
+        copiesData.push({
+          item,
+          isCombo: true,
+          comboBooks: comboCopies,
+        });
+      }
+    }
+
+    return { copiesData, hasEnoughCopies };
+  };
+
+  /**
+   * Handle batch status change
+   */
+  const handleBatchStatusChange = async (targetStatus) => {
+    if (selectedRowKeys.length === 0) {
+      showError('Vui lòng chọn ít nhất một đơn hàng');
+      return;
+    }
+
+    // Nếu là xác nhận đơn (confirmed), kiểm tra từng đơn
+    if (targetStatus === ORDER_STATUS.CONFIRMED) {
+      setBatchTargetStatus(targetStatus);
+      setBatchStatusModalVisible(true);
+      return;
+    }
+
+    // Với các trạng thái khác, xử lý trực tiếp
+    setBatchTargetStatus(targetStatus);
+    setBatchStatusModalVisible(true);
+  };
+
+  /**
+   * Process batch status update
+   */
+  const processBatchStatusUpdate = async () => {
+    setBatchProcessing(true);
+    const results = [];
+    const selectedOrders = orders.filter(order => selectedRowKeys.includes(order._id));
+
+    for (const order of selectedOrders) {
+      try {
+        // Kiểm tra xem đơn có thể chuyển sang trạng thái mới không
+        const nextStatuses = getNextStatuses(order.status);
+
+        if (!nextStatuses.includes(batchTargetStatus)) {
+          results.push({
+            orderId: order._id,
+            orderNumber: order.orderNumber,
+            success: false,
+            message: `Không thể chuyển từ ${ORDER_STATUS_LABELS[order.status]} sang ${ORDER_STATUS_LABELS[batchTargetStatus]}`,
+          });
+          continue;
+        }
+
+        // Nếu là xác nhận đơn, kiểm tra bản sao
+        if (batchTargetStatus === ORDER_STATUS.CONFIRMED) {
+          const { hasEnoughCopies, copiesData } = await checkAvailableCopies(order);
+
+          if (!hasEnoughCopies) {
+            const missingItems = [];
+            copiesData.forEach(data => {
+              if (data.isCombo) {
+                data.comboBooks.forEach(book => {
+                  if (book.available < book.quantity) {
+                    missingItems.push(`${book.book.title}: thiếu ${book.quantity - book.available} bản`);
+                  }
+                });
+              } else {
+                if (data.available < data.needed) {
+                  missingItems.push(`${data.item.bookSnapshot?.title}: thiếu ${data.needed - data.available} bản`);
+                }
+              }
+            });
+
+            results.push({
+              orderId: order._id,
+              orderNumber: order.orderNumber,
+              success: false,
+              message: `Thiếu bản sao: ${missingItems.join(', ')}`,
+              skipped: true,
+            });
+            continue;
+          }
+        }
+
+        // Xử lý cập nhật trạng thái
+        await orderApi.updateOrderStatus(order._id, batchTargetStatus);
+
+        results.push({
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          success: true,
+          message: `Đã chuyển sang ${ORDER_STATUS_LABELS[batchTargetStatus]}`,
+        });
+      } catch (error) {
+        results.push({
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          success: false,
+          message: error.message || 'Lỗi không xác định',
+        });
+      }
+    }
+
+    setBatchResults(results);
+    setBatchProcessing(false);
+
+    // Refresh danh sách đơn hàng
+    await fetchOrders(pagination.current);
+
+    // Reset selection
+    setSelectedRowKeys([]);
+
+    // Hiển thị kết quả
+    const successCount = results.filter(r => r.success).length;
+    const failCount = results.filter(r => !r.success).length;
+    const skippedCount = results.filter(r => r.skipped).length;
+
+    if (failCount === 0 && skippedCount === 0) {
+      showSuccess(`Đã cập nhật thành công ${successCount} đơn hàng`);
+      setBatchStatusModalVisible(false);
+      setBatchResults([]);
+    } else {
+      showSuccess(`Thành công: ${successCount}, Thất bại: ${failCount}, Bỏ qua: ${skippedCount}`);
+    }
+  };
+
+  /**
+   * Get common next status for selected orders
+   */
+  const getCommonNextStatuses = () => {
+    if (selectedRowKeys.length === 0) return [];
+
+    const selectedOrders = orders.filter(order => selectedRowKeys.includes(order._id));
+    if (selectedOrders.length === 0) return [];
+
+    // Lấy danh sách trạng thái tiếp theo của đơn đầu tiên
+    let commonStatuses = getNextStatuses(selectedOrders[0].status);
+
+    // Lọc ra các trạng thái chung cho tất cả các đơn được chọn
+    for (let i = 1; i < selectedOrders.length; i++) {
+      const nextStatuses = getNextStatuses(selectedOrders[i].status);
+      commonStatuses = commonStatuses.filter(status => nextStatuses.includes(status));
+    }
+
+    return commonStatuses;
+  };
 
   /**
    * Fetch orders
@@ -152,6 +367,120 @@ const OrderManagementPage = () => {
       return;
     }
 
+    // Nếu là xác nhận đơn (pending -> confirmed), hiển thị danh sách bản sao
+    if (newStatus === ORDER_STATUS.CONFIRMED) {
+      try {
+        // Lấy thông tin đơn hàng đầy đủ
+        const response = await orderApi.getOrderById(orderId);
+        const orderData = response.data?.order || response.order;
+
+        setOrderToConfirm(orderData);
+
+        // Lấy danh sách bản sao available cho từng sách trong đơn
+        const copiesData = [];
+        let hasEnoughCopies = true;
+
+        for (const item of orderData.items) {
+          if (item.type === 'book' && item.book) {
+            const copiesResponse = await bookCopyApi.getAllBookCopies({
+              bookId: item.book._id,
+              status: 'available',
+              limit: 100,
+            });
+
+            const availableCount = copiesResponse.data.bookCopies?.length || 0;
+            if (availableCount < item.quantity) {
+              hasEnoughCopies = false;
+            }
+
+            copiesData.push({
+              item,
+              copies: copiesResponse.data.bookCopies || [],
+              needed: item.quantity,
+              available: availableCount,
+            });
+          } else if (item.type === 'combo' && item.combo) {
+            // Đối với combo, lấy bản sao của từng sách trong combo
+            const comboBooks = item.combo.books || [];
+            const comboCopies = [];
+
+            for (const bookItem of comboBooks) {
+              if (bookItem.book) {
+                const copiesResponse = await bookCopyApi.getAllBookCopies({
+                  bookId: bookItem.book._id,
+                  status: 'available',
+                  limit: 100,
+                });
+
+                const needed = bookItem.quantity * item.quantity;
+                const availableCount = copiesResponse.data.bookCopies?.length || 0;
+
+                if (availableCount < needed) {
+                  hasEnoughCopies = false;
+                }
+
+                comboCopies.push({
+                  book: bookItem.book,
+                  quantity: needed,
+                  copies: copiesResponse.data.bookCopies || [],
+                  available: availableCount,
+                });
+              }
+            }
+
+            copiesData.push({
+              item,
+              isCombo: true,
+              comboBooks: comboCopies,
+            });
+          }
+        }
+
+        setAvailableCopies(copiesData);
+
+        // Nếu thiếu bản sao, hiển thị cảnh báo và không cho xác nhận
+        if (!hasEnoughCopies) {
+          Modal.warning({
+            title: 'Không thể xác nhận đơn hàng',
+            content: (
+              <div>
+                <p>Không đủ bản sao để xác nhận đơn hàng này.</p>
+                {copiesData.map((data, index) => {
+                  if (data.isCombo) {
+                    return data.comboBooks?.map((book, bookIndex) => {
+                      if (book.available < book.quantity) {
+                        return (
+                          <div key={`${index}-${bookIndex}`} style={{ color: '#ff4d4f', marginTop: 8 }}>
+                            ⚠️ {book.book.title}: cần {book.quantity} bản, chỉ còn {book.available} bản
+                          </div>
+                        );
+                      }
+                      return null;
+                    });
+                  } else if (data.available < data.needed) {
+                    return (
+                      <div key={index} style={{ color: '#ff4d4f', marginTop: 8 }}>
+                        ⚠️ {data.item.bookSnapshot?.title}: cần {data.needed} bản, chỉ còn {data.available} bản
+                      </div>
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+            ),
+            width: 500,
+          });
+          return;
+        }
+
+        setConfirmModalVisible(true);
+      } catch (error) {
+        console.error('Error loading available copies:', error);
+        showError('Không thể tải danh sách bản sao');
+      }
+      return;
+    }
+
     try {
       await orderApi.updateOrderStatus(orderId, newStatus);
       showSuccess('Đã cập nhật trạng thái đơn hàng');
@@ -163,6 +492,27 @@ const OrderManagementPage = () => {
       }
     } catch (error) {
       showError(error.message || 'Không thể cập nhật trạng thái');
+    }
+  };
+
+  /**
+   * Handle confirm order with copies info
+   */
+  const handleConfirmOrderWithCopies = async () => {
+    try {
+      await orderApi.updateOrderStatus(orderToConfirm._id, ORDER_STATUS.CONFIRMED);
+      showSuccess('Đã xác nhận đơn hàng');
+      fetchOrders(pagination.current);
+
+      setConfirmModalVisible(false);
+      setOrderToConfirm(null);
+      setAvailableCopies([]);
+
+      if (detailModalVisible) {
+        setDetailModalVisible(false);
+      }
+    } catch (error) {
+      showError(error.message || 'Không thể xác nhận đơn hàng');
     }
   };
 
@@ -388,7 +738,7 @@ const OrderManagementPage = () => {
 
       {/* Toolbar */}
       <div className="toolbar">
-        <Space size="middle">
+        <Space size="middle" wrap>
           <Search
             placeholder="Tìm kiếm đơn hàng..."
             allowClear
@@ -410,6 +760,41 @@ const OrderManagementPage = () => {
               })),
             ]}
           />
+
+          {/* Batch actions */}
+          {selectedRowKeys.length > 0 && (
+            <>
+              <Text strong style={{ marginLeft: 16 }}>
+                Đã chọn: {selectedRowKeys.length} đơn
+              </Text>
+              <Dropdown
+                overlay={
+                  <Menu
+                    onClick={({ key }) => handleBatchStatusChange(key)}
+                    items={getCommonNextStatuses().map(status => ({
+                      key: status,
+                      label: (
+                        <Space>
+                          <Tag color={ORDER_STATUS_COLORS[status]}>
+                            {ORDER_STATUS_LABELS[status]}
+                          </Tag>
+                        </Space>
+                      ),
+                    }))}
+                  />
+                }
+                trigger={['click']}
+                disabled={getCommonNextStatuses().length === 0}
+              >
+                <Button type="primary">
+                  Chuyển trạng thái hàng loạt <DownOutlined />
+                </Button>
+              </Dropdown>
+              <Button onClick={() => setSelectedRowKeys([])}>
+                Bỏ chọn
+              </Button>
+            </>
+          )}
         </Space>
       </div>
 
@@ -421,6 +806,13 @@ const OrderManagementPage = () => {
         loading={loading}
         pagination={pagination}
         onChange={handleTableChange}
+        rowSelection={{
+          selectedRowKeys,
+          onChange: (selectedKeys) => setSelectedRowKeys(selectedKeys),
+          getCheckboxProps: (record) => ({
+            disabled: getNextStatuses(record.status).length === 0,
+          }),
+        }}
       />
 
       {/* Detail Modal */}
@@ -631,6 +1023,86 @@ const OrderManagementPage = () => {
               pagination={false}
               size="small"
             />
+
+            {/* Danh sách bản sao đã lấy */}
+            {selectedOrder.status !== ORDER_STATUS.PENDING && selectedOrder.items?.some(item => item.soldCopies && item.soldCopies.length > 0) && (
+              <>
+                <Title level={5} style={{ marginTop: 24 }}>
+                  Bản sao đã lấy
+                </Title>
+                {selectedOrder.items.map((item, itemIndex) => {
+                  if (!item.soldCopies || item.soldCopies.length === 0) return null;
+
+                  const product = item.bookSnapshot || item.comboSnapshot;
+                  const productName = product?.title || product?.name;
+
+                  return (
+                    <div key={itemIndex} style={{ marginBottom: 16, border: '1px solid #d9d9d9', borderRadius: 4, padding: 12 }}>
+                      <Text strong style={{ fontSize: 14, display: 'block', marginBottom: 8 }}>
+                        {item.type === 'combo' ? '📦 ' : '📖 '}{productName}
+                      </Text>
+                      <Table
+                        size="small"
+                        dataSource={item.soldCopies}
+                        rowKey="_id"
+                        columns={[
+                          {
+                            title: 'Mã bản sao',
+                            dataIndex: 'copyCode',
+                            key: 'copyCode',
+                            width: 130,
+                            render: (code) => <Tag color="blue">{code}</Tag>,
+                          },
+                          {
+                            title: 'Trạng thái',
+                            dataIndex: 'status',
+                            key: 'status',
+                            width: 100,
+                            render: (status) => {
+                              const statusMap = {
+                                available: { color: 'success', text: 'Có sẵn' },
+                                reserved: { color: 'warning', text: 'Đã đặt' },
+                                sold: { color: 'default', text: 'Đã bán' },
+                              };
+                              return (
+                                <Tag color={statusMap[status]?.color}>
+                                  {statusMap[status]?.text}
+                                </Tag>
+                              );
+                            },
+                          },
+                          {
+                            title: 'Tình trạng',
+                            dataIndex: 'condition',
+                            key: 'condition',
+                            width: 100,
+                            render: (condition) => {
+                              const map = { new: 'Mới', like_new: 'Như mới', good: 'Tốt' };
+                              return map[condition] || condition;
+                            },
+                          },
+                          {
+                            title: 'Vị trí kho',
+                            dataIndex: 'warehouseLocation',
+                            key: 'warehouseLocation',
+                            width: 120,
+                            render: (loc) => <Text type="secondary">{loc}</Text>,
+                          },
+                          {
+                            title: 'Ngày nhập',
+                            dataIndex: 'importDate',
+                            key: 'importDate',
+                            width: 110,
+                            render: (date) => formatDate(date),
+                          },
+                        ]}
+                        pagination={false}
+                      />
+                    </div>
+                  );
+                })}
+              </>
+            )}
           </div>
         )}
       </Modal>
@@ -665,6 +1137,267 @@ const OrderManagementPage = () => {
             * Lý do hủy sẽ được gửi cho khách hàng
           </div>
         </Space>
+      </Modal>
+
+      {/* Confirm Order Modal with Book Copies */}
+      <Modal
+        title={`Xác nhận đơn hàng - ${orderToConfirm?.orderNumber}`}
+        open={confirmModalVisible}
+        onCancel={() => {
+          setConfirmModalVisible(false);
+          setOrderToConfirm(null);
+          setAvailableCopies([]);
+        }}
+        onOk={handleConfirmOrderWithCopies}
+        okText="Xác nhận đơn hàng"
+        cancelText="Hủy"
+        width={900}
+      >
+        <div>
+          <div style={{ marginBottom: 16, padding: 12, background: '#f0f2f5', borderRadius: 4 }}>
+            <Text strong>Thông tin đơn hàng:</Text>
+            <div style={{ marginTop: 8 }}>
+              <div>Khách hàng: <strong>{orderToConfirm?.customer?.fullName}</strong></div>
+              <div>Tổng tiền: <strong style={{ color: '#f5222d' }}>{formatPrice(orderToConfirm?.totalPrice)}</strong></div>
+            </div>
+          </div>
+
+          {/* Hiển thị cảnh báo nếu thiếu bản sao */}
+          {availableCopies.some(data => {
+            if (data.isCombo) {
+              return data.comboBooks?.some(book => book.available < book.quantity);
+            }
+            return data.available < data.needed;
+          }) && (
+              <Alert
+                message="Cảnh báo: Thiếu bản sao"
+                description="Một số sản phẩm không đủ bản sao. Vui lòng kiểm tra lại."
+                type="warning"
+                showIcon
+                style={{ marginBottom: 16 }}
+              />
+            )}
+
+          <Title level={5}>Danh sách bản sao sẽ lấy (Có sẵn → Đã đặt)</Title>
+
+          {availableCopies.map((copyData, index) => (
+            <div key={index} style={{ marginBottom: 24, border: '1px solid #d9d9d9', borderRadius: 4, padding: 16 }}>
+              {copyData.isCombo ? (
+                <div>
+                  <Text strong style={{ fontSize: 16 }}>
+                    Combo: {copyData.item.comboSnapshot?.name}
+                  </Text>
+                  <div style={{ marginTop: 12 }}>
+                    {copyData.comboBooks?.map((bookData, bookIndex) => (
+                      <div key={bookIndex} style={{ marginBottom: 16, paddingLeft: 16, borderLeft: '3px solid #1890ff' }}>
+                        <Text strong>{bookData.book.title}</Text>
+                        <div style={{ color: '#666', fontSize: 12, marginTop: 4 }}>
+                          Cần: <strong>{bookData.quantity}</strong> bản sao
+                        </div>
+                        <Table
+                          size="small"
+                          dataSource={bookData.copies.slice(0, bookData.quantity)}
+                          columns={[
+                            {
+                              title: 'Mã bản sao',
+                              dataIndex: 'copyCode',
+                              key: 'copyCode',
+                              width: 120,
+                              render: (code) => <Tag color="blue">{code}</Tag>,
+                            },
+                            {
+                              title: 'Tình trạng',
+                              dataIndex: 'condition',
+                              key: 'condition',
+                              width: 100,
+                              render: (condition) => {
+                                const map = { new: 'Mới', like_new: 'Như mới', good: 'Tốt' };
+                                return map[condition] || condition;
+                              },
+                            },
+                            {
+                              title: 'Vị trí kho',
+                              dataIndex: 'warehouseLocation',
+                              key: 'warehouseLocation',
+                              render: (loc) => <Text type="secondary">{loc}</Text>,
+                            },
+                          ]}
+                          pagination={false}
+                          style={{ marginTop: 8 }}
+                        />
+                        {bookData.copies.length < bookData.quantity && (
+                          <div style={{ color: '#ff4d4f', marginTop: 8, fontSize: 12 }}>
+                            ⚠️ Chỉ có {bookData.copies.length}/{bookData.quantity} bản sao. Thiếu {bookData.quantity - bookData.copies.length} bản.
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <Text strong style={{ fontSize: 16 }}>
+                    {copyData.item.bookSnapshot?.title}
+                  </Text>
+                  <div style={{ color: '#666', fontSize: 12, marginTop: 4 }}>
+                    Cần: <strong>{copyData.item.quantity}</strong> bản sao
+                  </div>
+                  <Table
+                    size="small"
+                    dataSource={copyData.copies.slice(0, copyData.item.quantity)}
+                    columns={[
+                      {
+                        title: 'Mã bản sao',
+                        dataIndex: 'copyCode',
+                        key: 'copyCode',
+                        width: 120,
+                        render: (code) => <Tag color="blue">{code}</Tag>,
+                      },
+                      {
+                        title: 'Tình trạng',
+                        dataIndex: 'condition',
+                        key: 'condition',
+                        width: 100,
+                        render: (condition) => {
+                          const map = { new: 'Mới', like_new: 'Như mới', good: 'Tốt' };
+                          return map[condition] || condition;
+                        },
+                      },
+                      {
+                        title: 'Vị trí kho',
+                        dataIndex: 'warehouseLocation',
+                        key: 'warehouseLocation',
+                        render: (loc) => <Text type="secondary">{loc}</Text>,
+                      },
+                    ]}
+                    pagination={false}
+                    style={{ marginTop: 8 }}
+                  />
+                  {copyData.copies.length < copyData.item.quantity && (
+                    <div style={{ color: '#ff4d4f', marginTop: 8, fontSize: 12 }}>
+                      ⚠️ Chỉ có {copyData.copies.length}/{copyData.item.quantity} bản sao. Thiếu {copyData.item.quantity - copyData.copies.length} bản.
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+
+          <div style={{ background: '#fffbe6', border: '1px solid #ffe58f', padding: 12, borderRadius: 4, marginTop: 16 }}>
+            <Text strong>💡 Lưu ý:</Text>
+            <ul style={{ marginTop: 8, marginBottom: 0, paddingLeft: 20 }}>
+              <li>Hệ thống sẽ tự động chọn các bản sao tốt nhất (mới nhất, tình trạng tốt nhất)</li>
+              <li>Sau khi xác nhận, các bản sao sẽ chuyển trạng thái từ "Có sẵn" sang "Đã đặt"</li>
+              <li>Tồn kho sẽ giảm tương ứng</li>
+            </ul>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Batch Status Update Modal */}
+      <Modal
+        title="Xử lý hàng loạt"
+        open={batchStatusModalVisible}
+        onCancel={() => {
+          if (!batchProcessing) {
+            setBatchStatusModalVisible(false);
+            setBatchTargetStatus(null);
+            setBatchResults([]);
+          }
+        }}
+        footer={
+          batchResults.length > 0 ? (
+            <Button type="primary" onClick={() => {
+              setBatchStatusModalVisible(false);
+              setBatchTargetStatus(null);
+              setBatchResults([]);
+            }}>
+              Đóng
+            </Button>
+          ) : (
+            <Space>
+              <Button onClick={() => {
+                setBatchStatusModalVisible(false);
+                setBatchTargetStatus(null);
+              }} disabled={batchProcessing}>
+                Hủy
+              </Button>
+              <Button
+                type="primary"
+                onClick={processBatchStatusUpdate}
+                loading={batchProcessing}
+              >
+                Xác nhận
+              </Button>
+            </Space>
+          )
+        }
+        width={800}
+        closable={!batchProcessing}
+        maskClosable={!batchProcessing}
+      >
+        {batchProcessing ? (
+          <div style={{ textAlign: 'center', padding: '40px 0' }}>
+            <Spin size="large" />
+            <div style={{ marginTop: 16 }}>
+              <Text>Đang xử lý... Vui lòng đợi</Text>
+            </div>
+          </div>
+        ) : batchResults.length > 0 ? (
+          <div>
+            <Title level={5}>Kết quả xử lý</Title>
+            <Table
+              dataSource={batchResults}
+              columns={[
+                {
+                  title: 'Mã đơn',
+                  dataIndex: 'orderNumber',
+                  key: 'orderNumber',
+                  render: (text) => <Text strong>{text}</Text>,
+                },
+                {
+                  title: 'Trạng thái',
+                  dataIndex: 'success',
+                  key: 'success',
+                  render: (success, record) => (
+                    <Tag color={success ? 'success' : record.skipped ? 'warning' : 'error'}>
+                      {success ? 'Thành công' : record.skipped ? 'Bỏ qua' : 'Thất bại'}
+                    </Tag>
+                  ),
+                },
+                {
+                  title: 'Thông báo',
+                  dataIndex: 'message',
+                  key: 'message',
+                },
+              ]}
+              pagination={false}
+              size="small"
+            />
+          </div>
+        ) : (
+          <div>
+            <div style={{ marginBottom: 16, padding: 12, background: '#f0f2f5', borderRadius: 4 }}>
+              <Text strong>Số đơn đã chọn: {selectedRowKeys.length}</Text>
+              <div style={{ marginTop: 8 }}>
+                <Text>Chuyển sang trạng thái: </Text>
+                <Tag color={ORDER_STATUS_COLORS[batchTargetStatus]}>
+                  {ORDER_STATUS_LABELS[batchTargetStatus]}
+                </Tag>
+              </div>
+            </div>
+
+            <div style={{ background: '#fffbe6', border: '1px solid #ffe58f', padding: 12, borderRadius: 4 }}>
+              <Text strong>💡 Lưu ý:</Text>
+              <ul style={{ marginTop: 8, marginBottom: 0, paddingLeft: 20 }}>
+                <li>Hệ thống sẽ xử lý từng đơn từ trên xuống dưới</li>
+                <li>Đơn nào thiếu bản sao (khi xác nhận) sẽ bị bỏ qua và giữ nguyên trạng thái</li>
+                <li>Đơn tiếp theo sẽ tiếp tục được xử lý</li>
+                <li>Bạn sẽ thấy kết quả chi tiết sau khi xử lý xong</li>
+              </ul>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );
