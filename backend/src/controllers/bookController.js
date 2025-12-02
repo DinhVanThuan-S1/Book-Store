@@ -68,6 +68,21 @@ const getBooks = asyncHandler(async (req, res) => {
     ];
   }
   
+  // Nếu không phải admin (includeInactive=false), ẩn sách thuộc danh mục bị ẩn
+  if (includeInactive !== 'true' && includeInactive !== true) {
+    const Category = require('../models/Category');
+    const activeCategories = await Category.find({ isActive: true }).select('_id');
+    const activeCategoryIds = activeCategories.map(cat => cat._id);
+    
+    // Chỉ lấy sách thuộc danh mục active
+    if (activeCategoryIds.length > 0) {
+      query.category = { $in: activeCategoryIds };
+    } else {
+      // Nếu không có danh mục active nào, trả về rỗng
+      query.category = null;
+    }
+  }
+  
   // Đếm tổng số sách trước (để tránh sai lệch pagination)
   const total = await Book.countDocuments(query);
   

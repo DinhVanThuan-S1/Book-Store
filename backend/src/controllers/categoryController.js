@@ -17,8 +17,17 @@ const { asyncHandler } = require('../middlewares/errorHandler');
  */
 const getCategories = asyncHandler(async (req, res) => {
   const Book = require('../models/Book');
+  const { includeInactive = false } = req.query;
   
-  const categories = await Category.find({ isActive: true }).sort('name');
+  // Build query
+  const query = {};
+  
+  // Filter theo isActive (mặc định chỉ lấy active, admin có thể tắt filter này)
+  if (includeInactive !== 'true' && includeInactive !== true) {
+    query.isActive = true;
+  }
+  
+  const categories = await Category.find(query).sort('name');
   
   // Đếm số sách trong mỗi danh mục
   const categoriesWithCount = await Promise.all(
@@ -164,7 +173,7 @@ const updateCategory = asyncHandler(async (req, res) => {
 });
 
 /**
- * @desc    Xóa danh mục (Admin)
+ * @desc    Xóa danh mục (Admin) - Hard delete
  * @route   DELETE /api/categories/:id
  * @access  Private/Admin
  */
@@ -180,26 +189,50 @@ const deleteCategory = asyncHandler(async (req, res) => {
     });
   }
   
-  // Kiểm tra xem danh mục có sách không
+  // Kiểm tra xem danh mục có sách không (bao gồm cả sách bị ẩn)
   const bookCount = await Book.countDocuments({
     category: category._id,
-    isActive: true,
   });
   
   if (bookCount > 0) {
     return res.status(400).json({
       success: false,
-      message: `Không thể xóa danh mục đang có ${bookCount} sách`,
+      message: `Không thể xóa danh mục đang có ${bookCount} sách. Vui lòng xóa hoặc chuyển sách sang danh mục khác trước.`,
     });
   }
   
-  // Soft delete
-  category.isActive = false;
-  await category.save();
+  // Hard delete: xóa hẳn khỏi database
+  await Category.findByIdAndDelete(req.params.id);
   
   res.status(200).json({
     success: true,
     message: 'Category deleted successfully',
+  });
+});
+
+/**
+ * @desc    Toggle trạng thái active/inactive của danh mục
+ * @route   PATCH /api/categories/:id/toggle-status
+ * @access  Private/Admin
+ */
+const toggleCategoryStatus = asyncHandler(async (req, res) => {
+  const category = await Category.findById(req.params.id);
+  
+  if (!category) {
+    return res.status(404).json({
+      success: false,
+      message: 'Category not found',
+    });
+  }
+  
+  // Toggle isActive
+  category.isActive = !category.isActive;
+  await category.save();
+  
+  res.status(200).json({
+    success: true,
+    message: `Category ${category.isActive ? 'activated' : 'deactivated'} successfully`,
+    data: { category },
   });
 });
 
@@ -293,6 +326,7 @@ module.exports = {
   createCategory,
   updateCategory,
   deleteCategory,
+  toggleCategoryStatus,
   getCategoryStats,
   getCategoryBooks,
 };

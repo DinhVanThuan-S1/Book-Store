@@ -55,6 +55,14 @@ export const deleteCombo = (id) => {
   return axiosInstance.delete(`/combos/${id}`);
 };
 
+/**
+ * Toggle trạng thái combo (Admin)
+ * @param {String} id
+ */
+export const toggleComboStatus = (id) => {
+  return axiosInstance.patch(`/combos/${id}/toggle-status`);
+};
+
 const comboApi = {
   getCombos,
   getComboById,
@@ -62,6 +70,7 @@ const comboApi = {
   createCombo,
   updateCombo,
   deleteCombo,
+  toggleComboStatus,
 };
 
 export default comboApi;

@@ -7,8 +7,8 @@
 import axiosInstance from './axiosConfig';
 import { API_ENDPOINTS } from '@constants/apiEndpoints';
 
-export const getCategories = () => {
-  return axiosInstance.get(API_ENDPOINTS.CATEGORIES.GET_ALL);
+export const getCategories = (params) => {
+  return axiosInstance.get(API_ENDPOINTS.CATEGORIES.GET_ALL, { params });
 };
 
 export const getCategoryById = (id) => {
@@ -27,6 +27,10 @@ export const deleteCategory = (id) => {
   return axiosInstance.delete(`/categories/${id}`);
 };
 
+export const toggleCategoryStatus = (id) => {
+  return axiosInstance.patch(`/categories/${id}/toggle-status`);
+};
+
 export const getCategoryBooks = (id, params) => {
   return axiosInstance.get(`/categories/${id}/books`, { params });
 };
@@ -37,6 +41,7 @@ const categoryApi = {
   createCategory,
   updateCategory,
   deleteCategory,
+  toggleCategoryStatus,
   getCategoryBooks,
 };
 

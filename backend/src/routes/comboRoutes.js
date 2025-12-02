@@ -17,6 +17,7 @@ const {
   updateCombo,
   deleteCombo,
   checkComboAvailability,
+  toggleComboStatus,
 } = require('../controllers/comboController');
 
 /**
@@ -76,6 +77,15 @@ router.delete(
   param('id').isMongoId().withMessage('Invalid combo ID'),
   validate,
   deleteCombo
+);
+
+router.patch(
+  '/:id/toggle-status',
+  protect,
+  adminOnly,
+  param('id').isMongoId().withMessage('Invalid combo ID'),
+  validate,
+  toggleComboStatus
 );
 
 module.exports = router;

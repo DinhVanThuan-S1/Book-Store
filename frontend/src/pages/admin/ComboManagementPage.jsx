@@ -32,6 +32,7 @@ import {
   UploadOutlined,
   MinusCircleOutlined,
   EyeOutlined,
+  EyeInvisibleOutlined,
 } from '@ant-design/icons';
 import { comboApi, bookApi, uploadApi } from '@api';
 import { formatPrice } from '@utils/formatPrice';
@@ -50,6 +51,7 @@ const ComboManagementPage = () => {
   const [editingCombo, setEditingCombo] = useState(null);
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState([]);
+  const [uploading, setUploading] = useState(false);
   const [selectedBooks, setSelectedBooks] = useState([]);
 
   /**
@@ -58,7 +60,7 @@ const ComboManagementPage = () => {
   const fetchCombos = async () => {
     try {
       setLoading(true);
-      const response = await comboApi.getCombos();
+      const response = await comboApi.getCombos({ includeInactive: true });
       setCombos(response.data.combos);
     } catch (error) {
       message.error('Không thể tải danh sách combo');
@@ -114,23 +116,10 @@ const ComboManagementPage = () => {
    */
   const handleSubmit = async (values) => {
     try {
-      let imageUrl = null;
-
-      // Upload ảnh nếu có file mới (không phải URL từ server)
-      if (fileList.length > 0) {
-        if (fileList[0].originFileObj) {
-          // File mới cần upload
-          message.loading({ content: 'Đang tải ảnh lên...', key: 'upload' });
-          const uploadResponse = await uploadApi.uploadImage(fileList[0].originFileObj);
-          console.log('Upload response:', uploadResponse);
-          // Response có thể là: { data: { data: { url } } } hoặc { data: { url } }
-          imageUrl = uploadResponse.data?.data?.url || uploadResponse.data?.url || uploadResponse.url;
-          message.success({ content: 'Tải ảnh thành công!', key: 'upload', duration: 2 });
-        } else if (fileList[0].url) {
-          // Ảnh cũ đã có từ server
-          imageUrl = fileList[0].url;
-        }
-      }
+      // Lấy URL ảnh từ fileList (đã upload trước)
+      const imageUrl = fileList.length > 0 && fileList[0].url
+        ? fileList[0].url
+        : editingCombo?.image;
 
       const data = {
         ...values,
@@ -165,6 +154,23 @@ const ComboManagementPage = () => {
       fetchCombos();
     } catch (error) {
       message.error('Không thể xóa combo');
+    }
+  };
+
+  /**
+   * Handle toggle status
+   */
+  const handleToggleStatus = async (id, currentStatus) => {
+    try {
+      await comboApi.toggleComboStatus(id);
+      message.success(
+        currentStatus
+          ? 'Đã ẩn combo khỏi client'
+          : 'Đã hiển thị combo trên client'
+      );
+      fetchCombos();
+    } catch (error) {
+      message.error('Không thể thay đổi trạng thái combo');
     }
   };
 
@@ -266,6 +272,14 @@ const ComboManagementPage = () => {
       },
     },
     {
+      title: 'Đã bán',
+      dataIndex: 'soldCount',
+      key: 'soldCount',
+      render: (soldCount) => (
+        <Text strong>{soldCount || 0}</Text>
+      ),
+    },
+    {
       title: 'Trạng thái',
       dataIndex: 'isActive',
       key: 'isActive',
@@ -278,7 +292,7 @@ const ComboManagementPage = () => {
     {
       title: 'Thao tác',
       key: 'actions',
-      width: 200,
+      width: 280,
       fixed: 'right',
       render: (_, record) => (
         <Space>
@@ -288,7 +302,14 @@ const ComboManagementPage = () => {
             icon={<EyeOutlined />}
             onClick={() => handleView(record)}
           >
-            Xem
+            Chi tiết
+          </Button>
+          <Button
+            type={record.isActive ? 'default' : 'primary'}
+            size="small"
+            icon={record.isActive ? <EyeInvisibleOutlined /> : <EyeOutlined />}
+            onClick={() => handleToggleStatus(record._id, record.isActive)}
+          >
           </Button>
           <Button
             type="primary"
@@ -316,7 +337,7 @@ const ComboManagementPage = () => {
       <div className="page-header">
         <div>
           <Title level={2}>Quản lý combo</Title>
-          <Text type="secondary">Tổng số: {combos.length} combo</Text>
+          <Text type="secondary">Tổng : {combos.length} combo</Text>
         </div>
         <Button
           type="primary"
@@ -334,7 +355,7 @@ const ComboManagementPage = () => {
         rowKey="_id"
         loading={loading}
         pagination={{ pageSize: 10 }}
-        scroll={{ x: 1200 }}
+        scroll={{ x: 1500 }}
       />
 
       {/* Modal */}
@@ -468,13 +489,70 @@ const ComboManagementPage = () => {
           <Form.Item label="Hình ảnh combo">
             <Upload
               fileList={fileList}
-              onChange={({ fileList }) => setFileList(fileList)}
-              beforeUpload={() => false}
-              maxCount={1}
               listType="picture-card"
-              onPreview={(file) => {
-                const url = file.url || URL.createObjectURL(file.originFileObj);
-                window.open(url);
+              maxCount={1}
+              accept="image/*"
+              beforeUpload={async (file) => {
+                // Validate file type
+                const isImage = file.type.startsWith('image/');
+                if (!isImage) {
+                  message.error('Chỉ được upload file ảnh!');
+                  return false;
+                }
+
+                // Validate file size (max 5MB)
+                const isLt5M = file.size / 1024 / 1024 < 5;
+                if (!isLt5M) {
+                  message.error('Kích thước ảnh phải nhỏ hơn 5MB!');
+                  return false;
+                }
+
+                // Upload to Cloudinary
+                try {
+                  setUploading(true);
+
+                  // Create temp file object with uploading status
+                  const tempFile = {
+                    uid: file.uid,
+                    name: file.name,
+                    status: 'uploading',
+                    url: '',
+                  };
+                  setFileList([tempFile]);
+
+                  // Upload to Cloudinary
+                  const response = await uploadApi.uploadImage(file);
+                  console.log('Upload response:', response);
+
+                  // Update file với URL từ Cloudinary
+                  const uploadedFile = {
+                    uid: file.uid,
+                    name: file.name,
+                    status: 'done',
+                    url: response.url,
+                    publicId: response.publicId,
+                  };
+
+                  setFileList([uploadedFile]);
+                  message.success('Upload ảnh thành công!');
+                } catch (error) {
+                  console.error('Upload error:', error);
+                  message.error(error.message || 'Upload ảnh thất bại!');
+                  setFileList([]);
+                } finally {
+                  setUploading(false);
+                }
+
+                return false; // Prevent auto upload
+              }}
+              onRemove={(file) => {
+                setFileList([]);
+                // Xóa ảnh trên Cloudinary nếu có
+                if (file.publicId) {
+                  uploadApi.deleteImage(file.publicId).catch(err => {
+                    console.error('Delete image error:', err);
+                  });
+                }
               }}
             >
               {fileList.length < 1 && (
@@ -484,6 +562,11 @@ const ComboManagementPage = () => {
                 </div>
               )}
             </Upload>
+            {uploading && (
+              <Text type="secondary" style={{ fontSize: 12, marginTop: 8 }}>
+                Đang upload...
+              </Text>
+            )}
           </Form.Item>
 
           <Form.Item>

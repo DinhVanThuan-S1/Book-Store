@@ -17,9 +17,14 @@ const { paginate } = require('../utils/helper');
  * @access  Public
  */
 const getCombos = asyncHandler(async (req, res) => {
-  const { page = 1, limit = 12, sortBy = '-createdAt' } = req.query;
+  const { page = 1, limit = 12, sortBy = '-createdAt', includeInactive } = req.query;
   
-  const query = { isActive: true };
+  const query = {};
+  
+  // Nếu không phải admin (không có includeInactive), chỉ lấy combo active
+  if (!includeInactive || includeInactive === 'false') {
+    query.isActive = true;
+  }
   
   // Pagination
   const { skip, limit: limitNum } = paginate(page, limit);
@@ -188,6 +193,33 @@ const checkComboAvailability = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * @desc    Toggle trạng thái combo (Admin)
+ * @route   PATCH /api/combos/:id/toggle-status
+ * @access  Private/Admin
+ */
+const toggleComboStatus = asyncHandler(async (req, res) => {
+  const combo = await Combo.findById(req.params.id);
+  
+  if (!combo) {
+    return res.status(404).json({
+      success: false,
+      message: 'Combo not found',
+    });
+  }
+  
+  combo.isActive = !combo.isActive;
+  await combo.save();
+  
+  res.status(200).json({
+    success: true,
+    message: combo.isActive 
+      ? 'Combo đã được hiển thị trên client' 
+      : 'Combo đã bị ẩn khỏi client',
+    data: { combo },
+  });
+});
+
 module.exports = {
   getCombos,
   getComboById,
@@ -195,4 +227,5 @@ module.exports = {
   updateCombo,
   deleteCombo,
   checkComboAvailability,
+  toggleComboStatus,
 };

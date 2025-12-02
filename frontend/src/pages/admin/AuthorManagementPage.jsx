@@ -47,6 +47,7 @@ const AuthorManagementPage = () => {
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState([]);
   const [submitting, setSubmitting] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [booksModalVisible, setBooksModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedAuthor, setSelectedAuthor] = useState(null);
@@ -62,7 +63,7 @@ const AuthorManagementPage = () => {
       const response = await authorApi.getAuthors();
       setAuthors(response.data.authors);
     } catch (error) {
-      message.error('Không thể tải danh sách tác giả');
+      message.error('Không thể tải danh sách tác giả', error.message || error);
     } finally {
       setLoading(false);
     }
@@ -106,21 +107,11 @@ const AuthorManagementPage = () => {
   const handleSubmit = async (values) => {
     try {
       setSubmitting(true);
-      let imageUrl = editingAuthor?.image;
 
-      // Upload ảnh nếu có file mới
-      if (fileList.length > 0 && fileList[0].originFileObj) {
-        try {
-          const uploadResponse = await uploadApi.uploadImage(fileList[0].originFileObj);
-          console.log('Upload response:', uploadResponse);
-          imageUrl = uploadResponse.url;
-        } catch (uploadError) {
-          console.error('Upload error:', uploadError);
-          message.error(uploadError.message || 'Không thể tải ảnh lên');
-          setSubmitting(false);
-          return;
-        }
-      }
+      // Lấy URL ảnh từ fileList (đã upload trước)
+      const imageUrl = fileList.length > 0 && fileList[0].url
+        ? fileList[0].url
+        : editingAuthor?.image;
 
       const data = {
         name: values.name,
@@ -292,7 +283,10 @@ const AuthorManagementPage = () => {
   return (
     <div className="author-management-page">
       <div className="page-header">
-        <Title level={2}>Quản lý tác giả</Title>
+        <div>
+          <Title level={2}>Quản lý tác giả</Title>
+          <Text type="secondary">Tổng : {authors.length} tác giả</Text>
+        </div>
         <Button
           type="primary"
           icon={<PlusOutlined />}
@@ -340,11 +334,71 @@ const AuthorManagementPage = () => {
           <Form.Item label="Ảnh đại diện">
             <Upload
               fileList={fileList}
-              onChange={({ fileList }) => setFileList(fileList)}
-              beforeUpload={() => false}
-              maxCount={1}
               listType="picture-card"
+              maxCount={1}
               accept="image/*"
+              beforeUpload={async (file) => {
+                // Validate file type
+                const isImage = file.type.startsWith('image/');
+                if (!isImage) {
+                  message.error('Chỉ được upload file ảnh!');
+                  return false;
+                }
+
+                // Validate file size (max 5MB)
+                const isLt5M = file.size / 1024 / 1024 < 5;
+                if (!isLt5M) {
+                  message.error('Kích thước ảnh phải nhỏ hơn 5MB!');
+                  return false;
+                }
+
+                // Upload to Cloudinary
+                try {
+                  setUploading(true);
+
+                  // Create temp file object with uploading status
+                  const tempFile = {
+                    uid: file.uid,
+                    name: file.name,
+                    status: 'uploading',
+                    url: '',
+                  };
+                  setFileList([tempFile]);
+
+                  // Upload to Cloudinary
+                  const response = await uploadApi.uploadImage(file);
+                  console.log('Upload response:', response);
+
+                  // Update file với URL từ Cloudinary
+                  const uploadedFile = {
+                    uid: file.uid,
+                    name: file.name,
+                    status: 'done',
+                    url: response.url,
+                    publicId: response.publicId,
+                  };
+
+                  setFileList([uploadedFile]);
+                  message.success('Upload ảnh thành công!');
+                } catch (error) {
+                  console.error('Upload error:', error);
+                  message.error(error.message || 'Upload ảnh thất bại!');
+                  setFileList([]);
+                } finally {
+                  setUploading(false);
+                }
+
+                return false; // Prevent auto upload
+              }}
+              onRemove={(file) => {
+                setFileList([]);
+                // Xóa ảnh trên Cloudinary nếu có
+                if (file.publicId) {
+                  uploadApi.deleteImage(file.publicId).catch(err => {
+                    console.error('Delete image error:', err);
+                  });
+                }
+              }}
             >
               {fileList.length < 1 && (
                 <div>
@@ -353,6 +407,11 @@ const AuthorManagementPage = () => {
                 </div>
               )}
             </Upload>
+            {uploading && (
+              <Text type="secondary" style={{ fontSize: 12, marginTop: 8 }}>
+                Đang upload...
+              </Text>
+            )}
           </Form.Item>
 
           <Form.Item>
@@ -389,7 +448,7 @@ const AuthorManagementPage = () => {
         <Table
           columns={[
             {
-              title: 'Hình ảnh',
+              title: 'Ảnh',
               dataIndex: 'images',
               key: 'images',
               width: 80,

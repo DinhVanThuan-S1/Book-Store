@@ -21,6 +21,7 @@ import {
   Tag,
   Descriptions,
   Avatar,
+  Image,
 } from 'antd';
 import {
   PlusOutlined,
@@ -191,14 +192,17 @@ const PublisherManagementPage = () => {
       title: 'Số sách',
       dataIndex: 'bookCount',
       key: 'bookCount',
+      width: 120,
+      align: 'left',
       render: (count, record) => (
-        <Tag
-          color="blue"
-          style={{ cursor: 'pointer' }}
+        <Button
+          type="link"
           onClick={() => handleViewBooks(record)}
+          icon={<BookOutlined />}
+          style={{ padding: 0, textAlign: 'left' }}
         >
-          <BookOutlined /> {count || 0} sách
-        </Tag>
+          {count || 0} sách
+        </Button>
       ),
     },
     {
@@ -250,7 +254,7 @@ const PublisherManagementPage = () => {
       <div className="page-header">
         <div>
           <Title level={2}>Quản lý nhà xuất bản</Title>
-          <Text type="secondary">Tổng số: {publishers.length} nhà xuất bản</Text>
+          <Text type="secondary">Tổng : {publishers.length} nhà xuất bản</Text>
         </div>
         <Button
           type="primary"
@@ -382,15 +386,17 @@ const PublisherManagementPage = () => {
           pagination={{ pageSize: 5 }}
           columns={[
             {
-              title: 'Hình ảnh',
+              title: 'Ảnh',
               dataIndex: 'images',
               key: 'images',
               width: 80,
               render: (images) => (
-                <img
-                  src={images?.[0] || 'https://via.placeholder.com/50x70'}
+                <Image
+                  src={images && images[0]}
                   alt="Book"
-                  style={{ width: 50, height: 70, objectFit: 'cover' }}
+                  width={50}
+                  height={70}
+                  style={{ objectFit: 'cover', borderRadius: 4 }}
                 />
               ),
             },
@@ -420,11 +426,6 @@ const PublisherManagementPage = () => {
               title: 'Tồn kho',
               dataIndex: 'availableCopies',
               key: 'availableCopies',
-              render: (stock) => (
-                <Tag color={stock > 0 ? 'success' : 'error'}>
-                  {stock}
-                </Tag>
-              ),
             },
           ]}
         />

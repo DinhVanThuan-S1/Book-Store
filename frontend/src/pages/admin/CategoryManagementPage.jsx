@@ -31,6 +31,7 @@ import {
   UploadOutlined,
   BookOutlined,
   EyeOutlined,
+  EyeInvisibleOutlined,
 } from '@ant-design/icons';
 import { categoryApi, uploadApi } from '@api';
 import './CategoryManagementPage.scss';
@@ -46,6 +47,7 @@ const CategoryManagementPage = () => {
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState([]);
   const [submitting, setSubmitting] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [booksModalVisible, setBooksModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -58,10 +60,11 @@ const CategoryManagementPage = () => {
   const fetchCategories = async () => {
     try {
       setLoading(true);
-      const response = await categoryApi.getCategories();
+      // Admin xem tất cả danh mục (kể cả bị ẩn)
+      const response = await categoryApi.getCategories({ includeInactive: true });
       setCategories(response.data.categories);
     } catch (error) {
-      message.error('Không thể tải danh sách danh mục');
+      message.error('Không thể tải danh sách danh mục', error.message || error);
     } finally {
       setLoading(false);
     }
@@ -105,22 +108,11 @@ const CategoryManagementPage = () => {
   const handleSubmit = async (values) => {
     try {
       setSubmitting(true);
-      let imageUrl = editingCategory?.image;
 
-      // Upload ảnh nếu có file mới
-      if (fileList.length > 0 && fileList[0].originFileObj) {
-        try {
-          const uploadResponse = await uploadApi.uploadImage(fileList[0].originFileObj);
-          console.log('Upload response:', uploadResponse);
-          // uploadResponse đã là { url, publicId } do uploadApi.uploadImage return response.data
-          imageUrl = uploadResponse.url;
-        } catch (uploadError) {
-          console.error('Upload error:', uploadError);
-          message.error(uploadError.message || 'Không thể tải ảnh lên');
-          setSubmitting(false);
-          return;
-        }
-      }
+      // Lấy URL ảnh từ fileList (đã upload trước)
+      const imageUrl = fileList.length > 0 && fileList[0].url
+        ? fileList[0].url
+        : editingCategory?.image;
 
       const data = {
         name: values.name,
@@ -161,12 +153,33 @@ const CategoryManagementPage = () => {
    */
   const handleDelete = async (id) => {
     try {
-      await categoryApi.deleteCategory(id);
+      const response = await categoryApi.deleteCategory(id);
+      console.log('Delete response:', response);
       message.success('Xóa danh mục thành công');
       fetchCategories();
     } catch (error) {
       console.error('Delete error:', error);
-      message.error(error.message || 'Không thể xóa danh mục');
+      console.error('Error response:', error.response);
+      const errorMessage = error?.response?.data?.message || error.message || 'Không thể xóa danh mục';
+      message.error(errorMessage);
+    }
+  };
+
+  /**
+   * Handle toggle status
+   */
+  const handleToggleStatus = async (category) => {
+    try {
+      await categoryApi.toggleCategoryStatus(category._id);
+      message.success(
+        category.isActive
+          ? 'Đã ẩn danh mục khỏi trang client'
+          : 'Đã hiển thị danh mục trên trang client'
+      );
+      fetchCategories();
+    } catch (error) {
+      console.error('Toggle status error:', error);
+      message.error(error?.response?.data?.message || 'Không thể thay đổi trạng thái');
     }
   };
 
@@ -246,9 +259,20 @@ const CategoryManagementPage = () => {
       ),
     },
     {
+      title: 'Trạng thái',
+      dataIndex: 'isActive',
+      key: 'isActive',
+      width: 120,
+      render: (isActive) => (
+        <Tag color={isActive ? 'success' : 'default'}>
+          {isActive ? 'Hiển thị' : 'Ẩn'}
+        </Tag>
+      ),
+    },
+    {
       title: 'Thao tác',
       key: 'actions',
-      width: 250,
+      width: 280,
       render: (_, record) => (
         <Space>
           <Button
@@ -259,6 +283,13 @@ const CategoryManagementPage = () => {
           >
             Chi tiết
           </Button>
+          <Button
+            type={record.isActive ? 'default' : 'primary'}
+            size="small"
+            icon={record.isActive ? <EyeInvisibleOutlined /> : <EyeOutlined />}
+            onClick={() => handleToggleStatus(record)}
+            title={record.isActive ? 'Ẩn khỏi client' : 'Hiển thị trên client'}
+          />
           <Button
             type="primary"
             size="small"
@@ -290,7 +321,10 @@ const CategoryManagementPage = () => {
   return (
     <div className="category-management-page">
       <div className="page-header">
-        <Title level={2}>Quản lý danh mục</Title>
+        <div>
+          <Title level={2}>Quản lý danh mục</Title>
+          <Text type="secondary">Tổng : {categories.length} danh mục</Text>
+        </div>
         <Button
           type="primary"
           icon={<PlusOutlined />}
@@ -334,11 +368,71 @@ const CategoryManagementPage = () => {
           <Form.Item label="Hình ảnh">
             <Upload
               fileList={fileList}
-              onChange={({ fileList }) => setFileList(fileList)}
-              beforeUpload={() => false}
-              maxCount={1}
               listType="picture-card"
+              maxCount={1}
               accept="image/*"
+              beforeUpload={async (file) => {
+                // Validate file type
+                const isImage = file.type.startsWith('image/');
+                if (!isImage) {
+                  message.error('Chỉ được upload file ảnh!');
+                  return false;
+                }
+
+                // Validate file size (max 5MB)
+                const isLt5M = file.size / 1024 / 1024 < 5;
+                if (!isLt5M) {
+                  message.error('Kích thước ảnh phải nhỏ hơn 5MB!');
+                  return false;
+                }
+
+                // Upload to Cloudinary
+                try {
+                  setUploading(true);
+
+                  // Create temp file object with uploading status
+                  const tempFile = {
+                    uid: file.uid,
+                    name: file.name,
+                    status: 'uploading',
+                    url: '',
+                  };
+                  setFileList([tempFile]);
+
+                  // Upload to Cloudinary
+                  const response = await uploadApi.uploadImage(file);
+                  console.log('Upload response:', response);
+
+                  // Update file với URL từ Cloudinary
+                  const uploadedFile = {
+                    uid: file.uid,
+                    name: file.name,
+                    status: 'done',
+                    url: response.url,
+                    publicId: response.publicId,
+                  };
+
+                  setFileList([uploadedFile]);
+                  message.success('Upload ảnh thành công!');
+                } catch (error) {
+                  console.error('Upload error:', error);
+                  message.error(error.message || 'Upload ảnh thất bại!');
+                  setFileList([]);
+                } finally {
+                  setUploading(false);
+                }
+
+                return false; // Prevent auto upload
+              }}
+              onRemove={(file) => {
+                setFileList([]);
+                // Xóa ảnh trên Cloudinary nếu có
+                if (file.publicId) {
+                  uploadApi.deleteImage(file.publicId).catch(err => {
+                    console.error('Delete image error:', err);
+                  });
+                }
+              }}
             >
               {fileList.length < 1 && (
                 <div>
@@ -347,6 +441,11 @@ const CategoryManagementPage = () => {
                 </div>
               )}
             </Upload>
+            {uploading && (
+              <Text type="secondary" style={{ fontSize: 12, marginTop: 8 }}>
+                Đang upload...
+              </Text>
+            )}
           </Form.Item>
 
           <Form.Item>
@@ -383,7 +482,7 @@ const CategoryManagementPage = () => {
         <Table
           columns={[
             {
-              title: 'Hình ảnh',
+              title: 'Ảnh',
               dataIndex: 'images',
               key: 'images',
               width: 80,

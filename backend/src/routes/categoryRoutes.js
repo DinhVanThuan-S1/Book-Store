@@ -17,6 +17,7 @@ const {
   createCategory,
   updateCategory,
   deleteCategory,
+  toggleCategoryStatus,
   getCategoryStats,
   getCategoryBooks,
 } = require('../controllers/categoryController');
@@ -68,6 +69,15 @@ router.delete(
   param('id').isMongoId().withMessage('Invalid category ID'),
   validate,
   deleteCategory
+);
+
+router.patch(
+  '/:id/toggle-status',
+  protect,
+  adminOnly,
+  param('id').isMongoId().withMessage('Invalid category ID'),
+  validate,
+  toggleCategoryStatus
 );
 
 module.exports = router;
