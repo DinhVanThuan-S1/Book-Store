@@ -26,35 +26,34 @@ const BookListPage = () => {
   const { books, pagination, filters, loading } = useSelector((state) => state.book);
 
   /**
-   * Sync filters with URL params
+   * Sync filters with URL params và fetch books
    */
   useEffect(() => {
     const urlFilters = {
       category: searchParams.get('category') || null,
+      author: searchParams.get('author') || null,
+      publisher: searchParams.get('publisher') || null,
       search: searchParams.get('search') || '',
       sortBy: searchParams.get('sortBy') || '-createdAt',
       minPrice: searchParams.get('minPrice') ? Number(searchParams.get('minPrice')) : null,
       maxPrice: searchParams.get('maxPrice') ? Number(searchParams.get('maxPrice')) : null,
     };
 
-    dispatch(setFilters(urlFilters));
-  }, [searchParams, dispatch]);
-
-  /**
-   * Fetch books khi filters hoặc page thay đổi
-   */
-  useEffect(() => {
     const page = Number(searchParams.get('page')) || 1;
     const limit = Number(searchParams.get('limit')) || 12;
 
+    // Set filters trước
+    dispatch(setFilters(urlFilters));
+
+    // Sau đó fetch books NGAY với filters từ URL (không dùng filters từ Redux)
     dispatch(
       fetchBooks({
-        ...filters,
+        ...urlFilters,
         page,
         limit,
       })
     );
-  }, [filters, searchParams, dispatch]);
+  }, [searchParams, dispatch]);
 
   /**
    * Handle filter change
@@ -63,9 +62,12 @@ const BookListPage = () => {
     // Update URL params
     const params = new URLSearchParams();
 
-    Object.keys(newFilters).forEach((key) => {
-      if (newFilters[key] !== null && newFilters[key] !== '') {
-        params.set(key, newFilters[key]);
+    // Merge filters với filters hiện tại để giữ lại search
+    const allFilters = { ...filters, ...newFilters };
+
+    Object.keys(allFilters).forEach((key) => {
+      if (allFilters[key] !== null && allFilters[key] !== '' && allFilters[key] !== undefined) {
+        params.set(key, allFilters[key]);
       }
     });
 

@@ -7,9 +7,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { List, Rate, Avatar, Button, Space, Typography, Empty, Pagination } from 'antd';
-import { LikeOutlined, UserOutlined } from '@ant-design/icons';
+import { LikeOutlined, LikeFilled, UserOutlined } from '@ant-design/icons';
+import { useSelector } from 'react-redux';
 import { reviewApi } from '@api';
 import { formatDate } from '@utils/formatDate';
+import { showError } from '@utils/notification';
 import Loading from '@components/common/Loading';
 import './ReviewList.scss';
 
@@ -30,6 +32,8 @@ const ReviewList = ({ bookId }) => {
     pages: 0,
   });
 
+  const { user, isAuthenticated } = useSelector((state) => state.auth);
+
   /**
    * Fetch reviews
    */
@@ -40,7 +44,7 @@ const ReviewList = ({ bookId }) => {
       const response = await reviewApi.getBookReviews(bookId, {
         page,
         limit: 10,
-        sortBy: '-createdAt',
+        sortBy: '-likes', // Sort theo likes cao nhất
       });
 
       setReviews(response.data.reviews || []);
@@ -59,22 +63,37 @@ const ReviewList = ({ bookId }) => {
   }, [bookId]);
 
   /**
-   * Handle like review
+   * Handle like/unlike review
    */
   const handleLikeReview = async (reviewId) => {
+    if (!isAuthenticated) {
+      showError('Vui lòng đăng nhập để thích đánh giá');
+      return;
+    }
+
     try {
-      await reviewApi.likeReview(reviewId);
+      const response = await reviewApi.likeReview(reviewId);
+      const { hasLiked } = response.data;
 
       // Update local state
       setReviews((prevReviews) =>
-        prevReviews.map((review) =>
-          review._id === reviewId
-            ? { ...review, likes: review.likes + 1 }
-            : review
-        )
+        prevReviews.map((review) => {
+          if (review._id === reviewId) {
+            const newLikedBy = hasLiked
+              ? [...(review.likedBy || []), user._id]
+              : (review.likedBy || []).filter(id => id !== user._id);
+
+            return {
+              ...review,
+              likes: hasLiked ? review.likes + 1 : Math.max(0, review.likes - 1),
+              likedBy: newLikedBy,
+            };
+          }
+          return review;
+        })
       );
     } catch (error) {
-      console.error('Error liking review:', error);
+      showError(error?.message || 'Không thể thích đánh giá');
     }
   };
 
@@ -153,12 +172,12 @@ const ReviewList = ({ bookId }) => {
                     )}
 
                     <Button
-                      type="text"
+                      type={review.likedBy?.includes(user?._id) ? 'primary' : 'text'}
                       size="small"
-                      icon={<LikeOutlined />}
+                      icon={review.likedBy?.includes(user?._id) ? <LikeFilled /> : <LikeOutlined />}
                       onClick={() => handleLikeReview(review._id)}
                     >
-                      Hữu ích ({review.likes})
+                      Hữu ích ({review.likes || 0})
                     </Button>
                   </div>
                 </Space>

@@ -6,7 +6,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   Card,
@@ -46,6 +46,7 @@ const { TextArea } = Input;
 const OrderDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useDispatch();
 
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
@@ -112,7 +113,7 @@ const OrderDetailPage = () => {
       setReviewableItems(response.data.items);
       setReviewModalVisible(true);
     } catch (error) {
-      showError('Không thể tải danh sách sách');
+      showError('Không thể tải danh sách sách', error.message);
     }
   };
 
@@ -250,7 +251,7 @@ const OrderDetailPage = () => {
           {/* Back Button */}
           <Button
             icon={<ArrowLeftOutlined />}
-            onClick={() => navigate('/orders')}
+            onClick={() => navigate('/orders', { state: { activeTab: location.state?.activeTab } })}
             style={{ marginBottom: 16 }}
           >
             Quay lại
@@ -260,26 +261,29 @@ const OrderDetailPage = () => {
           <Card className="order-header-card">
             <Row justify="space-between" align="middle">
               <Col>
-                <Title level={3} style={{ margin: 0 }}>
-                  Đơn hàng: {order.orderNumber}
-                </Title>
-                <Text type="secondary">
-                  Đặt ngày: {formatDateTime(order.createdAt)}
-                </Text>
+                <Space direction="vertical" size="small">
+                  <Title level={3} style={{ margin: 0 }}>
+                    Mã đơn: {order.orderNumber}
+                  </Title>
+                  <Text type="secondary">
+                    Đặt ngày: {formatDateTime(order.createdAt)}
+                  </Text>
+                </Space>
               </Col>
               <Col>
-                <Space direction="vertical" size="small">
-                  <Space>
-                    <Tag color={ORDER_STATUS_COLORS[order.status]} style={{ fontSize: 16 }}>
+                <Space size="middle" align="center">
+                  <Space direction="vertical" size="small" align="center">
+                    <Tag className="order-status-tag" color={ORDER_STATUS_COLORS[order.status]}>
                       {ORDER_STATUS_LABELS[order.status]}
                     </Tag>
                     {/* ✅ Hiển thị thông báo chờ xác nhận hoàn trả */}
                     {order.returnRequestedAt && order.status === ORDER_STATUS.DELIVERED && (
-                      <Tag color="orange" style={{ fontSize: 13 }}>
-                        ⚠️ Đã yêu cầu hoàn trả - Chờ Admin xác nhận
+                      <Tag color="orange" style={{ fontSize: 12 }}>
+                        ⚠️ Đã yêu cầu hoàn trả
                       </Tag>
                     )}
                   </Space>
+
                   <Space>
                     {order.status === ORDER_STATUS.DELIVERED && (
                       <>
@@ -374,6 +378,20 @@ const OrderDetailPage = () => {
                   )}
                 </Descriptions>
               </Card>
+
+              {/* Cancel Reason */}
+              {order.status === ORDER_STATUS.CANCELLED && order.cancelReason && (
+                <Card title="Lý do hủy" style={{ marginTop: 24 }}>
+                  <Text>{order.cancelReason}</Text>
+                </Card>
+              )}
+
+              {/* Return Reason */}
+              {order.status === ORDER_STATUS.RETURNED && order.returnReason && (
+                <Card title="Lý do hoàn trả" style={{ marginTop: 24 }}>
+                  <Text>{order.returnReason}</Text>
+                </Card>
+              )}
             </Col>
 
             {/* Right Column */}

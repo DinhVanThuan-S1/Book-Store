@@ -66,12 +66,13 @@ const BookFilter = ({ filters = {}, onFilterChange }) => {
   };
 
   /**
-   * Clear all filters
+   * Clear all filters (giữ lại search)
    */
   const clearFilters = () => {
     setPriceRange([0, 1000000]);
     if (onFilterChange) {
       onFilterChange({
+        ...filters,
         category: null,
         minPrice: null,
         maxPrice: null,

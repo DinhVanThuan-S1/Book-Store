@@ -6,7 +6,7 @@
  */
 
 import React, { useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import {
   Layout,
@@ -39,6 +39,8 @@ const { Search } = Input;
 const Header = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
 
   // Redux state
   const { isAuthenticated, user } = useSelector((state) => state.auth);
@@ -61,12 +63,23 @@ const Header = () => {
   };
 
   /**
-   * Handle search
+   * Handle search - Giữ lại filters hiện tại
    */
   const handleSearch = (value) => {
+    // Lấy filters hiện tại từ URL (nếu đang ở trang books)
+    const currentParams = new URLSearchParams(searchParams);
+
     if (value.trim()) {
-      navigate(`/books?search=${encodeURIComponent(value)}`);
+      // Cập nhật search, giữ lại các params khác
+      currentParams.set('search', value.trim());
+      currentParams.set('page', '1'); // Reset về trang 1
+    } else {
+      // Xóa search nhưng giữ lại filters khác
+      currentParams.delete('search');
+      currentParams.set('page', '1');
     }
+
+    navigate(`/books?${currentParams.toString()}`);
   };
 
   /**
@@ -88,7 +101,7 @@ const Header = () => {
     {
       key: 'wishlist',
       icon: <HeartOutlined />,
-      label: 'Yêu thích',
+      label: 'Danh sách yêu thích',
       onClick: () => navigate('/wishlist'),
     },
     {
@@ -116,6 +129,7 @@ const Header = () => {
         <Menu
           mode="horizontal"
           className="header-menu"
+          selectedKeys={[location.pathname.split('/')[1] || 'home']}
           items={[
             {
               key: 'home',
@@ -143,7 +157,7 @@ const Header = () => {
         {/* Search Bar */}
         <div className="header-search">
           <Search
-            placeholder="Tìm kiếm sách..."
+            placeholder="Tìm sách theo tên, tác giả..."
             allowClear
             enterButton={<SearchOutlined />}
             size="large"

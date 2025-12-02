@@ -148,7 +148,7 @@ const AddressForm = ({ visible, onCancel, onSuccess, address = null }) => {
           <Col span={8}>
             <Form.Item
               name="province"
-              label="Tỉnh/Thành phố"
+              label="Tỉnh / Thành phố"
               rules={[
                 { required: true, message: 'Vui lòng nhập tỉnh/thành phố!' },
               ]}
@@ -160,7 +160,7 @@ const AddressForm = ({ visible, onCancel, onSuccess, address = null }) => {
           <Col span={8}>
             <Form.Item
               name="district"
-              label="Quận/Huyện"
+              label="Quận / Huyện"
               rules={[
                 { required: true, message: 'Vui lòng nhập quận/huyện!' },
               ]}
@@ -172,7 +172,7 @@ const AddressForm = ({ visible, onCancel, onSuccess, address = null }) => {
           <Col span={8}>
             <Form.Item
               name="ward"
-              label="Phường/Xã"
+              label="Phường / Xã"
               rules={[{ required: true, message: 'Vui lòng nhập phường/xã!' }]}
             >
               <Input placeholder="Phường Bến Nghé" />

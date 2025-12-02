@@ -220,7 +220,7 @@ const deleteReview = asyncHandler(async (req, res) => {
 });
 
 /**
- * @desc    Like review
+ * @desc    Like/Unlike review (toggle)
  * @route   PUT /api/reviews/:id/like
  * @access  Private
  */
@@ -234,13 +234,28 @@ const likeReview = asyncHandler(async (req, res) => {
     });
   }
   
-  review.likes += 1;
+  const userId = req.user._id;
+  const hasLiked = review.likedBy.includes(userId);
+  
+  if (hasLiked) {
+    // Unlike: Xóa khỏi likedBy và giảm likes
+    review.likedBy = review.likedBy.filter(id => id.toString() !== userId.toString());
+    review.likes = Math.max(0, review.likes - 1);
+  } else {
+    // Like: Thêm vào likedBy và tăng likes
+    review.likedBy.push(userId);
+    review.likes += 1;
+  }
+  
   await review.save();
   
   res.status(200).json({
     success: true,
-    message: 'Review liked',
-    data: { review },
+    message: hasLiked ? 'Review unliked' : 'Review liked',
+    data: { 
+      review,
+      hasLiked: !hasLiked,
+    },
   });
 });
 

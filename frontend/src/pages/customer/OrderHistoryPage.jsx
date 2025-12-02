@@ -6,12 +6,11 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   Card,
   Tabs,
-  List,
   Button,
   Tag,
   Space,
@@ -35,8 +34,9 @@ const { Title, Text } = Typography;
 const OrderHistoryPage = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const location = useLocation();
 
-  const [activeTab, setActiveTab] = useState('all');
+  const [activeTab, setActiveTab] = useState(location.state?.activeTab || 'all');
 
   // Redux state
   const { orders, loading } = useSelector((state) => state.order);
@@ -74,11 +74,13 @@ const OrderHistoryPage = () => {
     return (
       <Card className="order-card" key={order._id}>
         <div className="order-header">
-          <Space>
-            <Text strong>Đơn hàng: {order.orderNumber}</Text>
-            <Tag color={ORDER_STATUS_COLORS[order.status]}>
-              {ORDER_STATUS_LABELS[order.status]}
-            </Tag>
+          <Space direction="vertical" size="small">
+            <Space>
+              <Tag className="order-status-tag" color={ORDER_STATUS_COLORS[order.status]}>
+                {ORDER_STATUS_LABELS[order.status]}
+              </Tag>
+            </Space>
+            <Text strong>Mã đơn: {order.orderNumber}</Text>
           </Space>
           <Text type="secondary">{formatDate(order.createdAt)}</Text>
         </div>
@@ -116,7 +118,7 @@ const OrderHistoryPage = () => {
           <Button
             type="primary"
             icon={<EyeOutlined />}
-            onClick={() => navigate(`/orders/${order._id}`)}
+            onClick={() => navigate(`/orders/${order._id}`, { state: { activeTab } })}
           >
             Xem chi tiết
           </Button>
@@ -143,11 +145,9 @@ const OrderHistoryPage = () => {
             {loading ? (
               <Loading />
             ) : orders && orders.length > 0 ? (
-              <List
-                dataSource={orders}
-                renderItem={renderOrderItem}
-                locale={{ emptyText: 'Không có đơn hàng nào' }}
-              />
+              <div className="order-list">
+                {orders.map(renderOrderItem)}
+              </div>
             ) : (
               <Empty
                 description="Bạn chưa có đơn hàng nào"

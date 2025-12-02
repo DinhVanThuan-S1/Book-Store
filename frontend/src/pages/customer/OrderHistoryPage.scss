@@ -13,16 +13,44 @@
     margin-bottom: $spacing-xl;
   }
   
+  .order-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: $spacing-lg;
+    
+    @media (max-width: 992px) {
+      grid-template-columns: 1fr;
+    }
+  }
+  
   .order-card {
-    margin-bottom: $spacing-lg;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    
+    .ant-card-body {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
     
     .order-header {
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: flex-start;
       margin-bottom: $spacing-md;
       padding-bottom: $spacing-md;
       border-bottom: 1px solid $border-light;
+      
+      .order-status-tag {
+        min-width: 100px;
+        text-align: center;
+        font-size: 13px;
+        padding: 4px 12px;
+        margin: 0;
+        height: 32px;
+        line-height: 22px;
+      }
     }
     
     .order-items {

@@ -62,9 +62,9 @@ const bookSlice = createSlice({
   name: 'book',
   initialState,
   reducers: {
-    // Set filters
+    // Set filters - THAY THẾ hoàn toàn, không merge
     setFilters: (state, action) => {
-      state.filters = { ...state.filters, ...action.payload };
+      state.filters = action.payload;
     },
     // Clear filters
     clearFilters: (state) => {

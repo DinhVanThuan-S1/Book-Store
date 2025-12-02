@@ -63,7 +63,7 @@ export const PAYMENT_METHOD_LABELS = {
   [PAYMENT_METHODS.BANK_TRANSFER]: 'Chuyển khoản ngân hàng',
   [PAYMENT_METHODS.MOMO]: 'Ví MoMo',
   [PAYMENT_METHODS.ZALOPAY]: 'Ví ZaloPay',
-  [PAYMENT_METHODS.CREDIT_CARD]: 'Thẻ tín dụng/ghi nợ',
+  [PAYMENT_METHODS.CREDIT_CARD]: 'Thẻ tín dụng / ghi nợ',
 };
 
 /**

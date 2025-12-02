@@ -59,12 +59,20 @@ const getBooks = asyncHandler(async (req, res) => {
     if (maxPrice) query.salePrice.$lte = Number(maxPrice);
   }
   
-  // Search theo tên sách hoặc ISBN (partial match, case-insensitive)
+  // Search theo tên sách, ISBN hoặc tác giả (partial match, case-insensitive)
   if (search && search.trim()) {
     const searchRegex = new RegExp(search.trim(), 'i');
+    
+    // Tìm tác giả có tên khớp
+    const Author = require('../models/Author');
+    const matchingAuthors = await Author.find({ name: searchRegex }).select('_id');
+    const authorIds = matchingAuthors.map(a => a._id);
+    
+    // Search theo title, ISBN hoặc author
     query.$or = [
       { title: searchRegex },
-      { isbn: searchRegex }
+      { isbn: searchRegex },
+      { author: { $in: authorIds } }
     ];
   }
   
@@ -76,10 +84,20 @@ const getBooks = asyncHandler(async (req, res) => {
     
     // Chỉ lấy sách thuộc danh mục active
     if (activeCategoryIds.length > 0) {
-      query.category = { $in: activeCategoryIds };
+      // Nếu đã có filter category, kiểm tra xem có trong danh sách active không
+      if (query.category) {
+        // Kiểm tra category có active không
+        if (!activeCategoryIds.some(id => id.toString() === query.category.toString())) {
+          // Category không active, trả về rỗng
+          query._id = null;
+        }
+      } else {
+        // Nếu chưa có filter category, thêm filter category active
+        query.category = { $in: activeCategoryIds };
+      }
     } else {
       // Nếu không có danh mục active nào, trả về rỗng
-      query.category = null;
+      query._id = null;
     }
   }
   
@@ -96,11 +114,19 @@ const getBooks = asyncHandler(async (req, res) => {
     sortOrder = `${sortBy} _id`;
   }
   
+  // Collation cho Tiếng Việt - hỗ trợ sắp xếp đúng với Ă, Đ, Ê, Ô, Ơ, Ư...
+  const collationOptions = {
+    locale: 'vi',
+    strength: 1, // So sánh không phân biệt hoa thường, dấu
+    caseLevel: false
+  };
+  
   // Execute query
   const books = await Book.find(query)
     .populate('author', 'name')
     .populate('publisher', 'name')
     .populate('category', 'name slug')
+    .collation(collationOptions)
     .sort(sortOrder)
     .skip(skip)
     .limit(limitNum);

@@ -10,6 +10,16 @@
   
   .order-header-card {
     margin-bottom: $spacing-lg;
+    
+    .order-status-tag {
+      min-width: 100px;
+      text-align: center;
+      font-size: 13px;
+      padding: 4px 12px;
+      margin: 0;
+      height: 32px;
+      line-height: 22px;
+    }
   }
   
   .order-item {

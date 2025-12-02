@@ -69,6 +69,13 @@ const reviewSchema = new mongoose.Schema({
     min: 0,
   },
   
+  // Danh sách user đã like (để tracking)
+  likedBy: {
+    type: [mongoose.Schema.Types.ObjectId],
+    ref: 'Customer',
+    default: [],
+  },
+  
   // Đã mua hàng? (verified purchase)
   isVerified: {
     type: Boolean,
@@ -190,7 +197,7 @@ async function updateBookRating(bookId) {
 reviewSchema.statics.getBookReviews = async function(bookId, options = {}) {
   const page = parseInt(options.page) || 1;
   const limit = parseInt(options.limit) || 10;
-  const sortBy = options.sortBy || '-createdAt'; // Mặc định: mới nhất
+  const sortBy = options.sortBy || '-likes'; // Mặc định: likes cao nhất
   
   const skip = (page - 1) * limit;
   
@@ -225,10 +232,14 @@ reviewSchema.statics.getBookReviews = async function(bookId, options = {}) {
  * @returns {Promise<Object>}
  */
 reviewSchema.statics.getRatingStats = async function(bookId) {
+  // Chuyển đổi bookId thành ObjectId nếu là string
+  const mongoose = require('mongoose');
+  const bookObjectId = typeof bookId === 'string' ? new mongoose.Types.ObjectId(bookId) : bookId;
+  
   const stats = await this.aggregate([
     {
       $match: {
-        book: bookId,
+        book: bookObjectId,
         isHidden: false,
       },
     },
@@ -252,11 +263,11 @@ reviewSchema.statics.getRatingStats = async function(bookId) {
     1: 0,
   };
   
+  let total = 0;
   stats.forEach(stat => {
     ratingDistribution[stat._id] = stat.count;
+    total += stat.count;
   });
-  
-  const total = stats.reduce((sum, stat) => sum + stat.count, 0);
   
   return {
     distribution: ratingDistribution,

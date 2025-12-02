@@ -8,12 +8,13 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { Row, Col, Typography, Card, Tag, Button, Image, Empty, Spin } from 'antd';
+import { Row, Col, Typography, Card, Tag, Button, Image, Empty } from 'antd';
 import { ShoppingCartOutlined } from '@ant-design/icons';
 import { comboApi } from '@api';
 import { addToCart } from '@redux/slices/cartSlice';
 import { showSuccess, showError } from '@utils/notification';
 import { formatPrice } from '@utils/formatPrice';
+import Loading from '@components/common/Loading';
 import './ComboPage.scss';
 
 const { Title, Text, Paragraph } = Typography;
@@ -81,13 +82,7 @@ const ComboPage = () => {
   };
 
   if (loading) {
-    return (
-      <div className="combo-page">
-        <div className="container" style={{ textAlign: 'center', padding: '100px 0' }}>
-          <Spin size="large" />
-        </div>
-      </div>
-    );
+    return <Loading fullScreen />;
   }
 
   return (
@@ -157,14 +152,12 @@ const ComboPage = () => {
                       </div>
 
                       <div className="combo-price">
-                        <div>
-                          <Text delete type="secondary">
-                            {formatPrice(combo.totalOriginalPrice)}
-                          </Text>
-                        </div>
-                        <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                           <Text strong style={{ color: '#f5222d', fontSize: 20 }}>
                             {formatPrice(combo.comboPrice)}
+                          </Text>
+                          <Text delete type="secondary">
+                            {formatPrice(combo.totalOriginalPrice)}
                           </Text>
                         </div>
                         <div>
@@ -180,7 +173,6 @@ const ComboPage = () => {
                           icon={<ShoppingCartOutlined />}
                           onClick={(e) => handleAddToCart(combo, e)}
                           block
-                          size="large"
                         >
                           Thêm vào giỏ
                         </Button>

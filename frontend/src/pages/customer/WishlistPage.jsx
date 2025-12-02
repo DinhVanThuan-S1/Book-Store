@@ -99,7 +99,7 @@ const WishlistPage = () => {
       // Refresh wishlist
       fetchWishlist();
     } catch (error) {
-      showError('Không thể xóa khỏi danh sách');
+      showError('Không thể xóa khỏi danh sách', error);
     }
   };
 
@@ -115,7 +115,7 @@ const WishlistPage = () => {
       // Refresh wishlist
       fetchWishlist();
     } catch (error) {
-      showError('Không thể chuyển vào giỏ hàng');
+      showError('Không thể chuyển vào giỏ hàng', error);
     }
   };
 
@@ -215,7 +215,7 @@ const WishlistPage = () => {
                         )}
                       </div>
 
-                      <Space className="card-actions">
+                      <div className="card-actions">
                         <Button
                           type="primary"
                           icon={<ShoppingCartOutlined />}
@@ -225,7 +225,6 @@ const WishlistPage = () => {
                             processingItems.includes(book._id)
                           }
                           loading={processingItems.includes(book._id)}
-                          block
                         >
                           Thêm giỏ hàng
                         </Button>
@@ -241,7 +240,7 @@ const WishlistPage = () => {
                             icon={<DeleteOutlined />}
                           />
                         </Popconfirm>
-                      </Space>
+                      </div>
                     </Card>
                   </Col>
                 );

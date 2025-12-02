@@ -2,7 +2,7 @@
  * ==============================================
  * LOADING COMPONENT
  * ==============================================
- * Component hiển thị loading spinner
+ * Component hiển thị loading spinner thống nhất
  * Author: DinhVanThuan-S1
  * Date: 2025-10-31
  */
@@ -19,52 +19,35 @@ import './Loading.scss';
  * @param {String} props.tip - Loading text
  * @param {Boolean} props.fullScreen - Full screen loading
  */
-// const Loading = ({ size = 'large', tip = 'Đang tải...', fullScreen = false }) => {
-//   const antIcon = <LoadingOutlined style={{ fontSize: 48 }} spin />;
-
-//   if (fullScreen) {
-//     return (
-//       <div className="loading-fullscreen">
-//         <Spin indicator={antIcon} size={size} tip={tip} />
-//       </div>
-//     );
-//   }
-
-//   return (
-//     <div className="loading-container">
-//       <Spin indicator={antIcon} size={size} tip={tip} />
-//     </div>
-//   );
-// };
-
 const Loading = ({ size = 'large', tip = 'Đang tải...', fullScreen = false }) => {
-  const antIcon = <LoadingOutlined style={{ fontSize: 48 }} spin />;
+  // Custom icon với size tùy chỉnh
+  const iconSize = size === 'small' ? 24 : size === 'large' ? 48 : 32;
+  const antIcon = (
+    <LoadingOutlined
+      style={{
+        fontSize: iconSize,
+        color: '#1890ff'
+      }}
+      spin
+    />
+  );
 
   // FULLSCREEN LOADING
   if (fullScreen) {
     return (
       <div className="loading-fullscreen">
-        <Spin
-          indicator={antIcon}
-          size={size}
-          tip={tip}
-          fullscreen
-        />
+        <div className="loading-content">
+          <Spin indicator={antIcon} size={size} />
+          <p className="loading-tip">{tip}</p>
+        </div>
       </div>
     );
   }
 
-  // NORMAL LOADING (NEST PATTERN)
+  // NORMAL LOADING
   return (
     <div className="loading-container">
-      <Spin
-        indicator={antIcon}
-        size={size}
-        tip={tip}
-      >
-        {/* Nội dung rỗng nhưng vẫn tạo nested pattern */}
-        <div style={{ width: '100%', height: '80px' }} />
-      </Spin>
+      <Spin indicator={antIcon} size={size} tip={tip} />
     </div>
   );
 };

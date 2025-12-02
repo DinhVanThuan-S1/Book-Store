@@ -17,7 +17,6 @@ import {
   Image,
   Tag,
   Divider,
-  Spin,
   Table,
 } from 'antd';
 import {
@@ -29,6 +28,7 @@ import { comboApi } from '@api';
 import { addToCart } from '@redux/slices/cartSlice';
 import { showSuccess, showError } from '@utils/notification';
 import { formatPrice } from '@utils/formatPrice';
+import Loading from '@components/common/Loading';
 import './ComboDetailPage.scss';
 
 const { Title, Text, Paragraph } = Typography;
@@ -89,13 +89,7 @@ const ComboDetailPage = () => {
   };
 
   if (loading) {
-    return (
-      <div className="combo-detail-page">
-        <div className="container" style={{ textAlign: 'center', padding: '100px 0' }}>
-          <Spin size="large" />
-        </div>
-      </div>
-    );
+    return <Loading fullScreen />;
   }
 
   if (!combo) {
@@ -136,7 +130,7 @@ const ComboDetailPage = () => {
               preview={false}
             />
           )}
-          <Text strong style={{ color: '#1890ff' }}>{book?.title || 'N/A'}</Text>
+          <Text strong>{book?.title || 'N/A'}</Text>
         </div>
       ),
     },

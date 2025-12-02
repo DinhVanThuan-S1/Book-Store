@@ -27,7 +27,13 @@ const RatingSummary = ({ book }) => {
     const fetchStats = async () => {
       try {
         const response = await reviewApi.getBookRatingStats(book._id);
-        setStats(response.data);
+
+        console.log('📊 Rating Stats API Response:', response);
+
+        // API trả về response.data.data (nested)
+        const statsData = response.data?.data || response.data;
+        console.log('📊 Stats Data:', statsData);
+        setStats(statsData);
       } catch (error) {
         console.error('Error fetching rating stats:', error);
       }
@@ -42,7 +48,17 @@ const RatingSummary = ({ book }) => {
     return null;
   }
 
-  const { distribution, total } = stats;
+  const distribution = stats.distribution || {};
+  const total = stats.total || 0;
+
+  // Đảm bảo distribution có đầy đủ keys từ 1-5
+  const fullDistribution = {
+    5: distribution[5] || 0,
+    4: distribution[4] || 0,
+    3: distribution[3] || 0,
+    2: distribution[2] || 0,
+    1: distribution[1] || 0,
+  };
 
   /**
    * Calculate percentage
@@ -63,17 +79,35 @@ const RatingSummary = ({ book }) => {
         </div>
 
         <div className="rating-distribution">
-          {[5, 4, 3, 2, 1].map((star) => (
-            <div key={star} className="rating-row">
-              <Text className="star-label">{star} ⭐</Text>
-              <Progress
-                percent={getPercentage(distribution[star])}
-                showInfo={false}
-                strokeColor="#faad14"
-              />
-              <Text className="count-label">{distribution[star]}</Text>
-            </div>
-          ))}
+          {[5, 4, 3, 2, 1].map((star) => {
+            const count = fullDistribution[star];
+            const percentage = getPercentage(count);
+
+            return (
+              <div key={star} className="rating-row">
+                <Text className="star-label" style={{ minWidth: '50px' }}>
+                  {star} ⭐
+                </Text>
+                <Progress
+                  percent={percentage}
+                  showInfo={false}
+                  strokeColor="#faad14"
+                  style={{ flex: 1 }}
+                />
+                <Text
+                  className="count-label"
+                  style={{
+                    minWidth: '40px',
+                    textAlign: 'right',
+                    fontWeight: 500,
+                    color: '#595959'
+                  }}
+                >
+                  {count}
+                </Text>
+              </div>
+            );
+          })}
         </div>
       </div>
     </Card>

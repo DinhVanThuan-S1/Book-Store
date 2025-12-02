@@ -163,7 +163,7 @@ const HomePage = () => {
           </Title>
 
           <Row gutter={[16, 16]}>
-            {categories.slice(1, 7).map((category) => (
+            {categories.slice(0, 6).map((category) => (
               <Col key={category._id} xs={12} sm={8} md={4}>
                 <div
                   className="category-card"

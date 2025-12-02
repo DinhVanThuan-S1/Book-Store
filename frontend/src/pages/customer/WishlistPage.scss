@@ -97,6 +97,8 @@
     
     .card-actions {
       width: 100%;
+      display: flex;
+      gap: $spacing-sm;
       
       .ant-btn {
         &:first-child {
