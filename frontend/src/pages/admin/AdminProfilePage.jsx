@@ -47,6 +47,8 @@ const AdminProfilePage = () => {
   const [loading, setLoading] = useState(false);
   const [passwordModalVisible, setPasswordModalVisible] = useState(false);
   const [fileList, setFileList] = useState([]);
+  const [avatarUrl, setAvatarUrl] = useState(user?.avatar || '');
+  const [uploading, setUploading] = useState(false);
 
   /**
    * Handle update profile
@@ -61,10 +63,9 @@ const AdminProfilePage = () => {
         phone: values.phone,
       };
 
-      // Upload avatar if changed
-      if (fileList.length > 0 && fileList[0].originFileObj) {
-        const uploadResponse = await uploadApi.uploadImage(fileList[0].originFileObj);
-        updateData.avatar = uploadResponse.data?.url || uploadResponse.url;
+      // Sử dụng avatar URL đã upload (nếu có thay đổi)
+      if (avatarUrl && avatarUrl !== user?.avatar) {
+        updateData.avatar = avatarUrl;
       }
 
       // Call API to update profile
@@ -74,6 +75,9 @@ const AdminProfilePage = () => {
       dispatch(updateUser(response.data.admin || response.data.user));
 
       message.success('Cập nhật thông tin thành công!');
+
+      // Reset fileList sau khi lưu thành công
+      setFileList([]);
     } catch (error) {
       message.error(error?.message || 'Không thể cập nhật thông tin');
     } finally {
@@ -104,6 +108,32 @@ const AdminProfilePage = () => {
   };
 
   /**
+   * Handle custom upload - Upload ngay khi chọn ảnh
+   */
+  const handleCustomUpload = async ({ file, onSuccess, onError }) => {
+    try {
+      setUploading(true);
+
+      // Upload ảnh lên server
+      const uploadResponse = await uploadApi.uploadImage(file);
+      const url = uploadResponse.data?.url || uploadResponse.url;
+
+      // Lưu URL
+      setAvatarUrl(url);
+
+      // Gọi onSuccess để Ant Design biết upload thành công
+      onSuccess(url);
+
+      message.success('Upload ảnh thành công! Hãy nhấn "Lưu thay đổi" để cập nhật.');
+    } catch (error) {
+      message.error(error?.message || 'Upload ảnh thất bại! Vui lòng thử lại.');
+      onError(error);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  /**
    * Handle upload change
    */
   const handleUploadChange = ({ fileList: newFileList }) => {
@@ -124,19 +154,24 @@ const AdminProfilePage = () => {
             <div className="avatar-section">
               <Avatar
                 size={120}
-                src={user?.avatar}
+                src={avatarUrl || user?.avatar}
                 icon={<UserOutlined />}
               />
 
               <Upload
                 fileList={fileList}
                 onChange={handleUploadChange}
-                beforeUpload={() => false}
+                customRequest={handleCustomUpload}
                 maxCount={1}
-                listType="picture"
+                showUploadList={false}
+                accept="image/*"
               >
-                <Button icon={<UploadOutlined />} style={{ marginTop: 16 }}>
-                  Đổi ảnh đại diện
+                <Button
+                  icon={<UploadOutlined />}
+                  style={{ marginTop: 16 }}
+                  loading={uploading}
+                >
+                  {uploading ? 'Đang upload...' : 'Đổi ảnh đại diện'}
                 </Button>
               </Upload>
             </div>

@@ -70,6 +70,7 @@ const CustomerManagementPage = () => {
   const [uploading, setUploading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [customerAddresses, setCustomerAddresses] = useState([]); // ✅ Thêm state cho addresses
 
   // Orders & Reviews data
   const [customerOrders, setCustomerOrders] = useState([]);
@@ -118,9 +119,10 @@ const CustomerManagementPage = () => {
     }
   };
 
+
   useEffect(() => {
     fetchCustomers();
-  }, [filters]);
+  }, [filters, pagination.pageSize]); // ✅ Thêm pagination.pageSize vào dependency
 
   /**
    * Handle search
@@ -133,7 +135,16 @@ const CustomerManagementPage = () => {
    * Handle table change
    */
   const handleTableChange = (newPagination) => {
-    fetchCustomers(newPagination.current);
+    // ✅ Cập nhật cả pageSize nếu thay đổi
+    if (newPagination.pageSize !== pagination.pageSize) {
+      setPagination({
+        current: 1, // Reset về trang 1 khi đổi pageSize
+        pageSize: newPagination.pageSize,
+        total: pagination.total,
+      });
+    } else {
+      fetchCustomers(newPagination.current);
+    }
   };
 
   /**
@@ -144,6 +155,7 @@ const CustomerManagementPage = () => {
       const response = await customerApi.getCustomerById(customerId);
       setSelectedCustomer(response.data.customer);
       setCustomerStats(response.data.stats);
+      setCustomerAddresses(response.data.addresses || []); // ✅ Lưu addresses
       setDetailModalVisible(true);
     } catch (error) {
       showError('Không thể tải thông tin khách hàng');
@@ -331,7 +343,7 @@ const CustomerManagementPage = () => {
           <Avatar
             src={record.avatar}
             icon={<UserOutlined />}
-            size={40}
+            size={48}
           />
           <div>
             <div style={{ fontWeight: 600 }}>{record.fullName}</div>
@@ -398,7 +410,7 @@ const CustomerManagementPage = () => {
             icon={<EyeOutlined />}
             onClick={() => handleViewDetail(record._id)}
           >
-            Xem
+            Chi tiết
           </Button>
           <Button
             type="default"
@@ -428,6 +440,9 @@ const CustomerManagementPage = () => {
       {/* Page Header */}
       <div className="page-header">
         <Title level={2}>Quản lý khách hàng</Title>
+        <Text type="secondary">
+          Tổng : {pagination.total} khách hàng
+        </Text>
       </div>
 
       {/* Toolbar */}
@@ -485,7 +500,7 @@ const CustomerManagementPage = () => {
               <Avatar
                 src={selectedCustomer.avatar}
                 icon={<UserOutlined />}
-                size={80}
+                size={100}
               />
               <Title level={4} style={{ marginTop: 16, marginBottom: 0 }}>
                 {selectedCustomer.fullName}
@@ -518,6 +533,45 @@ const CustomerManagementPage = () => {
                 </Tag>
               </Descriptions.Item>
             </Descriptions>
+
+            {/* ✅ Hiển thị địa chỉ */}
+            {customerAddresses && customerAddresses.length > 0 && (
+              <div style={{ marginTop: 24 }}>
+                <Title level={5}>Địa chỉ giao hàng</Title>
+                {customerAddresses.map((address, index) => (
+                  <div
+                    key={address._id}
+                    style={{
+                      marginBottom: 12,
+                      padding: 12,
+                      border: '1px solid #d9d9d9',
+                      borderRadius: 4,
+                      background: address.isDefault ? '#f6ffed' : '#fff'
+                    }}
+                  >
+                    <Space direction="vertical" style={{ width: '100%' }} size={4}>
+                      <Space>
+                        <Text strong>{address.recipientName}</Text>
+                        <Text type="secondary">|</Text>
+                        <Text>{address.phone}</Text>
+                        {address.isDefault && (
+                          <Tag color="green" style={{ marginLeft: 8 }}>
+                            Mặc định
+                          </Tag>
+                        )}
+                        <Tag color="blue">
+                          {address.addressType === 'home' ? 'Nhà riêng' :
+                            address.addressType === 'office' ? 'Cơ quan' : 'Khác'}
+                        </Tag>
+                      </Space>
+                      <Text type="secondary" style={{ fontSize: 13 }}>
+                        {address.detailAddress}, {address.ward}, {address.district}, {address.province}
+                      </Text>
+                    </Space>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {customerStats && (
               <div style={{ marginTop: 24 }}>
@@ -841,7 +895,7 @@ const CustomerManagementPage = () => {
               title: 'Sách',
               dataIndex: 'book',
               key: 'book',
-              width: 300,
+              width: 350,
               render: (book) => (
                 <Space>
                   {book?.images?.[0] && (
@@ -883,7 +937,7 @@ const CustomerManagementPage = () => {
               title: 'Nội dung',
               dataIndex: 'comment',
               key: 'comment',
-              width: 200,
+              width: 150,
               render: (comment) => (
                 <Text ellipsis style={{ maxWidth: 200 }}>
                   {comment || '-'}

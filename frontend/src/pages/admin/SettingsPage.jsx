@@ -40,7 +40,7 @@ const SettingsPage = () => {
       await new Promise(resolve => setTimeout(resolve, 1000));
       message.success('Đã lưu cài đặt thành công');
     } catch (error) {
-      message.error('Không thể lưu cài đặt');
+      message.error('Không thể lưu cài đặt', error.message, values);
     } finally {
       setLoading(false);
     }

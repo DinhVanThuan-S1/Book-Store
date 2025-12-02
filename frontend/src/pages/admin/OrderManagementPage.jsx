@@ -52,7 +52,8 @@ const OrderManagementPage = () => {
   });
   const [filters, setFilters] = useState({
     search: '',
-    status: null,
+    status: ORDER_STATUS.PENDING, // ✅ Mặc định hiển thị đơn chờ xác nhận
+    sort: '-createdAt', // ✅ Mặc định sắp xếp đơn mới nhất
   });
 
   // Modal states
@@ -71,6 +72,7 @@ const OrderManagementPage = () => {
   const [batchTargetStatus, setBatchTargetStatus] = useState(null);
   const [batchProcessing, setBatchProcessing] = useState(false);
   const [batchResults, setBatchResults] = useState([]);
+  const [batchCancelReason, setBatchCancelReason] = useState(''); // ✅ Lý do hủy cho batch
 
   /**
    * Check available copies for order
@@ -146,14 +148,10 @@ const OrderManagementPage = () => {
       return;
     }
 
-    // Nếu là xác nhận đơn (confirmed), kiểm tra từng đơn
-    if (targetStatus === ORDER_STATUS.CONFIRMED) {
-      setBatchTargetStatus(targetStatus);
-      setBatchStatusModalVisible(true);
-      return;
-    }
+    // Reset batch cancel reason
+    setBatchCancelReason('');
 
-    // Với các trạng thái khác, xử lý trực tiếp
+    // Mở modal cho tất cả các trạng thái
     setBatchTargetStatus(targetStatus);
     setBatchStatusModalVisible(true);
   };
@@ -162,6 +160,18 @@ const OrderManagementPage = () => {
    * Process batch status update
    */
   const processBatchStatusUpdate = async () => {
+    // ✅ Validate lý do hủy nếu là batch cancel
+    if (batchTargetStatus === ORDER_STATUS.CANCELLED) {
+      if (!batchCancelReason.trim()) {
+        showError('Vui lòng nhập lý do hủy đơn');
+        return;
+      }
+      if (batchCancelReason.trim().length < 10) {
+        showError('Lý do hủy phải có ít nhất 10 ký tự');
+        return;
+      }
+    }
+
     setBatchProcessing(true);
     const results = [];
     const selectedOrders = orders.filter(order => selectedRowKeys.includes(order._id));
@@ -213,7 +223,12 @@ const OrderManagementPage = () => {
         }
 
         // Xử lý cập nhật trạng thái
-        await orderApi.updateOrderStatus(order._id, batchTargetStatus);
+        // ✅ Truyền cancelReason nếu là cancel
+        if (batchTargetStatus === ORDER_STATUS.CANCELLED) {
+          await orderApi.updateOrderStatus(order._id, batchTargetStatus, batchCancelReason);
+        } else {
+          await orderApi.updateOrderStatus(order._id, batchTargetStatus);
+        }
 
         results.push({
           orderId: order._id,
@@ -323,10 +338,26 @@ const OrderManagementPage = () => {
   };
 
   /**
+   * Handle sort change
+   */
+  const handleSortChange = (value) => {
+    setFilters({ ...filters, sort: value });
+  };
+
+  /**
    * Handle table change
    */
   const handleTableChange = (newPagination) => {
-    fetchOrders(newPagination.current);
+    // ✅ Cập nhật cả pageSize nếu thay đổi
+    if (newPagination.pageSize !== pagination.pageSize) {
+      setPagination({
+        current: 1, // Reset về trang 1 khi đổi pageSize
+        pageSize: newPagination.pageSize,
+        total: pagination.total,
+      });
+    } else {
+      fetchOrders(newPagination.current);
+    }
   };
 
   /**
@@ -710,7 +741,7 @@ const OrderManagementPage = () => {
             icon={<EyeOutlined />}
             onClick={() => handleViewDetail(record._id)}
           >
-            Xem
+            Chi tiết
           </Button>
           {/* ✅ Nút xác nhận hoàn trả nếu có yêu cầu */}
           {record.returnRequestedAt && record.status === ORDER_STATUS.DELIVERED && (
@@ -734,23 +765,27 @@ const OrderManagementPage = () => {
       {/* Page Header */}
       <div className="page-header">
         <Title level={2}>Quản lý đơn hàng</Title>
+        <Text type="secondary">
+          Tổng : {pagination.total} đơn hàng
+        </Text>
       </div>
 
       {/* Toolbar */}
       <div className="toolbar">
         <Space size="middle" wrap>
           <Search
-            placeholder="Tìm kiếm đơn hàng..."
+            placeholder="Tìm kiếm theo mã đơn hoặc tên khách hàng..."
             allowClear
             enterButton={<SearchOutlined />}
             onSearch={handleSearch}
-            style={{ width: 300 }}
+            style={{ width: 350 }}
           />
 
           <Select
             placeholder="Lọc theo trạng thái"
             allowClear
             onChange={handleStatusChange}
+            value={filters.status} // ✅ Hiển thị giá trị hiện tại
             style={{ width: 200 }}
             options={[
               { value: null, label: 'Tất cả trạng thái' },
@@ -758,6 +793,19 @@ const OrderManagementPage = () => {
                 value: ORDER_STATUS[key],
                 label: ORDER_STATUS_LABELS[ORDER_STATUS[key]],
               })),
+            ]}
+          />
+
+          <Select
+            placeholder="Sắp xếp"
+            value={filters.sort}
+            onChange={handleSortChange}
+            style={{ width: 200 }}
+            options={[
+              { value: '-createdAt', label: 'Đơn mới nhất' },
+              { value: 'createdAt', label: 'Đơn cũ nhất' },
+              { value: '-totalPrice', label: 'Tổng tiền cao đến thấp' },
+              { value: 'totalPrice', label: 'Tổng tiền thấp đến cao' },
             ]}
           />
 
@@ -804,7 +852,12 @@ const OrderManagementPage = () => {
         dataSource={orders}
         rowKey="_id"
         loading={loading}
-        pagination={pagination}
+        pagination={{
+          ...pagination,
+          showSizeChanger: true,
+          showTotal: (total) => `Tổng ${total} đơn hàng`,
+          pageSizeOptions: ['10', '20', '50', '100'],
+        }}
         onChange={handleTableChange}
         rowSelection={{
           selectedRowKeys,
@@ -1303,6 +1356,7 @@ const OrderManagementPage = () => {
             setBatchStatusModalVisible(false);
             setBatchTargetStatus(null);
             setBatchResults([]);
+            setBatchCancelReason(''); // ✅ Reset lý do hủy
           }
         }}
         footer={
@@ -1311,6 +1365,7 @@ const OrderManagementPage = () => {
               setBatchStatusModalVisible(false);
               setBatchTargetStatus(null);
               setBatchResults([]);
+              setBatchCancelReason(''); // ✅ Reset lý do hủy
             }}>
               Đóng
             </Button>
@@ -1319,6 +1374,7 @@ const OrderManagementPage = () => {
               <Button onClick={() => {
                 setBatchStatusModalVisible(false);
                 setBatchTargetStatus(null);
+                setBatchCancelReason(''); // ✅ Reset lý do hủy
               }} disabled={batchProcessing}>
                 Hủy
               </Button>
@@ -1386,6 +1442,26 @@ const OrderManagementPage = () => {
                 </Tag>
               </div>
             </div>
+
+            {/* ✅ Form nhập lý do hủy nếu là cancel */}
+            {batchTargetStatus === ORDER_STATUS.CANCELLED && (
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ marginBottom: 8 }}>
+                  <Text strong style={{ color: '#ff4d4f' }}>Lý do hủy đơn hàng:</Text>
+                </div>
+                <Input.TextArea
+                  value={batchCancelReason}
+                  onChange={(e) => setBatchCancelReason(e.target.value)}
+                  placeholder="Nhập lý do hủy đơn hàng (tối thiểu 10 ký tự)..."
+                  rows={4}
+                  maxLength={500}
+                  showCount
+                />
+                <div style={{ color: '#999', fontSize: 12, marginTop: 8 }}>
+                  * Lý do hủy sẽ được gửi cho khách hàng
+                </div>
+              </div>
+            )}
 
             <div style={{ background: '#fffbe6', border: '1px solid #ffe58f', padding: 12, borderRadius: 4 }}>
               <Text strong>💡 Lưu ý:</Text>

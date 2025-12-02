@@ -57,6 +57,16 @@ const bookCopyApi = {
   getBookCopyStatsByBook: () => {
     return axiosInstance.get('/book-copies/stats/by-book');
   },
+
+  /**
+   * Cập nhật trạng thái bản sao (Admin)
+   * @param {String} id - ID bản sao
+   * @param {String} status - Trạng thái mới
+   * @returns {Promise}
+   */
+  updateBookCopyStatus: (id, status) => {
+    return axiosInstance.put(`/book-copies/${id}/status`, { status });
+  },
 };
 
 export default bookCopyApi;

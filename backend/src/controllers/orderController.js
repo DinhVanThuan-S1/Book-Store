@@ -436,7 +436,7 @@ const cancelOrder = asyncHandler(async (req, res) => {
  * @access  Private/Admin
  */
 const getAllOrders = asyncHandler(async (req, res) => {
-  const { page = 1, limit = 20, status, search } = req.query;
+  const { page = 1, limit = 20, status, search, sort = '-createdAt' } = req.query;
   
   // Build query
   const query = {};
@@ -444,20 +444,29 @@ const getAllOrders = asyncHandler(async (req, res) => {
     query.status = status;
   }
   
-  // Search theo orderNumber hoặc customer
+  // ✅ Search theo orderNumber hoặc customer name
   if (search) {
+    // Tìm customer có tên khớp
+    const Customer = require('../models/Customer');
+    const matchingCustomers = await Customer.find({
+      fullName: new RegExp(search, 'i')
+    }).select('_id');
+    
+    const customerIds = matchingCustomers.map(c => c._id);
+    
     query.$or = [
       { orderNumber: new RegExp(search, 'i') },
-      // TODO: Search theo customer name (cần populate)
+      { customer: { $in: customerIds } }
     ];
   }
   
   // Pagination
   const { skip, limit: limitNum } = paginate(page, limit);
   
+  // ✅ Sử dụng sort từ query params
   const orders = await Order.find(query)
     .populate('customer', 'fullName email phone')
-    .sort('-createdAt')
+    .sort(sort) // ✅ Dynamic sort
     .skip(skip)
     .limit(limitNum);
   

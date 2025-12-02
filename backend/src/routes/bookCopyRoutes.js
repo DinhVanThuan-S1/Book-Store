@@ -19,6 +19,7 @@ const {
   updateBookCopy,
   deleteBookCopy,
   getBookCopyStatsByBook,
+  updateBookCopyStatus,
 } = require('../controllers/bookCopyController');
 
 /**
@@ -116,6 +117,21 @@ router.put(
   updateBookCopyValidation,
   validate,
   updateBookCopy
+);
+
+// @route   PUT /api/book-copies/:id/status
+// @desc    Cập nhật trạng thái bản sao
+// @access  Private/Admin
+router.put(
+  '/:id/status',
+  protect,
+  adminOnly,
+  param('id').isMongoId().withMessage('Invalid book copy ID'),
+  body('status')
+    .isIn(['available', 'reserved', 'sold', 'damaged', 'returned'])
+    .withMessage('Invalid status'),
+  validate,
+  updateBookCopyStatus
 );
 
 // @route   DELETE /api/book-copies/:id

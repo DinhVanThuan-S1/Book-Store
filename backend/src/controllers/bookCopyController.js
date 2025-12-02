@@ -48,9 +48,19 @@ const getAllBookCopies = asyncHandler(async (req, res) => {
     query.book = bookId;
   }
   
-  // Search theo copyCode
+  // Search theo copyCode hoặc tên sách
   if (search) {
-    query.copyCode = new RegExp(search, 'i');
+    // Tìm sách có tên khớp
+    const matchingBooks = await Book.find({
+      title: new RegExp(search, 'i')
+    }).select('_id');
+    
+    const bookIds = matchingBooks.map(b => b._id);
+    
+    query.$or = [
+      { copyCode: new RegExp(search, 'i') },
+      { book: { $in: bookIds } }
+    ];
   }
   
   // Filter theo date range
@@ -297,10 +307,72 @@ const getBookCopyStatsByBook = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * @desc    Cập nhật trạng thái bản sao (Admin)
+ * @route   PUT /api/book-copies/:id/status
+ * @access  Private/Admin
+ */
+const updateBookCopyStatus = asyncHandler(async (req, res) => {
+  const { status } = req.body;
+  
+  // Validate status
+  const validStatuses = ['available', 'reserved', 'sold', 'damaged', 'returned'];
+  if (!validStatuses.includes(status)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid status',
+    });
+  }
+  
+  const bookCopy = await BookCopy.findById(req.params.id);
+  
+  if (!bookCopy) {
+    return res.status(404).json({
+      success: false,
+      message: 'Book copy not found',
+    });
+  }
+  
+  // Lưu trạng thái cũ
+  const oldStatus = bookCopy.status;
+  
+  // Cập nhật trạng thái
+  bookCopy.status = status;
+  
+  // Nếu chuyển sang sold, thêm soldDate
+  if (status === 'sold' && oldStatus !== 'sold') {
+    bookCopy.soldDate = new Date();
+  }
+  
+  // Nếu chuyển từ sold về available, xóa soldDate
+  if (status === 'available' && oldStatus === 'sold') {
+    bookCopy.soldDate = undefined;
+  }
+  
+  await bookCopy.save();
+  
+  // Populate để trả về thông tin đầy đủ
+  await bookCopy.populate({
+    path: 'book',
+    select: 'title slug images salePrice',
+    populate: {
+      path: 'author',
+      select: 'name',
+    },
+  });
+  
+  res.status(200).json({
+    success: true,
+    message: 'Book copy status updated successfully',
+    data: { bookCopy },
+  });
+});
+
 module.exports = {
   getAllBookCopies,
   getBookCopyById,
   updateBookCopy,
   deleteBookCopy,
   getBookCopyStatsByBook,
+  updateBookCopyStatus,
 };

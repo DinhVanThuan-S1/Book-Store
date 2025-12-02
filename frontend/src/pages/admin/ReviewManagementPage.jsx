@@ -74,7 +74,7 @@ const ReviewManagementPage = () => {
         params.rating = filters.rating;
       }
       if (filters.isVisible !== null && filters.isVisible !== undefined) {
-        params.isVisible = filters.isVisible;
+        params.isVisible = String(filters.isVisible); // Convert to string
       }
 
       // Gọi API
@@ -136,7 +136,7 @@ const ReviewManagementPage = () => {
       );
       fetchReviews(pagination.current);
     } catch (error) {
-      message.error('Không thể cập nhật trạng thái');
+      message.error('Không thể cập nhật trạng thái', error?.message || error);
     }
   };
 
@@ -149,7 +149,7 @@ const ReviewManagementPage = () => {
       message.success('Đã xóa đánh giá');
       fetchReviews(pagination.current);
     } catch (error) {
-      message.error('Không thể xóa đánh giá');
+      message.error('Không thể xóa đánh giá', error?.message || error);
     }
   };
 
@@ -160,13 +160,13 @@ const ReviewManagementPage = () => {
     {
       title: 'Khách hàng',
       key: 'customer',
-      width: 180,
+      width: 220,
       render: (_, record) => (
         <Space>
           <Avatar
             src={record.customer?.avatar}
             icon={<UserOutlined />}
-            size={40}
+            size={48}
           />
           <div>
             <div style={{ fontWeight: 600 }}>{record.customer?.fullName}</div>
@@ -183,6 +183,7 @@ const ReviewManagementPage = () => {
       title: 'Sách',
       dataIndex: 'book',
       key: 'book',
+      width: 250,
       render: (book) => (
         <div>
           <div style={{ fontWeight: 600 }}>{book?.title}</div>
@@ -195,7 +196,7 @@ const ReviewManagementPage = () => {
     {
       title: 'Đánh giá',
       key: 'rating',
-      width: 200,
+      width: 180,
       render: (_, record) => (
         <div>
           <Rate disabled value={record.rating} style={{ fontSize: 14 }} />
@@ -211,12 +212,19 @@ const ReviewManagementPage = () => {
       title: 'Nội dung',
       dataIndex: 'comment',
       key: 'comment',
+      width: 250,
       ellipsis: true,
       render: (comment) => (
         <Paragraph ellipsis={{ rows: 2 }} style={{ marginBottom: 0 }}>
           {comment}
         </Paragraph>
       ),
+    },
+    {
+      title: 'Hữu ích',
+      dataIndex: 'likes',
+      key: 'likes',
+      render: (likes) => <Text strong>{likes || 0}</Text>,
     },
     {
       title: 'Hình ảnh',
@@ -232,12 +240,6 @@ const ReviewManagementPage = () => {
           )}
         </div>
       ),
-    },
-    {
-      title: 'Hữu ích',
-      dataIndex: 'likes',
-      key: 'likes',
-      render: (likes) => <Text strong>{likes || 0}</Text>,
     },
     {
       title: 'Ngày đánh giá',
@@ -268,7 +270,7 @@ const ReviewManagementPage = () => {
             icon={<EyeOutlined />}
             onClick={() => handleViewDetail(record)}
           >
-            Xem
+            Chi tiết
           </Button>
 
           <Button
@@ -276,7 +278,6 @@ const ReviewManagementPage = () => {
             icon={record.isVisible ? <EyeInvisibleOutlined /> : <EyeOutlined />}
             onClick={() => handleToggleVisibility(record._id, record.isVisible)}
           >
-            {record.isVisible ? 'Ẩn' : 'Hiện'}
           </Button>
 
           <Popconfirm

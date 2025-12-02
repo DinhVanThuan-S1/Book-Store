@@ -799,8 +799,8 @@ const BookManagementPage = () => {
             onChange={handleSortChange}
             style={{ width: 180 }}
             options={[
-              { value: '-createdAt', label: 'Sách mới thêm' },
-              { value: 'createdAt', label: 'Sách thêm lâu' },
+              { value: '-createdAt', label: 'Sách mới nhất' },
+              { value: 'createdAt', label: 'Sách cũ nhất' },
               { value: 'title', label: 'Tên A-Z' },
               { value: '-title', label: 'Tên Z-A' },
               { value: 'salePrice', label: 'Giá thấp đến cao' },

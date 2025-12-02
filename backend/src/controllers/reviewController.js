@@ -296,8 +296,28 @@ const getAllReviews = asyncHandler(async (req, res) => {
     query.isHidden = isVisible === 'true' ? false : true;
   }
   
-  // Search by book title or customer name (cần populate trước)
-  // Tạm thời bỏ qua search, sẽ implement sau nếu cần
+  // Search by book title or customer name
+  if (search) {
+    // Tìm sách có tên khớp
+    const matchingBooks = await Book.find({
+      title: new RegExp(search, 'i')
+    }).select('_id');
+    
+    const bookIds = matchingBooks.map(b => b._id);
+    
+    // Tìm khách hàng có tên khớp
+    const Customer = require('../models/Customer');
+    const matchingCustomers = await Customer.find({
+      fullName: new RegExp(search, 'i')
+    }).select('_id');
+    
+    const customerIds = matchingCustomers.map(c => c._id);
+    
+    query.$or = [
+      { book: { $in: bookIds } },
+      { customer: { $in: customerIds } }
+    ];
+  }
   
   // Calculate pagination
   const skip = (Number(page) - 1) * Number(limit);

@@ -97,10 +97,15 @@ const getCustomerById = asyncHandler(async (req, res) => {
     },
   ]);
   
+  // ✅ Lấy danh sách địa chỉ của khách hàng
+  const Address = require('../models/Address');
+  const addresses = await Address.find({ customer: customer._id }).sort('-isDefault -createdAt');
+  
   res.status(200).json({
     success: true,
     data: {
       customer,
+      addresses, // ✅ Thêm danh sách địa chỉ
       stats: {
         totalOrders,
         totalSpent: totalSpent[0]?.total || 0,

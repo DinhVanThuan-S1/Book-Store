@@ -21,6 +21,9 @@ import {
   Col,
   Card,
   Statistic,
+  Dropdown,
+  Menu,
+  Modal,
 } from 'antd';
 import {
   SearchOutlined,
@@ -28,10 +31,12 @@ import {
   CheckCircleOutlined,
   ClockCircleOutlined,
   ShoppingOutlined,
+  DownOutlined,
 } from '@ant-design/icons';
 import { bookCopyApi } from '@api';
 import { formatPrice } from '@utils/formatPrice';
 import { formatDate } from '@utils/formatDate';
+import { showSuccess, showError } from '@utils/notification';
 import './BookCopyManagementPage.scss';
 
 const { Title, Text } = Typography;
@@ -110,7 +115,7 @@ const BookCopyManagementPage = () => {
   useEffect(() => {
     fetchBookCopies(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, dateRange, dateType]);
+  }, [filters, dateRange, dateType, pagination.pageSize]);
 
   /**
    * Columns
@@ -120,7 +125,7 @@ const BookCopyManagementPage = () => {
       title: 'Mã bản sao',
       dataIndex: 'copyCode',
       key: 'copyCode',
-      width: 130,
+      width: 120,
       render: (copyCode) => <Text code>{copyCode}</Text>,
     },
     {
@@ -141,7 +146,7 @@ const BookCopyManagementPage = () => {
       title: 'Trạng thái',
       dataIndex: 'status',
       key: 'status',
-      width: 100,
+      width: 85,
       render: (status) => {
         const statusMap = {
           available: { color: 'success', text: 'Có sẵn' },
@@ -159,7 +164,7 @@ const BookCopyManagementPage = () => {
       title: 'Tình trạng',
       dataIndex: 'condition',
       key: 'condition',
-      width: 100,
+      width: 85,
       render: (condition) => {
         const conditionMap = {
           new: 'Mới',
@@ -173,14 +178,14 @@ const BookCopyManagementPage = () => {
       title: 'Giá nhập',
       dataIndex: 'importPrice',
       key: 'importPrice',
-      width: 110,
+      width: 85,
       render: (price) => formatPrice(price),
     },
     {
       title: 'Vị trí kho',
       dataIndex: 'warehouseLocation',
       key: 'warehouseLocation',
-      width: 120,
+      width: 100,
       render: (location) => <Text type="secondary">{location}</Text>,
     },
     {
@@ -197,7 +202,65 @@ const BookCopyManagementPage = () => {
       width: 110,
       render: (date) => (date ? formatDate(date) : '-'),
     },
+    {
+      title: 'Thao tác',
+      key: 'actions',
+      width: 150,
+      fixed: 'right',
+      render: (_, record) => {
+        const statusOptions = [
+          { key: 'available', label: 'Có sẵn', color: 'success' },
+          { key: 'reserved', label: 'Đã đặt', color: 'warning' },
+          { key: 'sold', label: 'Đã bán', color: 'default' },
+          { key: 'damaged', label: 'Hư hỏng', color: 'error' },
+        ].filter(opt => opt.key !== record.status);
+
+        const menu = (
+          <Menu
+            onClick={({ key }) => handleChangeStatus(record._id, key)}
+            items={statusOptions.map(opt => ({
+              key: opt.key,
+              label: (
+                <Space>
+                  <Tag color={opt.color}>{opt.label}</Tag>
+                </Space>
+              ),
+            }))}
+          />
+        );
+
+        return (
+          <Dropdown overlay={menu} trigger={['click']}>
+            <Button size="small">
+              Chuyển trạng thái <DownOutlined />
+            </Button>
+          </Dropdown>
+        );
+      },
+    },
   ];
+
+  /**
+   * Handle change status
+   */
+  const handleChangeStatus = async (bookCopyId, newStatus) => {
+    Modal.confirm({
+      title: 'Xác nhận chuyển trạng thái',
+      content: `Bạn có chắc chắn muốn chuyển trạng thái bản sao này?`,
+      okText: 'Xác nhận',
+      cancelText: 'Hủy',
+      onOk: async () => {
+        try {
+          await bookCopyApi.updateBookCopyStatus(bookCopyId, newStatus);
+          showSuccess('Cập nhật trạng thái thành công');
+          fetchBookCopies(pagination.current);
+        } catch (error) {
+          console.error('Error updating status:', error);
+          showError(error?.message || 'Không thể cập nhật trạng thái');
+        }
+      },
+    });
+  };
 
   return (
     <div className="book-copy-management-page">
@@ -256,11 +319,11 @@ const BookCopyManagementPage = () => {
       <div className="toolbar">
         <Space size="middle" wrap>
           <Search
-            placeholder="Tìm kiếm bản sao..."
+            placeholder="Tìm kiếm bản sao (Mã bản sao hoặc Tên sách)..."
             allowClear
             enterButton={<SearchOutlined />}
             onSearch={(value) => setFilters({ ...filters, search: value })}
-            style={{ width: 300 }}
+            style={{ width: 350 }}
           />
 
           <Select
@@ -312,10 +375,24 @@ const BookCopyManagementPage = () => {
         dataSource={bookCopies}
         rowKey="_id"
         loading={loading}
-        pagination={pagination}
-        onChange={(newPagination) => {
-          fetchBookCopies(newPagination.current);
+        pagination={{
+          ...pagination,
+          showSizeChanger: true,
+          showTotal: (total) => `Tổng ${total} bản sao`,
+          pageSizeOptions: ['10', '20', '50', '100'],
         }}
+        onChange={(newPagination) => {
+          if (newPagination.pageSize !== pagination.pageSize) {
+            setPagination({
+              current: 1,
+              pageSize: newPagination.pageSize,
+              total: pagination.total,
+            });
+          } else {
+            fetchBookCopies(newPagination.current);
+          }
+        }}
+        scroll={{ x: 1400 }}
       />
     </div>
   );
