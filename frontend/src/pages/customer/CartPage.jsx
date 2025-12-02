@@ -18,10 +18,11 @@ import {
   updateCartItem,
   removeCartItem,
 } from '@redux/slices/cartSlice';
-import { showSuccess, showError } from '@utils/notification';
+import { useMessage } from '@utils/notification';
 import './CartPage.scss';
 
 const CartPage = () => {
+  const { message } = useMessage();
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
@@ -44,9 +45,9 @@ const CartPage = () => {
   const handleUpdateQuantity = async (itemId, quantity) => {
     try {
       await dispatch(updateCartItem({ itemId, quantity })).unwrap();
-      showSuccess('Đã cập nhật số lượng');
+      message.success('Đã cập nhật số lượng');
     } catch (error) {
-      showError(error || 'Không thể cập nhật');
+      message.error(error || 'Không thể cập nhật');
     }
   };
 
@@ -56,9 +57,9 @@ const CartPage = () => {
   const handleRemoveItem = async (itemId) => {
     try {
       await dispatch(removeCartItem(itemId)).unwrap();
-      showSuccess('Đã xóa khỏi giỏ hàng');
+      message.success('Đã xóa khỏi giỏ hàng');
     } catch (error) {
-      showError(error || 'Không thể xóa');
+      message.error(error || 'Không thể xóa');
     }
   };
 
@@ -67,7 +68,7 @@ const CartPage = () => {
    */
   const handleCheckout = () => {
     if (items.length === 0) {
-      showError('Giỏ hàng trống');
+      message.error('Giỏ hàng trống');
       return;
     }
 
@@ -193,3 +194,4 @@ const CartPage = () => {
 };
 
 export default CartPage;
+

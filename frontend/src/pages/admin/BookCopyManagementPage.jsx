@@ -36,7 +36,7 @@ import {
 import { bookCopyApi } from '@api';
 import { formatPrice } from '@utils/formatPrice';
 import { formatDate } from '@utils/formatDate';
-import { showSuccess, showError } from '@utils/notification';
+import { useMessage } from '@utils/notification';
 import './BookCopyManagementPage.scss';
 
 const { Title, Text } = Typography;
@@ -44,6 +44,7 @@ const { Search } = Input;
 const { RangePicker } = DatePicker;
 
 const BookCopyManagementPage = () => {
+  const { message } = useMessage();
   const [bookCopies, setBookCopies] = useState([]);
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState({
@@ -252,11 +253,11 @@ const BookCopyManagementPage = () => {
       onOk: async () => {
         try {
           await bookCopyApi.updateBookCopyStatus(bookCopyId, newStatus);
-          showSuccess('Cập nhật trạng thái thành công');
+          message.success('Cập nhật trạng thái thành công');
           fetchBookCopies(pagination.current);
         } catch (error) {
           console.error('Error updating status:', error);
-          showError(error?.message || 'Không thể cập nhật trạng thái');
+          message.error(error?.message || 'Không thể cập nhật trạng thái');
         }
       },
     });
@@ -399,3 +400,4 @@ const BookCopyManagementPage = () => {
 };
 
 export default BookCopyManagementPage;
+

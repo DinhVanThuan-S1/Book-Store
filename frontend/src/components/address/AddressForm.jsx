@@ -9,9 +9,10 @@ import React, { useState, useEffect } from 'react';
 import { Modal, Form, Input, Row, Col, Checkbox, Radio, Space } from 'antd';
 import { HomeOutlined, ShopOutlined, EnvironmentOutlined } from '@ant-design/icons';
 import { addressApi } from '@api';
-import { showError } from '@utils/notification';
+import { useMessage } from '@utils/notification';
 
-const AddressForm = ({ visible, onCancel, onSuccess, address = null }) => {
+const AddressForm = ({ visible, onCancel, onSuccess, address }) => {
+  const { message } = useMessage();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
 
@@ -63,7 +64,7 @@ const AddressForm = ({ visible, onCancel, onSuccess, address = null }) => {
       form.resetFields();
       onCancel();
     } catch (error) {
-      showError(error.message || 'Không thể lưu địa chỉ');
+      message.error(error.message || 'Không thể lưu địa chỉ');
     } finally {
       setLoading(false);
     }
@@ -199,3 +200,4 @@ const AddressForm = ({ visible, onCancel, onSuccess, address = null }) => {
 };
 
 export default AddressForm;
+

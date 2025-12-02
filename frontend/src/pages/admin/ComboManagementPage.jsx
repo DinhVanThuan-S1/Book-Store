@@ -25,6 +25,7 @@ import {
   Tag,
   Descriptions,
 } from 'antd';
+import { useMessage } from '@utils/notification';
 import {
   PlusOutlined,
   EditOutlined,
@@ -42,6 +43,7 @@ const { Title, Text } = Typography;
 const { TextArea } = Input;
 
 const ComboManagementPage = () => {
+  const { message } = useMessage();
   const [combos, setCombos] = useState([]);
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(false);

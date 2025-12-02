@@ -24,6 +24,7 @@ import {
   message,
   Descriptions,
 } from 'antd';
+import { useMessage } from '@utils/notification';
 import {
   SearchOutlined,
   EyeOutlined,
@@ -39,6 +40,7 @@ const { Title, Text, Paragraph } = Typography;
 const { Search } = Input;
 
 const ReviewManagementPage = () => {
+  const { message } = useMessage();
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);

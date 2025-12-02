@@ -30,13 +30,14 @@ import {
 } from '@ant-design/icons';
 import { logoutUser } from '@redux/slices/authSlice';
 import { fetchCart } from '@redux/slices/cartSlice';
-import { showSuccess } from '@utils/notification';
+import { useMessage } from '@utils/notification';
 import './Header.scss';
 
 const { Header: AntHeader } = Layout;
 const { Search } = Input;
 
 const Header = () => {
+  const { message } = useMessage();
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const location = useLocation();
@@ -58,7 +59,7 @@ const Header = () => {
    */
   const handleLogout = async () => {
     await dispatch(logoutUser());
-    showSuccess('Đăng xuất thành công');
+    message.success('Đăng xuất thành công');
     navigate('/');
   };
 

@@ -9,7 +9,7 @@ import React, { useState } from 'react';
 import { Modal, Form, Rate, Input, Upload, Button, Space } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { reviewApi } from '@api';
-import { showSuccess, showError } from '@utils/notification';
+import { useMessage } from '@utils/notification';
 import './ReviewForm.scss';
 
 const { TextArea } = Input;
@@ -24,6 +24,7 @@ const { TextArea } = Input;
  * @param {Function} props.onSuccess - Callback khi tạo thành công
  */
 const ReviewForm = ({ visible, onClose, book, orderId, onSuccess }) => {
+  const { message } = useMessage();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [fileList, setFileList] = useState([]);
@@ -47,7 +48,7 @@ const ReviewForm = ({ visible, onClose, book, orderId, onSuccess }) => {
         images: imageUrls,
       });
 
-      showSuccess('Đánh giá thành công!');
+      message.success('Đánh giá thành công!');
       form.resetFields();
       setFileList([]);
       onClose();
@@ -56,7 +57,7 @@ const ReviewForm = ({ visible, onClose, book, orderId, onSuccess }) => {
         onSuccess();
       }
     } catch (error) {
-      showError(error || 'Không thể tạo đánh giá');
+      message.error(error || 'Không thể tạo đánh giá');
     } finally {
       setLoading(false);
     }

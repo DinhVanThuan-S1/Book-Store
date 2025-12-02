@@ -11,13 +11,14 @@ import { useDispatch } from 'react-redux';
 import { Form, Input, Button } from 'antd';
 import { UserOutlined, LockOutlined, MailOutlined, PhoneOutlined } from '@ant-design/icons';
 import { registerUser } from '@redux/slices/authSlice';
-import { showSuccess, showError } from '@utils/notification';
+import { useMessage } from '@utils/notification';
 import './RegisterForm.scss';
 
 /**
  * RegisterForm Component
  */
 const RegisterForm = () => {
+  const { message } = useMessage();
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [loading, setLoading] = useState(false);
@@ -35,10 +36,10 @@ const RegisterForm = () => {
 
       await dispatch(registerUser(registerData)).unwrap();
 
-      showSuccess('Đăng ký thành công! Vui lòng đăng nhập.');
+      message.success('Đăng ký thành công! Vui lòng đăng nhập.');
       navigate('/login');
     } catch (error) {
-      showError(error || 'Đăng ký thất bại. Vui lòng thử lại.');
+      message.error(error || 'Đăng ký thất bại. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }

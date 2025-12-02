@@ -24,6 +24,7 @@ import {
   Descriptions,
   Avatar,
 } from 'antd';
+import { useMessage } from '@utils/notification';
 import {
   PlusOutlined,
   EditOutlined,
@@ -40,6 +41,7 @@ const { Title, Text } = Typography;
 const { TextArea } = Input;
 
 const CategoryManagementPage = () => {
+  const { message } = useMessage();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);

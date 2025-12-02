@@ -42,7 +42,7 @@ import {
 } from '@ant-design/icons';
 import { bookApi, categoryApi, authorApi, publisherApi, uploadApi } from '@api';
 import { formatPrice } from '@utils/formatPrice';
-import { showSuccess, showError } from '@utils/notification';
+import { useMessage } from '@utils/notification';
 import {
   BOOK_FORMAT_LABELS,
   BOOK_FORMATS,
@@ -57,6 +57,7 @@ const { Search } = Input;
 const { TextArea } = Input;
 
 const BookManagementPage = () => {
+  const { message } = useMessage();
   const [books, setBooks] = useState([]);
   const [categories, setCategories] = useState([]);
   const [authors, setAuthors] = useState([]);
@@ -128,7 +129,7 @@ const BookManagementPage = () => {
       });
     } catch (error) {
       console.error('Error fetching books:', error);
-      showError('Không thể tải danh sách sách');
+      message.error('Không thể tải danh sách sách');
     } finally {
       setLoading(false);
     }
@@ -189,14 +190,14 @@ const BookManagementPage = () => {
           console.warn('   1. Database chưa có data');
           console.warn('   2. Tất cả authors có isActive = false');
           console.warn('   3. API endpoint không đúng');
-          showError('Chưa có tác giả nào hoặc tất cả đã bị vô hiệu hóa.');
+          message.error('Chưa có tác giả nào hoặc tất cả đã bị vô hiệu hóa.');
         }
 
         setAuthors(authorsList);
       } catch (error) {
         console.error('❌ Error fetching authors:', error);
         console.error('❌ Error details:', error.response?.data || error.message);
-        showError(`Không thể tải danh sách tác giả: ${error.message}`);
+        message.error(`Không thể tải danh sách tác giả: ${error.message}`);
         setAuthors([]);
       }
     };
@@ -243,14 +244,14 @@ const BookManagementPage = () => {
           console.warn('   1. Database chưa có data');
           console.warn('   2. Tất cả publishers có isActive = false');
           console.warn('   3. API endpoint không đúng');
-          showError('Chưa có nhà xuất bản nào hoặc tất cả đã bị vô hiệu hóa.');
+          message.error('Chưa có nhà xuất bản nào hoặc tất cả đã bị vô hiệu hóa.');
         }
 
         setPublishers(publishersList);
       } catch (error) {
         console.error('❌ Error fetching publishers:', error);
         console.error('❌ Error details:', error.response?.data || error.message);
-        showError(`Không thể tải danh sách nhà xuất bản: ${error.message}`);
+        message.error(`Không thể tải danh sách nhà xuất bản: ${error.message}`);
         setPublishers([]);
       }
     };
@@ -332,7 +333,7 @@ const BookManagementPage = () => {
       });
     } catch (error) {
       console.error('Error fetching books:', error);
-      showError('Không thể tải danh sách sách');
+      message.error('Không thể tải danh sách sách');
     } finally {
       setLoading(false);
     }
@@ -405,7 +406,7 @@ const BookManagementPage = () => {
 
       // Validate images
       if (images.length === 0) {
-        showError('Vui lòng upload ít nhất 1 ảnh');
+        message.error('Vui lòng upload ít nhất 1 ảnh');
         setSavingBook(false);
         return;
       }
@@ -414,7 +415,7 @@ const BookManagementPage = () => {
       if (values.isbn) {
         const isbnClean = values.isbn.replace(/[-\s]/g, ''); // Remove dashes and spaces
         if (isbnClean.length < 10 || isbnClean.length > 13) {
-          showError('ISBN phải có 10-13 ký tự số');
+          message.error('ISBN phải có 10-13 ký tự số');
           setSavingBook(false);
           return;
         }
@@ -449,11 +450,11 @@ const BookManagementPage = () => {
       if (editingBook) {
         // Update existing book
         await bookApi.updateBook(editingBook._id, bookData);
-        showSuccess('Cập nhật sách thành công');
+        message.success('Cập nhật sách thành công');
       } else {
         // Create new book
         await bookApi.createBook(bookData);
-        showSuccess('Tạo sách mới thành công');
+        message.success('Tạo sách mới thành công');
       }
 
       // Reset and close
@@ -473,10 +474,10 @@ const BookManagementPage = () => {
         console.log('Validation errors:', error.errors); // ← Log từng lỗi
         error.errors.forEach((err, index) => {
           console.log(`Error ${index + 1}:`, err); // ← Log từng lỗi chi tiết
-          showError(`${err.param || err.field || 'Error'}: ${err.msg || err.message}`);
+          message.error(`${err.param || err.field || 'Error'}: ${err.msg || err.message}`);
         });
       } else {
-        showError(error?.message || 'Không thể lưu sách');
+        message.error(error?.message || 'Không thể lưu sách');
       }
     } finally {
       setSavingBook(false);
@@ -501,7 +502,7 @@ const BookManagementPage = () => {
 
       await bookApi.addBookCopies(selectedBook._id, values);
 
-      showSuccess('Đã thêm bản sao thành công');
+      message.success('Đã thêm bản sao thành công');
       setAddCopiesModalVisible(false);
       copiesForm.resetFields();
       fetchBooks(pagination.current);
@@ -515,17 +516,17 @@ const BookManagementPage = () => {
 
         if (Array.isArray(data.errors) && data.errors.length > 0) {
           data.errors.forEach((err) => {
-            showError(`${err.field || 'Error'}: ${err.message}`);
+            message.error(`${err.field || 'Error'}: ${err.message}`);
           });
         } else if (data.message) {
-          showError(data.message);
+          message.error(data.message);
         } else {
-          showError(JSON.stringify(data));
+          message.error(JSON.stringify(data));
         }
       } else if (error?.message) {
-        showError(error.message);
+        message.error(error.message);
       } else {
-        showError('Không thể thêm bản sao');
+        message.error('Không thể thêm bản sao');
       }
     } finally {
       setAddingCopies(false);
@@ -538,10 +539,10 @@ const BookManagementPage = () => {
   const handleDeleteBook = async (bookId) => {
     try {
       await bookApi.deleteBook(bookId);
-      showSuccess('Đã xóa sách thành công');
+      message.success('Đã xóa sách thành công');
       fetchBooks(pagination.current);
     } catch (error) {
-      showError(error || 'Không thể xóa sách');
+      message.error(error || 'Không thể xóa sách');
     }
   };
 
@@ -551,14 +552,14 @@ const BookManagementPage = () => {
   const handleToggleStatus = async (book) => {
     try {
       await bookApi.toggleBookStatus(book._id);
-      showSuccess(
+      message.success(
         book.isActive
           ? 'Đã ẩn sách khỏi trang client'
           : 'Đã hiển thị sách trên trang client'
       );
       fetchBooks(pagination.current);
     } catch (error) {
-      showError(error?.response?.data?.message || 'Không thể thay đổi trạng thái');
+      message.error(error?.response?.data?.message || 'Không thể thay đổi trạng thái');
     }
   };
 
@@ -1188,14 +1189,14 @@ const BookManagementPage = () => {
                 // Validate file type
                 const isImage = file.type.startsWith('image/');
                 if (!isImage) {
-                  showError('Chỉ được upload file ảnh!');
+                  message.error('Chỉ được upload file ảnh!');
                   return false;
                 }
 
                 // Validate file size (max 5MB)
                 const isLt5M = file.size / 1024 / 1024 < 5;
                 if (!isLt5M) {
-                  showError('Kích thước ảnh phải nhỏ hơn 5MB!');
+                  message.error('Kích thước ảnh phải nhỏ hơn 5MB!');
                   return false;
                 }
 
@@ -1230,11 +1231,11 @@ const BookManagementPage = () => {
                     prev.map(item => item.uid === file.uid ? uploadedFile : item)
                   );
 
-                  showSuccess('Upload ảnh thành công!');
+                  message.success('Upload ảnh thành công!');
                 } catch (error) {
                   console.error('Upload error:', error);
                   console.error('Error response:', error.response?.data); // Debug
-                  showError(error.response?.data?.message || 'Upload ảnh thất bại!');
+                  message.error(error.response?.data?.message || 'Upload ảnh thất bại!');
 
                   // Remove failed file
                   setFileList(prev => prev.filter(item => item.uid !== file.uid));
@@ -1497,3 +1498,4 @@ const BookManagementPage = () => {
 };
 
 export default BookManagementPage;
+

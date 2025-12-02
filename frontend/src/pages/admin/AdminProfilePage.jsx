@@ -24,6 +24,7 @@ import {
   Modal,
   message,
 } from 'antd';
+import { useMessage } from '@utils/notification';
 import {
   UserOutlined,
   MailOutlined,
@@ -39,6 +40,7 @@ import './AdminProfilePage.scss';
 const { Title, Text } = Typography;
 
 const AdminProfilePage = () => {
+  const { message } = useMessage();
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
 

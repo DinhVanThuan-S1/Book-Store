@@ -43,7 +43,7 @@ import {
 import { bookApi, wishlistApi } from '@api';
 import { addToCart } from '@redux/slices/cartSlice';
 import { formatPrice } from '@utils/formatPrice';
-import { showSuccess, showError } from '@utils/notification';
+import { useMessage } from '@utils/notification';
 import {
   BOOK_FORMAT_LABELS,
   LANGUAGE_LABELS,
@@ -58,6 +58,7 @@ import './BookDetailPage.scss';
 const { Title, Paragraph, Text } = Typography;
 
 const BookDetailPage = () => {
+  const { message } = useMessage();
   const { slug } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -86,7 +87,7 @@ const BookDetailPage = () => {
         setBook(response.data.book);
       } catch (error) {
         console.error('Error fetching book:', error);
-        showError('Không tìm thấy sách');
+        message.error('Không tìm thấy sách');
         navigate('/books');
       } finally {
         setLoading(false);
@@ -145,7 +146,7 @@ const BookDetailPage = () => {
    */
   const handleAddToCart = async () => {
     if (!isAuthenticated) {
-      showError('Vui lòng đăng nhập để thêm vào giỏ hàng');
+      message.error('Vui lòng đăng nhập để thêm vào giỏ hàng');
       navigate('/login');
       return;
     }
@@ -161,9 +162,9 @@ const BookDetailPage = () => {
         })
       ).unwrap();
 
-      showSuccess('Đã thêm vào giỏ hàng!');
+      message.success('Đã thêm vào giỏ hàng!');
     } catch (error) {
-      showError(error || 'Không thể thêm vào giỏ hàng');
+      message.error(error || 'Không thể thêm vào giỏ hàng');
     } finally {
       setAddingToCart(false);
     }
@@ -174,7 +175,7 @@ const BookDetailPage = () => {
    */
   const handleBuyNow = async () => {
     if (!isAuthenticated) {
-      showError('Vui lòng đăng nhập để mua hàng');
+      message.error('Vui lòng đăng nhập để mua hàng');
       navigate('/login');
       return;
     }
@@ -188,7 +189,7 @@ const BookDetailPage = () => {
    */
   const handleToggleWishlist = async () => {
     if (!isAuthenticated) {
-      showError('Vui lòng đăng nhập để sử dụng tính năng này');
+      message.error('Vui lòng đăng nhập để sử dụng tính năng này');
       navigate('/login');
       return;
     }
@@ -198,15 +199,15 @@ const BookDetailPage = () => {
 
       if (inWishlist) {
         await wishlistApi.removeFromWishlist(book._id);
-        showSuccess('Đã xóa khỏi danh sách yêu thích');
+        message.success('Đã xóa khỏi danh sách yêu thích');
         setInWishlist(false);
       } else {
         await wishlistApi.addToWishlist(book._id);
-        showSuccess('Đã thêm vào danh sách yêu thích');
+        message.success('Đã thêm vào danh sách yêu thích');
         setInWishlist(true);
       }
     } catch (error) {
-      showError(error || 'Không thể cập nhật danh sách yêu thích');
+      message.error(error || 'Không thể cập nhật danh sách yêu thích');
     } finally {
       setAddingToWishlist(false);
     }
@@ -225,12 +226,12 @@ const BookDetailPage = () => {
           text: book.description,
           url: url,
         })
-        .then(() => showSuccess('Đã chia sẻ!'))
+        .then(() => message.success('Đã chia sẻ!'))
         .catch((error) => console.log('Error sharing:', error));
     } else {
       // Fallback: Copy to clipboard
       navigator.clipboard.writeText(url).then(() => {
-        showSuccess('Đã copy link!');
+        message.success('Đã copy link!');
       });
     }
   };
@@ -240,7 +241,7 @@ const BookDetailPage = () => {
    */
   const handleAddRelatedBookToCart = async (relatedBook) => {
     if (!isAuthenticated) {
-      showError('Vui lòng đăng nhập');
+      message.error('Vui lòng đăng nhập');
       navigate('/login');
       return;
     }
@@ -254,9 +255,9 @@ const BookDetailPage = () => {
         })
       ).unwrap();
 
-      showSuccess('Đã thêm vào giỏ hàng!');
+      message.success('Đã thêm vào giỏ hàng!');
     } catch (error) {
-      showError(error || 'Không thể thêm vào giỏ hàng');
+      message.error(error || 'Không thể thêm vào giỏ hàng');
     }
   };
 
@@ -623,3 +624,4 @@ const BookDetailPage = () => {
 };
 
 export default BookDetailPage;
+

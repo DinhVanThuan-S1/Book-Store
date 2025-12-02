@@ -39,7 +39,7 @@ import {
 import { customerApi, uploadApi } from '@api';
 import { formatPrice } from '@utils/formatPrice';
 import { formatDate } from '@utils/formatDate';
-import { showSuccess, showError } from '@utils/notification';
+import { useMessage } from '@utils/notification';
 import dayjs from 'dayjs';
 import './CustomerManagementPage.scss';
 
@@ -47,6 +47,7 @@ const { Title, Text } = Typography;
 const { Search } = Input;
 
 const CustomerManagementPage = () => {
+  const { message } = useMessage();
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({
@@ -113,7 +114,7 @@ const CustomerManagementPage = () => {
       });
     } catch (error) {
       console.error('Error fetching customers:', error);
-      showError('Không thể tải danh sách khách hàng');
+      message.error('Không thể tải danh sách khách hàng');
     } finally {
       setLoading(false);
     }
@@ -158,7 +159,7 @@ const CustomerManagementPage = () => {
       setCustomerAddresses(response.data.addresses || []); // ✅ Lưu addresses
       setDetailModalVisible(true);
     } catch (error) {
-      showError('Không thể tải thông tin khách hàng');
+      message.error('Không thể tải thông tin khách hàng');
     }
   };
 
@@ -169,12 +170,12 @@ const CustomerManagementPage = () => {
     try {
       await customerApi.toggleCustomerActive(customerId);
 
-      showSuccess(
+      message.success(
         `Đã ${currentStatus ? 'vô hiệu hóa' : 'kích hoạt'} tài khoản`
       );
       fetchCustomers(pagination.current);
     } catch (error) {
-      showError(error?.message || 'Không thể cập nhật trạng thái');
+      message.error(error?.message || 'Không thể cập nhật trạng thái');
     }
   };
 
@@ -184,10 +185,10 @@ const CustomerManagementPage = () => {
   const handleDeleteCustomer = async (customerId) => {
     try {
       await customerApi.deleteCustomer(customerId);
-      showSuccess('Đã xóa khách hàng');
+      message.success('Đã xóa khách hàng');
       fetchCustomers(pagination.current);
     } catch (error) {
-      showError(error?.message || 'Không thể xóa khách hàng');
+      message.error(error?.message || 'Không thể xóa khách hàng');
     }
   };
 
@@ -236,13 +237,13 @@ const CustomerManagementPage = () => {
       if (editingCustomer) {
         // Update existing customer
         await customerApi.updateCustomer(editingCustomer._id, customerData);
-        showSuccess('Cập nhật khách hàng thành công');
+        message.success('Cập nhật khách hàng thành công');
       } else {
         // Create new customer
         customerData.email = values.email;
         customerData.password = values.password;
         await customerApi.createCustomer(customerData);
-        showSuccess('Tạo khách hàng mới thành công');
+        message.success('Tạo khách hàng mới thành công');
       }
 
       setFormModalVisible(false);
@@ -252,7 +253,7 @@ const CustomerManagementPage = () => {
       fetchCustomers(pagination.current);
     } catch (error) {
       console.error('Submit form error:', error);
-      showError(error?.message || 'Không thể lưu thông tin khách hàng');
+      message.error(error?.message || 'Không thể lưu thông tin khách hàng');
     } finally {
       setSubmitting(false);
     }
@@ -267,10 +268,10 @@ const CustomerManagementPage = () => {
       const response = await uploadApi.uploadImage(file);
       const url = response.data?.url || response.url;
       setAvatarUrl(url);
-      showSuccess('Upload ảnh thành công!');
+      message.success('Upload ảnh thành công!');
       return false; // Prevent auto upload
     } catch (error) {
-      showError('Upload ảnh thất bại!');
+      message.error('Upload ảnh thất bại!');
       return false;
     } finally {
       setUploading(false);
@@ -298,7 +299,7 @@ const CustomerManagementPage = () => {
         total: response.data.pagination.total,
       });
     } catch (error) {
-      showError('Không thể tải lịch sử đơn hàng');
+      message.error('Không thể tải lịch sử đơn hàng');
     } finally {
       setOrdersLoading(false);
     }
@@ -325,7 +326,7 @@ const CustomerManagementPage = () => {
         total: response.data.pagination.total,
       });
     } catch (error) {
-      showError('Không thể tải lịch sử đánh giá');
+      message.error('Không thể tải lịch sử đánh giá');
     } finally {
       setReviewsLoading(false);
     }
@@ -1013,3 +1014,4 @@ const CustomerManagementPage = () => {
 };
 
 export default CustomerManagementPage;
+

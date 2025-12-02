@@ -18,7 +18,7 @@ import {
 } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { bookApi, categoryApi } from '@api';
-import { showSuccess, showError } from '@utils/notification';
+import { useMessage } from '@utils/notification';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -32,6 +32,7 @@ const { Option } = Select;
  * @param {Object} props.book - Book to edit (null for create)
  */
 const BookFormModal = ({ visible, onClose, onSuccess, book = null }) => {
+  const { message } = useMessage();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState([]);
@@ -104,10 +105,10 @@ const BookFormModal = ({ visible, onClose, onSuccess, book = null }) => {
 
       if (isEditMode) {
         await bookApi.updateBook(book._id, bookData);
-        showSuccess('Cập nhật sách thành công');
+        message.success('Cập nhật sách thành công');
       } else {
         await bookApi.createBook(bookData);
-        showSuccess('Tạo sách mới thành công');
+        message.success('Tạo sách mới thành công');
       }
 
       form.resetFields();
@@ -118,7 +119,7 @@ const BookFormModal = ({ visible, onClose, onSuccess, book = null }) => {
         onSuccess();
       }
     } catch (error) {
-      showError(error || 'Không thể lưu sách');
+      message.error(error || 'Không thể lưu sách');
     } finally {
       setLoading(false);
     }

@@ -29,7 +29,7 @@ import {
 import { wishlistApi } from '@api';
 import { addToCart } from '@redux/slices/cartSlice';
 import { formatPrice } from '@utils/formatPrice';
-import { showSuccess, showError } from '@utils/notification';
+import { useMessage } from '@utils/notification';
 import Loading from '@components/common/Loading';
 import './WishlistPage.scss';
 
@@ -38,6 +38,7 @@ const { Title, Text } = Typography;
 const WishlistPage = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { message } = useMessage();
 
   const [wishlist, setWishlist] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -53,7 +54,7 @@ const WishlistPage = () => {
       setWishlist(response.data.wishlist);
     } catch (error) {
       console.error('Error fetching wishlist:', error);
-      showError('Không thể tải danh sách yêu thích');
+      message.error('Không thể tải danh sách yêu thích');
     } finally {
       setLoading(false);
     }
@@ -80,9 +81,9 @@ const WishlistPage = () => {
         })
       ).unwrap();
 
-      showSuccess('Đã thêm vào giỏ hàng!');
+      message.success('Đã thêm vào giỏ hàng!');
     } catch (error) {
-      showError(error || 'Không thể thêm vào giỏ hàng');
+      message.error(error || 'Không thể thêm vào giỏ hàng');
     } finally {
       setProcessingItems((prev) => prev.filter((id) => id !== book._id));
     }
@@ -94,12 +95,12 @@ const WishlistPage = () => {
   const handleRemove = async (bookId) => {
     try {
       await wishlistApi.removeFromWishlist(bookId);
-      showSuccess('Đã xóa khỏi danh sách yêu thích');
+      message.success('Đã xóa khỏi danh sách yêu thích');
 
       // Refresh wishlist
       fetchWishlist();
     } catch (error) {
-      showError('Không thể xóa khỏi danh sách', error);
+      message.error('Không thể xóa khỏi danh sách');
     }
   };
 
@@ -110,12 +111,12 @@ const WishlistPage = () => {
     try {
       const response = await wishlistApi.moveAllToCart();
 
-      showSuccess(`Đã chuyển ${response.data.addedCount} sản phẩm vào giỏ hàng`);
+      message.success(`Đã chuyển ${response.data.addedCount} sản phẩm vào giỏ hàng`);
 
       // Refresh wishlist
       fetchWishlist();
     } catch (error) {
-      showError('Không thể chuyển vào giỏ hàng', error);
+      message.error('Không thể chuyển vào giỏ hàng');
     }
   };
 

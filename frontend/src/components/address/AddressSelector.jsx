@@ -9,7 +9,7 @@ import React, { useState, useEffect } from 'react';
 import { Modal, List, Button, Radio, Tag, Space, Empty } from 'antd';
 import { PlusOutlined, EnvironmentOutlined, CheckOutlined } from '@ant-design/icons';
 import { addressApi } from '@api';
-import { showSuccess, showError } from '@utils/notification';
+import { useMessage } from '@utils/notification';
 import './AddressSelector.scss';
 
 /**
@@ -22,6 +22,7 @@ import './AddressSelector.scss';
  * @param {String} props.selectedAddressId - ID địa chỉ đang chọn
  */
 const AddressSelector = ({ visible, onCancel, onSelect, onAddNew, selectedAddressId }) => {
+  const { message } = useMessage();
   const [addresses, setAddresses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState(null);
@@ -67,7 +68,7 @@ const AddressSelector = ({ visible, onCancel, onSelect, onAddNew, selectedAddres
       }
     } catch (error) {
       console.error('Error fetching addresses:', error);
-      showError('Không thể tải danh sách địa chỉ');
+      message.error('Không thể tải danh sách địa chỉ');
     } finally {
       setLoading(false);
     }
@@ -107,9 +108,9 @@ const AddressSelector = ({ visible, onCancel, onSelect, onAddNew, selectedAddres
     try {
       await addressApi.setDefaultAddress(addressId);
       await fetchAddresses();
-      showSuccess('Đã đặt làm địa chỉ mặc định');
+      message.success('Đã đặt làm địa chỉ mặc định');
     } catch {
-      showError('Không thể cập nhật địa chỉ mặc định');
+      message.error('Không thể cập nhật địa chỉ mặc định');
     }
   };
 
@@ -212,3 +213,4 @@ const AddressSelector = ({ visible, onCancel, onSelect, onAddNew, selectedAddres
 };
 
 export default AddressSelector;
+

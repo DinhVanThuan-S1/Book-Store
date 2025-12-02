@@ -11,13 +11,14 @@ import { useDispatch } from 'react-redux';
 import { Form, Input, Button, Checkbox, Divider } from 'antd';
 import { UserOutlined, LockOutlined, GoogleOutlined, FacebookOutlined } from '@ant-design/icons';
 import { loginUser } from '@redux/slices/authSlice';
-import { showSuccess, showError } from '@utils/notification';
+import { useMessage } from '@utils/notification';
 import './LoginForm.scss';
 
 /**
  * LoginForm Component
  */
 const LoginForm = () => {
+  const { message } = useMessage();
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [loading, setLoading] = useState(false);
@@ -31,13 +32,13 @@ const LoginForm = () => {
 
       const result = await dispatch(loginUser(values)).unwrap();
 
-      showSuccess('Đăng nhập thành công!');
+      message.success('Đăng nhập thành công!');
 
       // Redirect về trang trước hoặc home
       const returnUrl = new URLSearchParams(window.location.search).get('returnUrl');
       navigate(returnUrl || '/');
     } catch (error) {
-      showError(error || 'Đăng nhập thất bại. Vui lòng thử lại.');
+      message.error(error || 'Đăng nhập thất bại. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }

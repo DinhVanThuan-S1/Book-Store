@@ -35,7 +35,7 @@ import {
 import { fetchCart } from '@redux/slices/cartSlice';
 import { createOrder } from '@redux/slices/orderSlice';
 import { formatPrice } from '@utils/formatPrice';
-import { showSuccess, showError, showLoading } from '@utils/notification';
+import { useMessage } from '@utils/notification';
 import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from '@constants/appConstants';
 import { addressApi } from '@api';
 import Loading from '@components/common/Loading';
@@ -51,6 +51,7 @@ const { Title, Text } = Typography;
 const { TextArea } = Input;
 
 const CheckoutPage = () => {
+  const { message } = useMessage();
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [form] = Form.useForm();
@@ -95,7 +96,7 @@ const CheckoutPage = () => {
   useEffect(() => {
     // ✅ CHỈ redirect khi đã check cart xong VÀ giỏ hàng trống
     if (cartChecked && (!items || items.length === 0)) {
-      showError('Giỏ hàng trống');
+      message.error('Giỏ hàng trống');
       navigate('/cart');
     }
   }, [cartChecked, items, navigate]);
@@ -208,7 +209,7 @@ const CheckoutPage = () => {
       detailAddress: newAddress.detailAddress,
     });
     setShowAddressForm(false);
-    showSuccess('Đã thêm địa chỉ mới');
+    message.success('Đã thêm địa chỉ mới');
   };
 
   /**
@@ -224,7 +225,7 @@ const CheckoutPage = () => {
     try {
       // Kiểm tra giỏ hàng trước khi submit
       if (!items || items.length === 0) {
-        showError('Giỏ hàng trống. Vui lòng thêm sản phẩm trước khi đặt hàng.');
+        message.error('Giỏ hàng trống. Vui lòng thêm sản phẩm trước khi đặt hàng.');
         navigate('/cart');
         return;
       }
@@ -234,7 +235,8 @@ const CheckoutPage = () => {
       console.log('Submitting order with values:', values);
       console.log('Cart items:', items);
 
-      const hide = showLoading('Đang xử lý đơn hàng...');
+      // Show loading message
+      message.loading('Đang xử lý đơn hàng...', 0);
 
       const orderData = {
         shippingAddress: {
@@ -269,8 +271,7 @@ const CheckoutPage = () => {
 
       const result = await dispatch(createOrder(orderData)).unwrap();
 
-      hide();
-      showSuccess('Đặt hàng thành công!');
+      message.success('Đặt hàng thành công!');
 
       // Redirect to order detail
       navigate(`/orders/${result.order._id}`);
@@ -282,7 +283,7 @@ const CheckoutPage = () => {
         ? error.errors.map(e => e.message).join(', ')
         : error || 'Đặt hàng thất bại. Vui lòng thử lại.';
 
-      showError(errorMessage);
+      message.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -522,7 +523,7 @@ const CheckoutPage = () => {
                     onClick={() => {
                       if (!hasAddresses) {
                         setShowAddressForm(true);
-                        showError('Vui lòng thêm địa chỉ giao hàng');
+                        message.error('Vui lòng thêm địa chỉ giao hàng');
                       } else {
                         form.submit();
                       }
@@ -568,3 +569,4 @@ const CheckoutPage = () => {
 };
 
 export default CheckoutPage;
+

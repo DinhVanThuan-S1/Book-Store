@@ -35,7 +35,7 @@ import {
   ORDER_STATUS_COLORS,
   PAYMENT_METHOD_LABELS,
 } from '@constants/appConstants';
-import { showSuccess, showError } from '@utils/notification';
+import { useMessage } from '@utils/notification';
 import Loading from '@components/common/Loading';
 import './OrderManagementPage.scss';
 
@@ -43,6 +43,7 @@ const { Title, Text } = Typography;
 const { Search } = Input;
 
 const OrderManagementPage = () => {
+  const { message } = useMessage();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({
@@ -144,7 +145,7 @@ const OrderManagementPage = () => {
    */
   const handleBatchStatusChange = async (targetStatus) => {
     if (selectedRowKeys.length === 0) {
-      showError('Vui lòng chọn ít nhất một đơn hàng');
+      message.error('Vui lòng chọn ít nhất một đơn hàng');
       return;
     }
 
@@ -163,11 +164,11 @@ const OrderManagementPage = () => {
     // ✅ Validate lý do hủy nếu là batch cancel
     if (batchTargetStatus === ORDER_STATUS.CANCELLED) {
       if (!batchCancelReason.trim()) {
-        showError('Vui lòng nhập lý do hủy đơn');
+        message.error('Vui lòng nhập lý do hủy đơn');
         return;
       }
       if (batchCancelReason.trim().length < 10) {
-        showError('Lý do hủy phải có ít nhất 10 ký tự');
+        message.error('Lý do hủy phải có ít nhất 10 ký tự');
         return;
       }
     }
@@ -261,11 +262,11 @@ const OrderManagementPage = () => {
     const skippedCount = results.filter(r => r.skipped).length;
 
     if (failCount === 0 && skippedCount === 0) {
-      showSuccess(`Đã cập nhật thành công ${successCount} đơn hàng`);
+      message.success(`Đã cập nhật thành công ${successCount} đơn hàng`);
       setBatchStatusModalVisible(false);
       setBatchResults([]);
     } else {
-      showSuccess(`Thành công: ${successCount}, Thất bại: ${failCount}, Bỏ qua: ${skippedCount}`);
+      message.success(`Thành công: ${successCount}, Thất bại: ${failCount}, Bỏ qua: ${skippedCount}`);
     }
   };
 
@@ -313,7 +314,7 @@ const OrderManagementPage = () => {
       }));
     } catch (err) {
       console.error('Error fetching orders:', err);
-      showError('Không thể tải danh sách đơn hàng');
+      message.error('Không thể tải danh sách đơn hàng');
     } finally {
       setLoading(false);
     }
@@ -383,7 +384,7 @@ const OrderManagementPage = () => {
       setDetailModalVisible(true);
     } catch (error) {
       console.error('Error loading order detail:', error);
-      showError('Không thể tải chi tiết đơn hàng');
+      message.error('Không thể tải chi tiết đơn hàng');
     }
   };
 
@@ -507,14 +508,14 @@ const OrderManagementPage = () => {
         setConfirmModalVisible(true);
       } catch (error) {
         console.error('Error loading available copies:', error);
-        showError('Không thể tải danh sách bản sao');
+        message.error('Không thể tải danh sách bản sao');
       }
       return;
     }
 
     try {
       await orderApi.updateOrderStatus(orderId, newStatus);
-      showSuccess('Đã cập nhật trạng thái đơn hàng');
+      message.success('Đã cập nhật trạng thái đơn hàng');
       fetchOrders(pagination.current);
 
       // Nếu đang xem chi tiết, đóng modal
@@ -522,7 +523,7 @@ const OrderManagementPage = () => {
         setDetailModalVisible(false);
       }
     } catch (error) {
-      showError(error.message || 'Không thể cập nhật trạng thái');
+      message.error(error.message || 'Không thể cập nhật trạng thái');
     }
   };
 
@@ -532,7 +533,7 @@ const OrderManagementPage = () => {
   const handleConfirmOrderWithCopies = async () => {
     try {
       await orderApi.updateOrderStatus(orderToConfirm._id, ORDER_STATUS.CONFIRMED);
-      showSuccess('Đã xác nhận đơn hàng');
+      message.success('Đã xác nhận đơn hàng');
       fetchOrders(pagination.current);
 
       setConfirmModalVisible(false);
@@ -543,7 +544,7 @@ const OrderManagementPage = () => {
         setDetailModalVisible(false);
       }
     } catch (error) {
-      showError(error.message || 'Không thể xác nhận đơn hàng');
+      message.error(error.message || 'Không thể xác nhận đơn hàng');
     }
   };
 
@@ -552,18 +553,18 @@ const OrderManagementPage = () => {
    */
   const handleConfirmCancel = async () => {
     if (!cancelReason.trim()) {
-      showError('Vui lòng nhập lý do hủy đơn');
+      message.error('Vui lòng nhập lý do hủy đơn');
       return;
     }
 
     if (cancelReason.trim().length < 10) {
-      showError('Lý do hủy phải có ít nhất 10 ký tự');
+      message.error('Lý do hủy phải có ít nhất 10 ký tự');
       return;
     }
 
     try {
       await orderApi.updateOrderStatus(orderToCancel, ORDER_STATUS.CANCELLED, cancelReason);
-      showSuccess('Đã hủy đơn hàng');
+      message.success('Đã hủy đơn hàng');
       fetchOrders(pagination.current);
 
       // Reset và đóng modal
@@ -575,7 +576,7 @@ const OrderManagementPage = () => {
         setDetailModalVisible(false);
       }
     } catch (error) {
-      showError(error.message || 'Không thể hủy đơn hàng');
+      message.error(error.message || 'Không thể hủy đơn hàng');
     }
   };
 
@@ -585,14 +586,14 @@ const OrderManagementPage = () => {
   const handleConfirmReturn = async (orderId) => {
     try {
       await orderApi.confirmReturn(orderId);
-      showSuccess('Đã xác nhận hoàn trả đơn hàng');
+      message.success('Đã xác nhận hoàn trả đơn hàng');
       fetchOrders(pagination.current);
 
       if (detailModalVisible) {
         setDetailModalVisible(false);
       }
     } catch (error) {
-      showError(error.message || 'Không thể xác nhận hoàn trả');
+      message.error(error.message || 'Không thể xác nhận hoàn trả');
     }
   };
 
@@ -1480,3 +1481,4 @@ const OrderManagementPage = () => {
 };
 
 export default OrderManagementPage;
+

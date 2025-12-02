@@ -14,11 +14,12 @@ import BookList from '@components/book/BookList';
 import BookFilter from '@components/book/BookFilter';
 import { fetchBooks, setFilters } from '@redux/slices/bookSlice';
 import { addToCart } from '@redux/slices/cartSlice';
-import { showSuccess, showError } from '@utils/notification';
+import { useMessage } from '@utils/notification';
 import './BookListPage.scss';
 
 
 const BookListPage = () => {
+  const { message } = useMessage();
   const dispatch = useDispatch();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -98,9 +99,9 @@ const BookListPage = () => {
         })
       ).unwrap();
 
-      showSuccess('Đã thêm vào giỏ hàng!');
+      message.success('Đã thêm vào giỏ hàng!');
     } catch (error) {
-      showError(error || 'Không thể thêm vào giỏ hàng');
+      message.error(error || 'Không thể thêm vào giỏ hàng');
     }
   };
 
@@ -144,3 +145,4 @@ const BookListPage = () => {
 };
 
 export default BookListPage;
+

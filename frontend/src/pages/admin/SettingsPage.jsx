@@ -21,6 +21,7 @@ import {
   Upload,
   message,
 } from 'antd';
+import { useMessage } from '@utils/notification';
 import {
   SaveOutlined,
   UploadOutlined,
@@ -30,6 +31,7 @@ import './SettingsPage.scss';
 const { Title, Text } = Typography;
 
 const SettingsPage = () => {
+  const { message } = useMessage();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
 

@@ -14,7 +14,7 @@ import BookList from '@components/book/BookList';
 import Loading from '@components/common/Loading';
 import { bookApi, categoryApi, comboApi } from '@api';
 import { addToCart } from '@redux/slices/cartSlice';
-import { showSuccess, showError } from '@utils/notification';
+import { useMessage } from '@utils/notification';
 import { formatPrice } from '@utils/formatPrice';
 import './HomePage.scss';
 
@@ -26,6 +26,7 @@ const { Title, Paragraph } = Typography;
 const HomePage = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { message } = useMessage();
 
   const [loading, setLoading] = useState(true);
   const [featuredBooks, setFeaturedBooks] = useState([]);
@@ -87,9 +88,9 @@ const HomePage = () => {
         })
       ).unwrap();
 
-      showSuccess('Đã thêm vào giỏ hàng!');
+      message.success('Đã thêm vào giỏ hàng!');
     } catch (error) {
-      showError(error || 'Không thể thêm vào giỏ hàng');
+      message.error(error || 'Không thể thêm vào giỏ hàng');
     }
   };
 

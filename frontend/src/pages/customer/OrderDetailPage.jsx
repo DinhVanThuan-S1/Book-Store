@@ -36,7 +36,7 @@ import {
   ORDER_STATUS_COLORS,
   PAYMENT_METHOD_LABELS,
 } from '@constants/appConstants';
-import { showSuccess, showError } from '@utils/notification';
+import { useMessage } from '@utils/notification';
 import Loading from '@components/common/Loading';
 import './OrderDetailPage.scss';
 
@@ -48,6 +48,7 @@ const OrderDetailPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
+  const { message } = useMessage();
 
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
@@ -81,7 +82,7 @@ const OrderDetailPage = () => {
    */
   const handleCancelOrder = async () => {
     if (!cancelReason || cancelReason.trim().length < 10) {
-      showError('Vui lòng nhập lý do hủy (ít nhất 10 ký tự)');
+      message.error('Vui lòng nhập lý do hủy (ít nhất 10 ký tự)');
       return;
     }
 
@@ -92,13 +93,13 @@ const OrderDetailPage = () => {
         cancelOrder({ id: order._id, cancelReason })
       ).unwrap();
 
-      showSuccess('Đã hủy đơn hàng thành công');
+      message.success('Đã hủy đơn hàng thành công');
       setCancelModalVisible(false);
 
       // Refresh order
       dispatch(fetchOrderById(id));
     } catch (error) {
-      showError(error || 'Không thể hủy đơn hàng');
+      message.error(error || 'Không thể hủy đơn hàng');
     } finally {
       setCancelling(false);
     }
@@ -113,7 +114,7 @@ const OrderDetailPage = () => {
       setReviewableItems(response.data.items);
       setReviewModalVisible(true);
     } catch (error) {
-      showError('Không thể tải danh sách sách', error.message);
+      message.error('Không thể tải danh sách sách', error.message);
     }
   };
 
@@ -122,7 +123,7 @@ const OrderDetailPage = () => {
    */
   const handleSubmitReview = async (values) => {
     if (!selectedBookForReview) {
-      showError('Vui lòng chọn sách để đánh giá');
+      message.error('Vui lòng chọn sách để đánh giá');
       return;
     }
 
@@ -167,7 +168,7 @@ const OrderDetailPage = () => {
       // Gửi review với ảnh đã upload
       await reviewApi.createReview(reviewData);
 
-      showSuccess('Đánh giá thành công!');
+      message.success('Đánh giá thành công!');
       setReviewModalVisible(false);
       setSelectedBookForReview(null);
       setFileList([]);
@@ -177,7 +178,7 @@ const OrderDetailPage = () => {
       handleOpenReviewModal();
     } catch (error) {
       console.error('Review error:', error);
-      showError(error.message || 'Không thể gửi đánh giá');
+      message.error(error.message || 'Không thể gửi đánh giá');
     } finally {
       setUploadingImages(false);
     }
@@ -188,7 +189,7 @@ const OrderDetailPage = () => {
    */
   const handleRequestReturn = async () => {
     if (!returnReason || returnReason.trim().length < 10) {
-      showError('Vui lòng nhập lý do hoàn trả (ít nhất 10 ký tự)');
+      message.error('Vui lòng nhập lý do hoàn trả (ít nhất 10 ký tự)');
       return;
     }
 
@@ -197,14 +198,14 @@ const OrderDetailPage = () => {
 
       await orderApi.requestReturn(order._id, returnReason);
 
-      showSuccess('Yêu cầu hoàn trả đã được gửi. Vui lòng chờ xác nhận từ Admin.');
+      message.success('Yêu cầu hoàn trả đã được gửi. Vui lòng chờ xác nhận từ Admin.');
       setReturnModalVisible(false);
       setReturnReason('');
 
       // Refresh order
       dispatch(fetchOrderById(id));
     } catch (error) {
-      showError(error.message || 'Không thể gửi yêu cầu hoàn trả');
+      message.error(error.message || 'Không thể gửi yêu cầu hoàn trả');
     } finally {
       setReturning(false);
     }

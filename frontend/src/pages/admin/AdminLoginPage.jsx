@@ -13,13 +13,14 @@ import { useDispatch } from 'react-redux';
 import { Layout, Card, Form, Input, Button, Typography, Space } from 'antd';
 import { UserOutlined, LockOutlined, SafetyOutlined } from '@ant-design/icons';
 import { loginAdmin } from '@redux/slices/authSlice';
-import { showSuccess, showError } from '@utils/notification';
+import { useMessage } from '@utils/notification';
 import './AdminLoginPage.scss';
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
 
 const AdminLoginPage = () => {
+  const { message } = useMessage();
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [loading, setLoading] = useState(false);
@@ -33,10 +34,10 @@ const AdminLoginPage = () => {
 
       const result = await dispatch(loginAdmin(values)).unwrap();
 
-      showSuccess('Đăng nhập thành công!');
+      message.success('Đăng nhập thành công!');
       navigate('/admin');
     } catch (error) {
-      showError(error || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
+      message.error(error || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
     } finally {
       setLoading(false);
     }
@@ -121,3 +122,4 @@ const AdminLoginPage = () => {
 };
 
 export default AdminLoginPage;
+

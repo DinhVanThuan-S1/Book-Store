@@ -20,6 +20,7 @@ import {
   Spin,
   message,
 } from 'antd';
+import { useMessage } from '@utils/notification';
 import {
   DownloadOutlined,
   FileExcelOutlined,
@@ -46,6 +47,7 @@ const { Title } = Typography;
 const { RangePicker } = DatePicker;
 
 const ReportsPage = () => {
+  const { message } = useMessage();
   const [dateRange, setDateRange] = useState([
     dayjs().subtract(30, 'days'),
     dayjs(),

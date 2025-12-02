@@ -26,7 +26,7 @@ import {
 } from '@ant-design/icons';
 import { comboApi } from '@api';
 import { addToCart } from '@redux/slices/cartSlice';
-import { showSuccess, showError } from '@utils/notification';
+import { useMessage } from '@utils/notification';
 import { formatPrice } from '@utils/formatPrice';
 import Loading from '@components/common/Loading';
 import './ComboDetailPage.scss';
@@ -40,6 +40,7 @@ const ComboDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { message } = useMessage();
 
   const [combo, setCombo] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -60,7 +61,7 @@ const ComboDetailPage = () => {
         setIsAvailable(availabilityResponse.data.isAvailable);
       } catch (error) {
         console.error('Error fetching combo:', error);
-        showError('Không thể tải thông tin combo');
+        message.error('Không thể tải thông tin combo');
       } finally {
         setLoading(false);
       }
@@ -82,9 +83,9 @@ const ComboDetailPage = () => {
         })
       ).unwrap();
 
-      showSuccess('Đã thêm combo vào giỏ hàng!');
+      message.success('Đã thêm combo vào giỏ hàng!');
     } catch (error) {
-      showError(error || 'Không thể thêm vào giỏ hàng');
+      message.error(error || 'Không thể thêm vào giỏ hàng');
     }
   };
 
@@ -291,3 +292,4 @@ const ComboDetailPage = () => {
 };
 
 export default ComboDetailPage;
+

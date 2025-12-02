@@ -23,6 +23,7 @@ import {
   Avatar,
   Image,
 } from 'antd';
+import { useMessage } from '@utils/notification';
 import {
   PlusOutlined,
   EditOutlined,
@@ -39,6 +40,7 @@ import './PublisherManagementPage.scss';
 const { Title, Text } = Typography;
 
 const PublisherManagementPage = () => {
+  const { message } = useMessage();
   const [publishers, setPublishers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);

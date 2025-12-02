@@ -40,13 +40,14 @@ import {
   ProfileOutlined,
 } from '@ant-design/icons';
 import { logoutUser } from '@redux/slices/authSlice';
-import { showSuccess } from '@utils/notification';
+import { useMessage } from '@utils/notification';
 import './AdminLayout.scss';
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
 
 const AdminLayout = () => {
+  const { message } = useMessage();
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
@@ -62,7 +63,7 @@ const AdminLayout = () => {
    */
   const handleLogout = async () => {
     await dispatch(logoutUser());
-    showSuccess('Đăng xuất thành công');
+    message.success('Đăng xuất thành công');
     navigate('/admin/login');
   };
 

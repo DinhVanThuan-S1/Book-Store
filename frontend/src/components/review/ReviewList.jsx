@@ -11,7 +11,7 @@ import { LikeOutlined, LikeFilled, UserOutlined } from '@ant-design/icons';
 import { useSelector } from 'react-redux';
 import { reviewApi } from '@api';
 import { formatDate } from '@utils/formatDate';
-import { showError } from '@utils/notification';
+import { useMessage } from '@utils/notification';
 import Loading from '@components/common/Loading';
 import './ReviewList.scss';
 
@@ -23,6 +23,7 @@ const { Text } = Typography;
  * @param {String} props.bookId - ID sách
  */
 const ReviewList = ({ bookId }) => {
+  const { message } = useMessage();
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({
@@ -67,7 +68,7 @@ const ReviewList = ({ bookId }) => {
    */
   const handleLikeReview = async (reviewId) => {
     if (!isAuthenticated) {
-      showError('Vui lòng đăng nhập để thích đánh giá');
+      message.error('Vui lòng đăng nhập để thích đánh giá');
       return;
     }
 
@@ -93,7 +94,7 @@ const ReviewList = ({ bookId }) => {
         })
       );
     } catch (error) {
-      showError(error?.message || 'Không thể thích đánh giá');
+      message.error(error?.message || 'Không thể thích đánh giá');
     }
   };
 
