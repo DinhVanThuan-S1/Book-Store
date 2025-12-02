@@ -41,8 +41,7 @@ code {
   padding: 16px 24px !important;
   border-radius: 8px !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  background: #fff;
+  border: none !important;
   animation: slideInRight 0.3s ease-out;
 }
 
@@ -50,77 +49,87 @@ code {
 .ant-notification-notice-close {
   top: 16px !important;
   right: 16px !important;
-  color: rgba(0, 0, 0, 0.45);
   transition: all 0.3s;
 }
 
 .ant-notification-notice-close:hover {
-  color: rgba(0, 0, 0, 0.75);
   transform: rotate(90deg);
 }
 
 /* Success notification */
-.custom-notification-success .ant-notification-notice-icon {
-  font-size: 24px;
+.custom-notification-success .ant-notification-notice {
+  background: #52c41a !important;
 }
 
 .custom-notification-success .ant-notification-notice-message {
-  color: #52c41a;
+  color: #ffffff !important;
   font-weight: 600;
   font-size: 16px;
 }
 
-.custom-notification-success .ant-notification-notice-description {
-  color: rgba(0, 0, 0, 0.85);
-  font-size: 14px;
+.custom-notification-success .ant-notification-notice-close {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.custom-notification-success .ant-notification-notice-close:hover {
+  color: #ffffff !important;
 }
 
 /* Error notification */
-.custom-notification-error .ant-notification-notice-icon {
-  font-size: 24px;
+.custom-notification-error .ant-notification-notice {
+  background: #ff4d4f !important;
 }
 
 .custom-notification-error .ant-notification-notice-message {
-  color: #ff4d4f;
+  color: #ffffff !important;
   font-weight: 600;
   font-size: 16px;
 }
 
-.custom-notification-error .ant-notification-notice-description {
-  color: rgba(0, 0, 0, 0.85);
-  font-size: 14px;
+.custom-notification-error .ant-notification-notice-close {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.custom-notification-error .ant-notification-notice-close:hover {
+  color: #ffffff !important;
 }
 
 /* Warning notification */
-.custom-notification-warning .ant-notification-notice-icon {
-  font-size: 24px;
+.custom-notification-warning .ant-notification-notice {
+  background: #faad14 !important;
 }
 
 .custom-notification-warning .ant-notification-notice-message {
-  color: #faad14;
+  color: #ffffff !important;
   font-weight: 600;
   font-size: 16px;
 }
 
-.custom-notification-warning .ant-notification-notice-description {
-  color: rgba(0, 0, 0, 0.85);
-  font-size: 14px;
+.custom-notification-warning .ant-notification-notice-close {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.custom-notification-warning .ant-notification-notice-close:hover {
+  color: #ffffff !important;
 }
 
 /* Info notification */
-.custom-notification-info .ant-notification-notice-icon {
-  font-size: 24px;
+.custom-notification-info .ant-notification-notice {
+  background: #1890ff !important;
 }
 
 .custom-notification-info .ant-notification-notice-message {
-  color: #1890ff;
+  color: #ffffff !important;
   font-weight: 600;
   font-size: 16px;
 }
 
-.custom-notification-info .ant-notification-notice-description {
-  color: rgba(0, 0, 0, 0.85);
-  font-size: 14px;
+.custom-notification-info .ant-notification-notice-close {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.custom-notification-info .ant-notification-notice-close:hover {
+  color: #ffffff !important;
 }
 
 /* Animation */

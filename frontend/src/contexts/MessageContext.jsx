@@ -7,7 +7,6 @@
 
 import React, { createContext, useContext } from 'react';
 import { App } from 'antd';
-import { CheckCircleFilled, CloseCircleFilled, WarningFilled, InfoCircleFilled } from '@ant-design/icons';
 
 const MessageContext = createContext(null);
 
@@ -21,73 +20,79 @@ export const MessageProvider = ({ children }) => {
   const message = {
     success: (content, duration = 4) => {
       notification.success({
-        message: 'Thành công',
-        description: content,
+        message: content,
+        description: null,
         placement: 'topRight',
         duration,
-        icon: <CheckCircleFilled style={{ color: '#52c41a' }} />,
+        icon: null,
         className: 'custom-notification-success',
         style: {
           borderRadius: '8px',
-          boxShadow: '0 4px 12px rgba(82, 196, 26, 0.15)',
+          background: '#52c41a',
+          color: '#ffffff',
         },
       });
     },
 
     error: (content, duration = 5) => {
       notification.error({
-        message: 'Lỗi',
-        description: content,
+        message: content,
+        description: null,
         placement: 'topRight',
         duration,
-        icon: <CloseCircleFilled style={{ color: '#ff4d4f' }} />,
+        icon: null,
         className: 'custom-notification-error',
         style: {
           borderRadius: '8px',
-          boxShadow: '0 4px 12px rgba(255, 77, 79, 0.15)',
+          background: '#ff4d4f',
+          color: '#ffffff',
         },
       });
     },
 
     warning: (content, duration = 4) => {
       notification.warning({
-        message: 'Cảnh báo',
-        description: content,
+        message: content,
+        description: null,
         placement: 'topRight',
         duration,
-        icon: <WarningFilled style={{ color: '#faad14' }} />,
+        icon: null,
         className: 'custom-notification-warning',
         style: {
           borderRadius: '8px',
-          boxShadow: '0 4px 12px rgba(250, 173, 20, 0.15)',
+          background: '#faad14',
+          color: '#ffffff',
         },
       });
     },
 
     info: (content, duration = 4) => {
       notification.info({
-        message: 'Thông tin',
-        description: content,
+        message: content,
+        description: null,
         placement: 'topRight',
         duration,
-        icon: <InfoCircleFilled style={{ color: '#1890ff' }} />,
+        icon: null,
         className: 'custom-notification-info',
         style: {
           borderRadius: '8px',
-          boxShadow: '0 4px 12px rgba(24, 144, 255, 0.15)',
+          background: '#1890ff',
+          color: '#ffffff',
         },
       });
     },
 
     loading: (content, duration = 0) => {
       return notification.info({
-        message: 'Đang xử lý',
-        description: content,
+        message: content,
+        description: null,
         placement: 'topRight',
         duration,
-        icon: <InfoCircleFilled style={{ color: '#1890ff' }} />,
+        icon: null,
         style: {
           borderRadius: '8px',
+          background: '#1890ff',
+          color: '#ffffff',
         },
       });
     },
