@@ -18,6 +18,7 @@ const {
   createBook,
   updateBook,
   deleteBook,
+  toggleBookStatus,
   addBookCopies,
   getBookCopies,
 } = require('../controllers/bookController');
@@ -182,6 +183,18 @@ router.delete(
   param('id').isMongoId().withMessage('Invalid book ID'),
   validate,
   deleteBook
+);
+
+// @route   PATCH /api/books/:id/toggle-status
+// @desc    Toggle trạng thái active/inactive của sách
+// @access  Private/Admin
+router.patch(
+  '/:id/toggle-status',
+  protect,
+  adminOnly,
+  param('id').isMongoId().withMessage('Invalid book ID'),
+  validate,
+  toggleBookStatus
 );
 
 // @route   POST /api/books/:id/copies

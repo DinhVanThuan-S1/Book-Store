@@ -38,6 +38,7 @@ import {
   SearchOutlined,
   PlusCircleOutlined,
   EyeOutlined,
+  EyeInvisibleOutlined,
 } from '@ant-design/icons';
 import { bookApi, categoryApi, authorApi, publisherApi, uploadApi } from '@api';
 import { formatPrice } from '@utils/formatPrice';
@@ -69,6 +70,7 @@ const BookManagementPage = () => {
   const [filters, setFilters] = useState({
     search: '',
     category: null,
+    sortBy: '-createdAt', // Mặc định: sách mới thêm
   });
 
   // Modal states
@@ -112,6 +114,7 @@ const BookManagementPage = () => {
       const params = {
         page,
         limit: pagination.pageSize,
+        includeInactive: true, // Admin xem tất cả sách (kể cả inactive)
         ...filters,
       };
 
@@ -275,10 +278,64 @@ const BookManagementPage = () => {
   };
 
   /**
-   * Handle table change
+   * Handle sort change
+   */
+  const handleSortChange = (value) => {
+    setFilters({ ...filters, sortBy: value });
+  };
+
+  /**
+   * Handle table change (pagination + pageSize)
    */
   const handleTableChange = (newPagination) => {
-    fetchBooks(newPagination.current);
+    // Nếu thay đổi pageSize, reset về trang 1
+    if (newPagination.pageSize !== pagination.pageSize) {
+      setPagination({
+        ...pagination,
+        current: 1,
+        pageSize: newPagination.pageSize,
+      });
+      // Gọi API với trang 1 và pageSize mới
+      fetchBooksWithPageSize(1, newPagination.pageSize);
+    } else {
+      // Chỉ thay đổi trang
+      setPagination({
+        ...pagination,
+        current: newPagination.current,
+      });
+      fetchBooks(newPagination.current);
+    }
+  };
+
+  /**
+   * Fetch books với pageSize tùy chỉnh
+   */
+  const fetchBooksWithPageSize = async (page = 1, pageSize = pagination.pageSize) => {
+    try {
+      setLoading(true);
+
+      const params = {
+        page,
+        limit: pageSize,
+        includeInactive: true,
+        ...filters,
+      };
+
+      const response = await bookApi.getBooks(params);
+
+      setBooks(response.data.books);
+      setPagination({
+        ...pagination,
+        current: response.data.pagination.page,
+        pageSize: pageSize,
+        total: response.data.pagination.total,
+      });
+    } catch (error) {
+      console.error('Error fetching books:', error);
+      showError('Không thể tải danh sách sách');
+    } finally {
+      setLoading(false);
+    }
   };
 
   /**
@@ -351,6 +408,16 @@ const BookManagementPage = () => {
         showError('Vui lòng upload ít nhất 1 ảnh');
         setSavingBook(false);
         return;
+      }
+
+      // Validate ISBN format if provided
+      if (values.isbn) {
+        const isbnClean = values.isbn.replace(/[-\s]/g, ''); // Remove dashes and spaces
+        if (isbnClean.length < 10 || isbnClean.length > 13) {
+          showError('ISBN phải có 10-13 ký tự số');
+          setSavingBook(false);
+          return;
+        }
       }
 
       // Prepare book data
@@ -479,6 +546,23 @@ const BookManagementPage = () => {
   };
 
   /**
+   * Handle toggle book status (active/inactive)
+   */
+  const handleToggleStatus = async (book) => {
+    try {
+      await bookApi.toggleBookStatus(book._id);
+      showSuccess(
+        book.isActive
+          ? 'Đã ẩn sách khỏi trang client'
+          : 'Đã hiển thị sách trên trang client'
+      );
+      fetchBooks(pagination.current);
+    } catch (error) {
+      showError(error?.response?.data?.message || 'Không thể thay đổi trạng thái');
+    }
+  };
+
+  /**
    * Handle view book detail
    */
   const handleViewDetail = (book) => {
@@ -520,6 +604,7 @@ const BookManagementPage = () => {
       title: 'Tên sách',
       dataIndex: 'title',
       key: 'title',
+      width: 270,
       render: (title, record) => (
         <div>
           <div style={{ fontWeight: 600, marginBottom: 4 }}>{title}</div>
@@ -538,6 +623,7 @@ const BookManagementPage = () => {
       title: 'Danh mục',
       dataIndex: 'category',
       key: 'category',
+      width: 140,
       render: (category) => (
         <Tag color="blue">{category?.name}</Tag>
       ),
@@ -621,7 +707,7 @@ const BookManagementPage = () => {
     {
       title: 'Thao tác',
       key: 'actions',
-      width: 280,
+      width: 330,
       fixed: 'right',
       render: (_, record) => (
         <Space size="small">
@@ -642,6 +728,13 @@ const BookManagementPage = () => {
           >
             Nhập
           </Button>
+          <Button
+            type={record.isActive ? 'default' : 'primary'}
+            size="small"
+            icon={record.isActive ? <EyeInvisibleOutlined /> : <EyeOutlined />}
+            onClick={() => handleToggleStatus(record)}
+            title={record.isActive ? 'Ẩn khỏi client' : 'Hiển thị trên client'}
+          />
           <Button
             type="default"
             size="small"
@@ -671,7 +764,7 @@ const BookManagementPage = () => {
       <div className="page-header">
         <Title level={2}>Quản lý sách</Title>
         <Text type="secondary">
-          Tổng số: {pagination.total} sách
+          Tổng : {pagination.total} sách
         </Text>
       </div>
 
@@ -679,7 +772,7 @@ const BookManagementPage = () => {
       <div className="toolbar">
         <Space size="middle" wrap>
           <Search
-            placeholder="Tìm kiếm sách (tên, tác giả, ISBN)..."
+            placeholder="Tìm kiếm sách ( Tên hoặc ISBN )..."
             allowClear
             enterButton={<SearchOutlined />}
             onSearch={handleSearch}
@@ -697,6 +790,23 @@ const BookManagementPage = () => {
                 value: cat._id,
                 label: cat.name,
               })),
+            ]}
+          />
+
+          <Select
+            placeholder="Sắp xếp theo"
+            value={filters.sortBy}
+            onChange={handleSortChange}
+            style={{ width: 180 }}
+            options={[
+              { value: '-createdAt', label: 'Sách mới thêm' },
+              { value: 'createdAt', label: 'Sách thêm lâu' },
+              { value: 'title', label: 'Tên A-Z' },
+              { value: '-title', label: 'Tên Z-A' },
+              { value: 'salePrice', label: 'Giá thấp đến cao' },
+              { value: '-salePrice', label: 'Giá cao đến thấp' },
+              { value: '-availableCopies', label: 'Tồn kho nhiều' },
+              { value: 'availableCopies', label: 'Tồn kho ít' },
             ]}
           />
         </Space>
@@ -921,6 +1031,13 @@ const BookManagementPage = () => {
               <Form.Item
                 name="isbn"
                 label="ISBN"
+                rules={[
+                  {
+                    pattern: /^[0-9-]{10,17}$/,
+                    message: 'ISBN phải có 10-13 ký tự số (có thể có dấu gạch ngang)'
+                  }
+                ]}
+                tooltip="ISBN-10 (10 số) hoặc ISBN-13 (13 số), có thể có dấu gạch ngang"
               >
                 <Input placeholder="Nhập mã ISBN (không bắt buộc)" />
               </Form.Item>
@@ -1017,7 +1134,7 @@ const BookManagementPage = () => {
 
               {/* Display calculated sale price */}
               {originalPrice && (
-                <Form.Item label="Giá bán (tự động tính)">
+                <Form.Item label="Giá bán">
                   <Input
                     value={formatPrice(salePrice || originalPrice)}
                     disabled
@@ -1049,9 +1166,20 @@ const BookManagementPage = () => {
           </Form.Item>
 
           <Form.Item
+            name="images"
             label="Hình ảnh sách"
             required
             tooltip="Ít nhất 1 ảnh là bắt buộc"
+            rules={[
+              {
+                validator: () => {
+                  if (fileList.length === 0) {
+                    return Promise.reject(new Error('Vui lòng nhập ảnh!'));
+                  }
+                  return Promise.resolve();
+                }
+              }
+            ]}
           >
             <Upload
               listType="picture-card"
@@ -1287,12 +1415,12 @@ const BookManagementPage = () => {
                 </Tag>
               </Descriptions.Item>
 
-              <Descriptions.Item label="Đã bán (bản sao)">
+              <Descriptions.Item label="Đã bán">
                 <Text strong style={{ fontSize: 16, color: '#f5222d' }}>
                   {selectedBook.soldCopies || 0} quyển
                 </Text>
               </Descriptions.Item>
-              <Descriptions.Item label="Lượt mua (đơn hàng)">
+              <Descriptions.Item label="Lượt mua">
                 <Text strong style={{ fontSize: 16, color: '#1890ff' }}>
                   {selectedBook.purchaseCount || 0}
                 </Text>

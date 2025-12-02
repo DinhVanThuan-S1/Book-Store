@@ -26,10 +26,16 @@ const getBooks = asyncHandler(async (req, res) => {
     maxPrice,
     search,
     sortBy = '-createdAt', // Mặc định: mới nhất
+    includeInactive = false, // Admin có thể xem tất cả
   } = req.query;
   
   // Build query
-  const query = { isActive: true };
+  const query = {};
+  
+  // Filter theo isActive (mặc định chỉ lấy active, admin có thể tắt filter này)
+  if (includeInactive !== 'true' && includeInactive !== true) {
+    query.isActive = true;
+  }
   
   // Filter theo category
   if (category) {
@@ -53,25 +59,36 @@ const getBooks = asyncHandler(async (req, res) => {
     if (maxPrice) query.salePrice.$lte = Number(maxPrice);
   }
   
-  // Search theo tên sách (full-text search)
-  if (search) {
-    query.$text = { $search: search };
+  // Search theo tên sách hoặc ISBN (partial match, case-insensitive)
+  if (search && search.trim()) {
+    const searchRegex = new RegExp(search.trim(), 'i');
+    query.$or = [
+      { title: searchRegex },
+      { isbn: searchRegex }
+    ];
   }
+  
+  // Đếm tổng số sách trước (để tránh sai lệch pagination)
+  const total = await Book.countDocuments(query);
   
   // Pagination
   const { skip, limit: limitNum } = paginate(page, limit);
+  
+  // Chuẩn bị sort order - thêm _id để đảm bảo thứ tự ổn định
+  let sortOrder = sortBy;
+  // Nếu sortBy không chứa _id, thêm _id vào cuối để tránh trùng lặp khi phân trang
+  if (!sortBy.includes('_id')) {
+    sortOrder = `${sortBy} _id`;
+  }
   
   // Execute query
   const books = await Book.find(query)
     .populate('author', 'name')
     .populate('publisher', 'name')
     .populate('category', 'name slug')
-    .sort(sortBy)
+    .sort(sortOrder)
     .skip(skip)
     .limit(limitNum);
-  
-  // Đếm tổng số sách
-  const total = await Book.countDocuments(query);
   
   res.status(200).json({
     success: true,
@@ -274,6 +291,35 @@ const deleteBook = asyncHandler(async (req, res) => {
 });
 
 /**
+ * @desc    Toggle trạng thái active/inactive của sách
+ * @route   PATCH /api/books/:id/toggle-status
+ * @access  Private/Admin
+ */
+const toggleBookStatus = asyncHandler(async (req, res) => {
+  const book = await Book.findById(req.params.id);
+  
+  if (!book) {
+    return res.status(404).json({
+      success: false,
+      message: 'Book not found',
+    });
+  }
+  
+  // Toggle isActive
+  book.isActive = !book.isActive;
+  await book.save();
+  
+  // Populate để trả về thông tin đầy đủ
+  await book.populate('author publisher category');
+  
+  res.status(200).json({
+    success: true,
+    message: `Book ${book.isActive ? 'activated' : 'deactivated'} successfully`,
+    data: { book },
+  });
+});
+
+/**
  * @desc    Thêm bản sao sách (Admin)
  * @route   POST /api/admin/books/:id/copies
  * @access  Private/Admin
@@ -354,6 +400,7 @@ module.exports = {
   createBook,
   updateBook,
   deleteBook,
+  toggleBookStatus,
   addBookCopies,
   getBookCopies,
 };

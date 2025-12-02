@@ -69,7 +69,7 @@ const DashboardPage = () => {
    */
   const fillMissingDates = (chartData) => {
     const today = dayjs();
-    const startDate = today.subtract(29, 'days'); // 30 days including today
+    const startDate = today.subtract(30, 'days').startOf('day'); // Exactly 30 days including today
     const result = [];
     const dataMap = {};
 
@@ -78,15 +78,15 @@ const DashboardPage = () => {
       dataMap[item._id] = item;
     });
 
-    // Generate all dates in range
+    // Generate all dates in range (30 days total)
     let currentDate = startDate;
 
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 31; i++) {
       const dateKey = currentDate.format('YYYY-MM-DD');
       let displayDate;
 
       // Add year to first and last date
-      if (i === 0 || i === 29) {
+      if (i === 0 || i === 30) {
         displayDate = currentDate.format('DD/MM/YYYY');
       } else {
         displayDate = currentDate.format('DD/MM');
@@ -315,7 +315,10 @@ const DashboardPage = () => {
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={revenueData}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="displayDate" />
+                  <XAxis
+                    dataKey="displayDate"
+                    interval="preserveStartEnd"
+                  />
                   <YAxis />
                   <Tooltip
                     formatter={(value) => formatPrice(value)}

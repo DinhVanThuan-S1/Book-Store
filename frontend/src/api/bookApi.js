@@ -64,6 +64,15 @@ export const deleteBook = (id) => {
 };
 
 /**
+ * Toggle trạng thái active/inactive của sách (Admin)
+ * @param {String} id - Book ID
+ * @returns {Promise}
+ */
+export const toggleBookStatus = (id) => {
+  return axiosInstance.patch(`/books/${id}/toggle-status`);
+};
+
+/**
  * Thêm bản sao sách (Admin)
  * @param {String} id - Book ID
  * @param {Object} data - { quantity, importPrice, condition }
@@ -80,6 +89,7 @@ const bookApi = {
   createBook,
   updateBook,
   deleteBook,
+  toggleBookStatus,
   addBookCopies,
 };
 
