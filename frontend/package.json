@@ -12,6 +12,7 @@
   "dependencies": {
     "@ant-design/icons": "^6.1.0",
     "@reduxjs/toolkit": "^2.9.2",
+    "@tinymce/tinymce-react": "^6.3.0",
     "antd": "^5.27.6",
     "axios": "^1.13.1",
     "dayjs": "^1.11.19",

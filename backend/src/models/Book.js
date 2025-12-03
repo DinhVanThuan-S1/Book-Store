@@ -79,15 +79,10 @@ const bookSchema = new mongoose.Schema({
     default: 'paperback',
   },
   
-  // Mô tả ngắn
+  // Mô tả sách (HTML - hỗ trợ rich text editor)
   description: {
     type: String,
-    maxlength: 2000,
-  },
-  
-  // Mô tả đầy đủ (HTML)
-  fullDescription: {
-    type: String,
+    required: [true, 'Description is required'],
   },
   
   // Danh sách ảnh

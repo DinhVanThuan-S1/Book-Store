@@ -234,7 +234,7 @@ const ComboManagementPage = () => {
       title: 'Sách trong combo',
       dataIndex: 'books',
       key: 'books',
-      width: 300,
+      width: 350,
       render: (books) => (
         <div>
           {books.slice(0, 2).map((item, index) => (

@@ -40,6 +40,7 @@ import {
   EyeOutlined,
   EyeInvisibleOutlined,
 } from '@ant-design/icons';
+import { Editor } from '@tinymce/tinymce-react';
 import { bookApi, categoryApi, authorApi, publisherApi, uploadApi } from '@api';
 import { formatPrice } from '@utils/formatPrice';
 import { useMessage } from '@utils/notification';
@@ -83,6 +84,7 @@ const BookManagementPage = () => {
   const [addingCopies, setAddingCopies] = useState(false);
   const [savingBook, setSavingBook] = useState(false);
   const [fileList, setFileList] = useState([]);
+  const [editorContent, setEditorContent] = useState(''); // ✅ State riêng cho TinyMCE
 
   const [copiesForm] = Form.useForm();
   const [bookForm] = Form.useForm();
@@ -345,6 +347,7 @@ const BookManagementPage = () => {
   const handleCreateBook = () => {
     setEditingBook(null);
     setFileList([]);
+    setEditorContent(''); // ✅ Reset editor content
     bookForm.resetFields();
     bookForm.setFieldsValue({
       discountPercent: 0,
@@ -362,6 +365,9 @@ const BookManagementPage = () => {
     const calculatedDiscount = book.originalPrice > 0
       ? Math.round(((book.originalPrice - book.salePrice) / book.originalPrice) * 100)
       : 0;
+
+    // ✅ Set editor content trước
+    setEditorContent(book.description || '');
 
     // Set form values
     bookForm.setFieldsValue({
@@ -438,7 +444,15 @@ const BookManagementPage = () => {
       if (values.pages) bookData.pages = values.pages;
       if (values.bookLanguage) bookData.bookLanguage = values.bookLanguage;
       if (values.format) bookData.format = values.format;
-      if (values.description) bookData.description = values.description;
+
+      // ✅ Sử dụng editorContent state thay vì values.description
+      if (editorContent && typeof editorContent === 'string') {
+        bookData.description = editorContent;
+      } else if (!editorContent) {
+        message.error('Vui lòng nhập mô tả sách!');
+        setSavingBook(false);
+        return;
+      }
 
       // ✅ Add discountPercent để backend tính toán và lưu
       if (values.discountPercent !== undefined && values.discountPercent !== null) {
@@ -460,6 +474,7 @@ const BookManagementPage = () => {
       // Reset and close
       bookForm.resetFields();
       setFileList([]);
+      setEditorContent(''); // ✅ Reset editor content
       setBookFormModalVisible(false);
       setEditingBook(null);
 
@@ -605,7 +620,7 @@ const BookManagementPage = () => {
       title: 'Tên sách',
       dataIndex: 'title',
       key: 'title',
-      width: 270,
+      width: 285,
       render: (title, record) => (
         <div>
           <div style={{ fontWeight: 600, marginBottom: 4 }}>{title}</div>
@@ -624,7 +639,7 @@ const BookManagementPage = () => {
       title: 'Danh mục',
       dataIndex: 'category',
       key: 'category',
-      width: 140,
+      width: 150,
       render: (category) => (
         <Tag color="blue">{category?.name}</Tag>
       ),
@@ -951,6 +966,7 @@ const BookManagementPage = () => {
           setBookFormModalVisible(false);
           bookForm.resetFields();
           setFileList([]);
+          setEditorContent(''); // ✅ Reset editor content
           setEditingBook(null);
         }}
         footer={null}
@@ -1160,9 +1176,29 @@ const BookManagementPage = () => {
             label="Mô tả sách"
             rules={[{ required: true, message: 'Vui lòng nhập mô tả!' }]}
           >
-            <TextArea
-              rows={4}
-              placeholder="Nhập mô tả ngắn gọn về sách..."
+            <Editor
+              apiKey="flm7teaqw55qujnr8m9l8gbrooevauzrqvyesv4aljpmmqrs"
+              init={{
+                height: 400,
+                menubar: false,
+                plugins: [
+                  'lists', 'link', 'code', 'table',
+                  'wordcount', 'fullscreen'
+                ],
+                toolbar: 'undo redo | formatselect | bold italic underline strikethrough | ' +
+                  'alignleft aligncenter alignright alignjustify | ' +
+                  'bullist numlist | link | removeformat | code fullscreen',
+                content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 14px; line-height: 1.8; text-align: justify; } p { text-align: justify; }',
+                language: 'vi',
+                placeholder: 'Nhập mô tả chi tiết về sách...',
+                branding: false,
+                promotion: false,
+              }}
+              value={editorContent}
+              onEditorChange={(content) => {
+                setEditorContent(content);
+                bookForm.setFieldsValue({ description: content });
+              }}
             />
           </Form.Item>
 
@@ -1283,6 +1319,7 @@ const BookManagementPage = () => {
                   setBookFormModalVisible(false);
                   bookForm.resetFields();
                   setFileList([]);
+                  setEditorContent(''); // ✅ Reset editor content
                   setEditingBook(null);
                 }}
               >
@@ -1440,16 +1477,11 @@ const BookManagementPage = () => {
               </Descriptions.Item>
 
               {selectedBook.description && (
-                <Descriptions.Item label="Mô tả ngắn" span={2}>
-                  <div style={{ whiteSpace: 'pre-wrap' }}>
-                    {selectedBook.description}
-                  </div>
-                </Descriptions.Item>
-              )}
-
-              {selectedBook.fullDescription && (
-                <Descriptions.Item label="Mô tả chi tiết" span={2}>
-                  <div dangerouslySetInnerHTML={{ __html: selectedBook.fullDescription }} />
+                <Descriptions.Item label="Mô tả sách" span={2}>
+                  <div
+                    className="book-description-content"
+                    dangerouslySetInnerHTML={{ __html: selectedBook.description }}
+                  />
                 </Descriptions.Item>
               )}
             </Descriptions>

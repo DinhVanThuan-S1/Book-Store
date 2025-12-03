@@ -278,17 +278,10 @@ const BookDetailPage = () => {
       label: 'Mô tả sản phẩm',
       children: (
         <div className="tab-content">
-          {book.fullDescription ? (
-            <div
-              className="full-description"
-              dangerouslySetInnerHTML={{
-                __html: book.
-                  description
-              }}
-            />
-          ) : (
-            <Paragraph>{book.description}</Paragraph>
-          )}
+          <div
+            className="book-description-content"
+            dangerouslySetInnerHTML={{ __html: book.description }}
+          />
         </div>
       ),
     },

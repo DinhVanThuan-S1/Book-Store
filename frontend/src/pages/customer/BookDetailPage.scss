@@ -146,38 +146,77 @@
     padding: $spacing-lg 0;
     min-height: 300px;
     
-    .full-description {
+    .book-description-content {
       line-height: 1.8;
       color: $text-primary;
+      text-align: justify;
       
       h1, h2, h3, h4, h5, h6 {
         margin-top: $spacing-xl;
         margin-bottom: $spacing-md;
         color: $text-primary;
+        text-align: left;
+        font-weight: 600;
       }
+      
+      h1 { font-size: 28px; }
+      h2 { font-size: 24px; }
+      h3 { font-size: 20px; }
       
       p {
         margin-bottom: $spacing-md;
+        text-align: justify;
       }
       
-      img {
-        max-width: 100%;
-        height: auto;
-        border-radius: $radius-md;
-        margin: $spacing-lg 0;
+      strong {
+        font-weight: 600;
+      }
+      
+      em {
+        font-style: italic;
+      }
+      
+      u {
+        text-decoration: underline;
+      }
+      
+      s, strike {
+        text-decoration: line-through;
       }
       
       ul, ol {
         margin-left: $spacing-lg;
         margin-bottom: $spacing-md;
+        padding-left: $spacing-md;
+        
+        li {
+          margin-bottom: 8px;
+        }
       }
       
-      blockquote {
-        border-left: 4px solid $primary-color;
-        padding-left: $spacing-md;
-        margin: $spacing-lg 0;
-        color: $text-secondary;
-        font-style: italic;
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 16px 0;
+        
+        th, td {
+          border: 1px solid #e8e8e8;
+          padding: 8px 12px;
+        }
+        
+        th {
+          background: #fafafa;
+          font-weight: 600;
+        }
+      }
+      
+      a {
+        color: $primary-color;
+        text-decoration: none;
+        
+        &:hover {
+          text-decoration: underline;
+        }
       }
     }
   }
