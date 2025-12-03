@@ -15,6 +15,23 @@ import { useMessage } from '@utils/notification';
 import './RegisterForm.scss';
 
 /**
+ * Chuyển đổi thông báo lỗi sang tiếng Việt
+ */
+const getVietnameseErrorMessage = (error) => {
+  const errorMap = {
+    'Email already exists': 'Email này đã được sử dụng',
+    'Phone number already exists': 'Số điện thoại này đã được sử dụng',
+    'User already exists': 'Tài khoản đã tồn tại',
+    'Invalid email format': 'Định dạng email không hợp lệ',
+    'Password must be at least 6 characters': 'Mật khẩu phải có ít nhất 6 ký tự',
+    'Network error. Please check your connection.': 'Lỗi kết nối. Vui lòng kiểm tra mạng.',
+    'Something went wrong': 'Có lỗi xảy ra. Vui lòng thử lại.',
+  };
+
+  return errorMap[error] || error;
+};
+
+/**
  * RegisterForm Component
  */
 const RegisterForm = () => {
@@ -22,6 +39,7 @@ const RegisterForm = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [loading, setLoading] = useState(false);
+  const [registerError, setRegisterError] = useState(null);
   const [form] = Form.useForm();
 
   /**
@@ -30,6 +48,7 @@ const RegisterForm = () => {
   const onFinish = async (values) => {
     try {
       setLoading(true);
+      setRegisterError(null); // Reset error
 
       // Xóa confirmPassword trước khi gửi
       const { confirmPassword, ...registerData } = values;
@@ -39,7 +58,15 @@ const RegisterForm = () => {
       message.success('Đăng ký thành công! Vui lòng đăng nhập.');
       navigate('/login');
     } catch (error) {
-      message.error(error || 'Đăng ký thất bại. Vui lòng thử lại.');
+      // Bắt error message từ nhiều nguồn
+      console.log('Register error object:', error);
+      const errorMsg = typeof error === 'string'
+        ? error
+        : (error?.message || 'Đăng ký thất bại. Vui lòng thử lại.');
+
+      const errorMessage = getVietnameseErrorMessage(errorMsg);
+      setRegisterError(errorMessage);
+      message.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -60,6 +87,22 @@ const RegisterForm = () => {
         layout="vertical"
         scrollToFirstError
       >
+        {/* Error Alert */}
+        {registerError && (
+          <div className="register-error-alert" style={{
+            padding: '12px 16px',
+            marginBottom: '16px',
+            background: '#fff2f0',
+            border: '1px solid #ffccc7',
+            borderRadius: '8px',
+            color: '#cf1322',
+            fontSize: '14px',
+            lineHeight: '1.5'
+          }}>
+            ⚠️ {registerError}
+          </div>
+        )}
+
         {/* Full Name */}
         <Form.Item
           name="fullName"
@@ -68,6 +111,7 @@ const RegisterForm = () => {
             { required: true, message: 'Vui lòng nhập họ tên!' },
             { min: 2, message: 'Họ tên phải có ít nhất 2 ký tự!' },
           ]}
+          validateStatus={registerError ? 'error' : ''}
         >
           <Input
             prefix={<UserOutlined />}
@@ -83,6 +127,7 @@ const RegisterForm = () => {
             { required: true, message: 'Vui lòng nhập email!' },
             { type: 'email', message: 'Email không hợp lệ!' },
           ]}
+          validateStatus={registerError ? 'error' : ''}
         >
           <Input
             prefix={<MailOutlined />}
@@ -101,6 +146,7 @@ const RegisterForm = () => {
               message: 'Số điện thoại không hợp lệ (10-11 số)!',
             },
           ]}
+          validateStatus={registerError ? 'error' : ''}
         >
           <Input
             prefix={<PhoneOutlined />}
@@ -117,6 +163,7 @@ const RegisterForm = () => {
             { min: 6, message: 'Mật khẩu phải có ít nhất 6 ký tự!' },
           ]}
           hasFeedback
+          validateStatus={registerError ? 'error' : ''}
         >
           <Input.Password
             prefix={<LockOutlined />}
@@ -141,6 +188,7 @@ const RegisterForm = () => {
               },
             }),
           ]}
+          validateStatus={registerError ? 'error' : ''}
         >
           <Input.Password
             prefix={<LockOutlined />}

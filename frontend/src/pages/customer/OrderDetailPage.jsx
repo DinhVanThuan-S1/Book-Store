@@ -273,13 +273,17 @@ const OrderDetailPage = () => {
               </Col>
               <Col>
                 <Space size="middle" align="center">
-                  <Space direction="vertical" size="small" align="center">
+                  <Space size="small" align="center">
                     <Tag className="order-status-tag" color={ORDER_STATUS_COLORS[order.status]}>
                       {ORDER_STATUS_LABELS[order.status]}
                     </Tag>
                     {/* ✅ Hiển thị thông báo chờ xác nhận hoàn trả */}
                     {order.returnRequestedAt && order.status === ORDER_STATUS.DELIVERED && (
-                      <Tag color="orange" style={{ fontSize: 12 }}>
+                      <Tag
+                        color="orange"
+                        className="order-status-tag"
+                        style={{ marginLeft: 8 }}
+                      >
                         ⚠️ Đã yêu cầu hoàn trả
                       </Tag>
                     )}

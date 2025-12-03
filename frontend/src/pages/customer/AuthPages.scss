@@ -1,14 +1,18 @@
 @import '@styles/variables.scss';
 
 .auth-page {
-  min-height: 100vh;
+  min-height: calc(100vh - 60px); // Trừ đi chiều cao header
   background: linear-gradient(135deg, $primary-color 0%, $primary-dark 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   
   .auth-content {
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: $spacing-2xl;
+    padding: $spacing-xl $spacing-2xl;
+    width: 100%;
   }
   
   .auth-container {
@@ -18,5 +22,11 @@
     box-shadow: $shadow-xl;
     width: 100%;
     max-width: 500px;
+  }
+  
+  // Remove margin-top from footer on auth pages
+  & ~ .footer,
+  & + .footer {
+    margin-top: 0 !important;
   }
 }

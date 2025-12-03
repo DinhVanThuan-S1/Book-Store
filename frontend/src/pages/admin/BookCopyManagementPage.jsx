@@ -23,7 +23,7 @@ import {
   Statistic,
   Dropdown,
   Menu,
-  Modal,
+  App,
 } from 'antd';
 import {
   SearchOutlined,
@@ -44,6 +44,7 @@ const { Search } = Input;
 const { RangePicker } = DatePicker;
 
 const BookCopyManagementPage = () => {
+  const { modal } = App.useApp();
   const { message } = useMessage();
   const [bookCopies, setBookCopies] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -244,20 +245,38 @@ const BookCopyManagementPage = () => {
   /**
    * Handle change status
    */
-  const handleChangeStatus = async (bookCopyId, newStatus) => {
-    Modal.confirm({
+  const handleChangeStatus = (bookCopyId, newStatus) => {
+    modal.confirm({
       title: 'Xác nhận chuyển trạng thái',
       content: `Bạn có chắc chắn muốn chuyển trạng thái bản sao này?`,
       okText: 'Xác nhận',
       cancelText: 'Hủy',
       onOk: async () => {
         try {
-          await bookCopyApi.updateBookCopyStatus(bookCopyId, newStatus);
-          message.success('Cập nhật trạng thái thành công');
-          fetchBookCopies(pagination.current);
+          const response = await bookCopyApi.updateBookCopyStatus(bookCopyId, newStatus);
+
+          if (response?.success) {
+            message.success('Cập nhật trạng thái thành công');
+
+            // Cập nhật trực tiếp state để UI phản hồi ngay lập tức
+            setBookCopies(prevCopies =>
+              prevCopies.map(copy =>
+                copy._id === bookCopyId
+                  ? { ...copy, status: newStatus }
+                  : copy
+              )
+            );
+
+            // Fetch lại để cập nhật stats và đảm bảo data sync
+            setTimeout(() => {
+              fetchBookCopies(pagination.current);
+            }, 300);
+          } else {
+            message.error('Không thể cập nhật trạng thái');
+          }
         } catch (error) {
           console.error('Error updating status:', error);
-          message.error(error?.message || 'Không thể cập nhật trạng thái');
+          message.error(error.message || 'Không thể cập nhật trạng thái');
         }
       },
     });

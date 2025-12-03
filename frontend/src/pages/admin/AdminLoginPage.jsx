@@ -19,11 +19,30 @@ import './AdminLoginPage.scss';
 const { Content } = Layout;
 const { Title, Text } = Typography;
 
+/**
+ * Chuyển đổi thông báo lỗi sang tiếng Việt
+ */
+const getVietnameseErrorMessage = (error) => {
+  const errorMap = {
+    'Invalid email or password': 'Email hoặc mật khẩu không đúng',
+    'Account has been deactivated': 'Tài khoản đã bị vô hiệu hóa',
+    'User not found': 'Không tìm thấy tài khoản',
+    'Invalid credentials': 'Thông tin đăng nhập không chính xác',
+    'Admin not found': 'Không tìm thấy tài khoản quản trị',
+    'Access denied': 'Truy cập bị từ chối',
+    'Network error. Please check your connection.': 'Lỗi kết nối. Vui lòng kiểm tra mạng.',
+    'Something went wrong': 'Có lỗi xảy ra. Vui lòng thử lại.',
+  };
+
+  return errorMap[error] || error;
+};
+
 const AdminLoginPage = () => {
   const { message } = useMessage();
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [loading, setLoading] = useState(false);
+  const [loginError, setLoginError] = useState(null);
 
   /**
    * Handle login
@@ -31,13 +50,22 @@ const AdminLoginPage = () => {
   const onFinish = async (values) => {
     try {
       setLoading(true);
+      setLoginError(null); // Reset error
 
       const result = await dispatch(loginAdmin(values)).unwrap();
 
-      message.success('Đăng nhập thành công!');
+      message.success('Đăng nhập thành công!', result);
       navigate('/admin');
     } catch (error) {
-      message.error(error || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
+      // Bắt error message từ nhiều nguồn
+      console.log('Admin login error object:', error);
+      const errorMsg = typeof error === 'string'
+        ? error
+        : (error?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
+
+      const errorMessage = getVietnameseErrorMessage(errorMsg);
+      setLoginError(errorMessage);
+      message.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -70,6 +98,22 @@ const AdminLoginPage = () => {
             layout="vertical"
             className="login-form"
           >
+            {/* Error Alert */}
+            {loginError && (
+              <div className="login-error-alert" style={{
+                padding: '12px 16px',
+                marginBottom: '16px',
+                background: '#fff2f0',
+                border: '1px solid #ffccc7',
+                borderRadius: '8px',
+                color: '#cf1322',
+                fontSize: '14px',
+                lineHeight: '1.5'
+              }}>
+                ⚠️ {loginError}
+              </div>
+            )}
+
             <Form.Item
               name="email"
               label="Email"
@@ -77,6 +121,7 @@ const AdminLoginPage = () => {
                 { required: true, message: 'Vui lòng nhập email!' },
                 { type: 'email', message: 'Email không hợp lệ!' },
               ]}
+              validateStatus={loginError ? 'error' : ''}
             >
               <Input
                 prefix={<UserOutlined />}
@@ -90,6 +135,7 @@ const AdminLoginPage = () => {
               rules={[
                 { required: true, message: 'Vui lòng nhập mật khẩu!' },
               ]}
+              validateStatus={loginError ? 'error' : ''}
             >
               <Input.Password
                 prefix={<LockOutlined />}

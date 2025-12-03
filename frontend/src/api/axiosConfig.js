@@ -61,10 +61,16 @@ axiosInstance.interceptors.response.use(
       
       // 401: Unauthorized - Token hết hạn hoặc không hợp lệ
       if (status === 401) {
-        // Xóa token và redirect to login
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        window.location.href = '/login';
+        // Chỉ redirect về login nếu KHÔNG PHẢI đang ở trang login/register
+        const isAuthPage = window.location.pathname.includes('/login') || 
+                          window.location.pathname.includes('/register');
+        
+        if (!isAuthPage) {
+          // Token hết hạn - xóa và redirect
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          window.location.href = '/login';
+        }
       }
       
       // 403: Forbidden - Không có quyền truy cập
@@ -72,21 +78,21 @@ axiosInstance.interceptors.response.use(
         console.error('Access denied');
       }
       
-      // Trả về error message từ server
-      return Promise.reject({
-        message: data.message || 'Something went wrong',
-        errors: data.errors || [],
-      });
+      // Tạo error object với structure nhất quán
+      const errorObj = new Error(data.message || 'Something went wrong');
+      errorObj.response = error.response;
+      errorObj.data = data;
+      errorObj.errors = data.errors || [];
+      
+      return Promise.reject(errorObj);
     } else if (error.request) {
       // Request được gửi nhưng không nhận được response
-      return Promise.reject({
-        message: 'Network error. Please check your connection.',
-      });
+      const errorObj = new Error('Network error. Please check your connection.');
+      errorObj.request = error.request;
+      return Promise.reject(errorObj);
     } else {
       // Lỗi khác
-      return Promise.reject({
-        message: error.message || 'Something went wrong',
-      });
+      return Promise.reject(error);
     }
   }
 );

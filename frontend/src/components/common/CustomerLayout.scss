@@ -1,0 +1,14 @@
+.customer-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  
+  .customer-main {
+    flex: 1;
+  }
+  
+  // Remove footer margin when auth page is displayed
+  .customer-main:has(.auth-page) + .footer {
+    margin-top: 0 !important;
+  }
+}

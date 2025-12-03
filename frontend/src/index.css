@@ -19,6 +19,12 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Remove footer margin on auth pages */
+.customer-main .auth-page ~ * .footer,
+.customer-main:has(.auth-page) ~ .footer {
+  margin-top: 0 !important;
+}
+
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
@@ -130,6 +136,26 @@ code {
 
 .custom-notification-info .ant-notification-notice-close:hover {
   color: #ffffff !important;
+}
+
+/* Ensure X icon is white - additional selectors */
+.custom-notification-info .ant-notification-notice-close .anticon,
+.custom-notification-info .ant-notification-notice-close svg {
+  color: #ffffff !important;
+  fill: #ffffff !important;
+}
+
+/* Hide icon for info notification - Multiple selectors to ensure it works */
+.custom-notification-info .ant-notification-notice-icon,
+.custom-notification-info .anticon,
+.custom-notification-info .ant-notification-notice-with-icon .ant-notification-notice-icon {
+  display: none !important;
+}
+
+/* Adjust content margin when icon is hidden */
+.custom-notification-info .ant-notification-notice-content {
+  margin-left: 0 !important;
+  margin-inline-start: 0 !important;
 }
 
 /* Animation */

@@ -130,7 +130,7 @@ const HomePage = () => {
                 type="primary"
                 size="large"
                 icon={<ArrowRightOutlined />}
-                onClick={() => navigate('/books?sortBy=-discountPercent')}
+                onClick={() => navigate('/combos')}
               >
                 Xem ưu đãi
               </Button>

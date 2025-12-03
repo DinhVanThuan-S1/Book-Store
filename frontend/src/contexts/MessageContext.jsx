@@ -79,6 +79,7 @@ export const MessageProvider = ({ children }) => {
           background: '#1890ff',
           color: '#ffffff',
         },
+        closeIcon: <span style={{ color: '#ffffff' }}>✕</span>,
       });
     },
 
@@ -89,11 +90,13 @@ export const MessageProvider = ({ children }) => {
         placement: 'topRight',
         duration,
         icon: null,
+        className: 'custom-notification-info',
         style: {
           borderRadius: '8px',
           background: '#1890ff',
           color: '#ffffff',
         },
+        closeIcon: <span style={{ color: '#ffffff' }}>✕</span>,
       });
     },
   };
