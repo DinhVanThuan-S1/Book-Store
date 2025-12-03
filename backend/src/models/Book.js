@@ -82,7 +82,7 @@ const bookSchema = new mongoose.Schema({
   // Mô tả ngắn
   description: {
     type: String,
-    maxlength: 500,
+    maxlength: 2000,
   },
   
   // Mô tả đầy đủ (HTML)

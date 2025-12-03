@@ -281,7 +281,10 @@ const BookDetailPage = () => {
           {book.fullDescription ? (
             <div
               className="full-description"
-              dangerouslySetInnerHTML={{ __html: book.fullDescription }}
+              dangerouslySetInnerHTML={{
+                __html: book.
+                  description
+              }}
             />
           ) : (
             <Paragraph>{book.description}</Paragraph>
