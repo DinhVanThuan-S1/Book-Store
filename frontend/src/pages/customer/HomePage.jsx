@@ -7,12 +7,12 @@
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
-import { Row, Col, Typography, Button, Carousel } from 'antd';
-import { ArrowRightOutlined } from '@ant-design/icons';
+import { useDispatch, useSelector } from 'react-redux';
+import { Row, Col, Typography, Button, Carousel, Tag } from 'antd';
+import { ArrowRightOutlined, StarFilled, ThunderboltOutlined } from '@ant-design/icons';
 import BookList from '@components/book/BookList';
 import Loading from '@components/common/Loading';
-import { bookApi, categoryApi, comboApi } from '@api';
+import { bookApi, categoryApi, comboApi, recommendationApi } from '@api';
 import { addToCart } from '@redux/slices/cartSlice';
 import { useMessage } from '@utils/notification';
 import { formatPrice } from '@utils/formatPrice';
@@ -28,9 +28,13 @@ const HomePage = () => {
   const dispatch = useDispatch();
   const { message } = useMessage();
 
+  // Lấy thông tin authentication từ Redux
+  const { isAuthenticated, user } = useSelector((state) => state.auth);
+
   const [loading, setLoading] = useState(true);
   const [featuredBooks, setFeaturedBooks] = useState([]);
   const [newBooks, setNewBooks] = useState([]);
+  const [personalizedBooks, setPersonalizedBooks] = useState([]); // Sách phù hợp với bạn
   const [categories, setCategories] = useState([]);
   const [combos, setCombos] = useState([]);
 
@@ -65,6 +69,23 @@ const HomePage = () => {
           limit: 4,
         });
         setCombos(comboResponse.data.combos || []);
+
+        // Fetch personalized recommendations (chỉ khi đã đăng nhập)
+        if (isAuthenticated && user) {
+          try {
+            const recommendationResponse = await recommendationApi.getPersonalizedRecommendations({ limit: 8 });
+
+            if (recommendationResponse.success && recommendationResponse.data.recommendations) {
+              const recommendations = recommendationResponse.data.recommendations || [];
+              // Extract book data from recommendations
+              const books = recommendations.map(rec => rec.book).filter(Boolean);
+              setPersonalizedBooks(books);
+            }
+          } catch (error) {
+            console.log('No personalized recommendations available:', error.message);
+            setPersonalizedBooks([]);
+          }
+        }
       } catch (error) {
         console.error('Error fetching data:', error);
       } finally {
@@ -73,7 +94,7 @@ const HomePage = () => {
     };
 
     fetchData();
-  }, []);
+  }, [isAuthenticated, user]);
 
   /**
    * Handle add to cart
@@ -180,6 +201,30 @@ const HomePage = () => {
           </Row>
         </div>
       </section>
+
+      {/* Personalized Recommendations - Sách phù hợp với bạn */}
+      {isAuthenticated && personalizedBooks.length > 0 && (
+        <section className="personalized-section">
+          <div className="container">
+            <div className="section-header">
+              <div className="section-title-wrapper">
+                <StarFilled className="section-icon" />
+                <Title level={2} className="section-title">
+                  Sách phù hợp với bạn
+                </Title>
+                <Tag color="blue" style={{ marginLeft: '12px' }}>
+                  Dựa trên sở thích của bạn
+                </Tag>
+              </div>
+            </div>
+
+            <BookList
+              books={personalizedBooks}
+              onAddToCart={handleAddToCart}
+            />
+          </div>
+        </section>
+      )}
 
       {/* Featured Books */}
       <section className="featured-section">

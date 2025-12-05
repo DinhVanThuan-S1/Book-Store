@@ -8,6 +8,7 @@
 const Wishlist = require('../models/Wishlist');
 const Book = require('../models/Book');
 const { asyncHandler } = require('../middlewares/errorHandler');
+const { clearRecommendationCacheForCustomer } = require('../services/recommendationService');
 
 /**
  * @desc    Lấy wishlist
@@ -54,6 +55,9 @@ const addToWishlist = asyncHandler(async (req, res) => {
   try {
     await wishlist.addBook(bookId);
     
+    // 🗑️ Clear recommendation cache để cập nhật gợi ý
+    await clearRecommendationCacheForCustomer(req.user._id);
+    
     // Populate
     await wishlist.populate({
       path: 'books.book',
@@ -94,6 +98,9 @@ const removeFromWishlist = asyncHandler(async (req, res) => {
   }
   
   await wishlist.removeBook(bookId);
+  
+  // 🗑️ Clear recommendation cache để cập nhật gợi ý
+  await clearRecommendationCacheForCustomer(req.user._id);
   
   await wishlist.populate({
     path: 'books.book',

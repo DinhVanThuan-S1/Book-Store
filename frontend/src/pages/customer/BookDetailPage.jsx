@@ -40,7 +40,7 @@ import {
   HeartFilled,
   ShareAltOutlined,
 } from '@ant-design/icons';
-import { bookApi, wishlistApi } from '@api';
+import { bookApi, wishlistApi, recommendationApi } from '@api';
 import { addToCart } from '@redux/slices/cartSlice';
 import { formatPrice } from '@utils/formatPrice';
 import { useMessage } from '@utils/notification';
@@ -102,20 +102,35 @@ const BookDetailPage = () => {
    */
   useEffect(() => {
     const fetchRelatedBooks = async () => {
-      if (book?.category) {
-        try {
-          const response = await bookApi.getBooks({
-            category: book.category._id,
-            limit: 8,
-          });
+      if (!book || !book._id) return;
 
-          // Lọc bỏ sách hiện tại
-          const filtered = response.data.books.filter(
-            (b) => b._id !== book._id
-          );
-          setRelatedBooks(filtered);
-        } catch (error) {
-          console.error('Error fetching related books:', error);
+      try {
+        // Sử dụng recommendation API để lấy sách tương tự
+        const response = await recommendationApi.getSimilarBooks(book._id, { limit: 8 });
+
+        if (response.success && response.data.recommendations) {
+          const recommendations = response.data.recommendations || [];
+          // Extract book data from recommendations
+          const books = recommendations.map(rec => rec.book).filter(Boolean);
+          setRelatedBooks(books);
+        }
+      } catch (error) {
+        console.error('Error fetching related books:', error);
+        // Fallback: fetch by category
+        if (book?.category) {
+          try {
+            const response = await bookApi.getBooks({
+              category: book.category._id,
+              limit: 8,
+            });
+            const filtered = response.data.books.filter(
+              (b) => b._id !== book._id
+            );
+            setRelatedBooks(filtered);
+          } catch (fallbackError) {
+            console.error('Error fetching fallback books:', fallbackError);
+            setRelatedBooks([]);
+          }
         }
       }
     };

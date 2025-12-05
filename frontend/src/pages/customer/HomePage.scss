@@ -67,6 +67,7 @@
   
   // Sections
   .categories-section,
+  .personalized-section,
   .featured-section,
   .combo-section,
   .new-books-section {
@@ -75,6 +76,72 @@
   
   .categories-section {
     background: $bg-primary;
+  }
+  
+  // Personalized Section - Sách phù hợp với bạn
+  .personalized-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    position: relative;
+    overflow: hidden;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -10%;
+      width: 500px;
+      height: 500px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+    }
+    
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -30%;
+      left: -5%;
+      width: 400px;
+      height: 400px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 50%;
+    }
+    
+    .container {
+      position: relative;
+      z-index: 1;
+    }
+    
+    .section-header {
+      margin-bottom: $spacing-2xl;
+      
+      .section-title-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        
+        .section-icon {
+          font-size: 32px;
+          color: #ffd700;
+          animation: pulse 2s infinite;
+        }
+        
+        .section-title {
+          color: white !important;
+          margin: 0 !important;
+        }
+      }
+    }
+  }
+  
+  @keyframes pulse {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.1);
+      opacity: 0.8;
+    }
   }
   
   .featured-section {

@@ -13,6 +13,7 @@ const Book = require('../models/Book');
 const Combo = require('../models/Combo');
 const { asyncHandler } = require('../middlewares/errorHandler');
 const { paginate } = require('../utils/helper');
+const { clearRecommendationCacheForCustomer } = require('../services/recommendationService');
 
 /**
  * @desc    Tạo đơn hàng từ giỏ hàng
@@ -195,6 +196,9 @@ const createOrder = asyncHandler(async (req, res) => {
   
   // Xóa giỏ hàng
   await cart.clearCart();
+  
+  // 🗑️ Clear recommendation cache để cập nhật gợi ý dựa trên orders mới
+  await clearRecommendationCacheForCustomer(req.user._id);
   
   // Populate để trả về thông tin đầy đủ
   await order.populate('items.book items.combo');

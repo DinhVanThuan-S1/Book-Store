@@ -20,3 +20,4 @@ export { default as publisherApi } from './publisherApi';
 export { default as uploadApi } from './uploadApi';
 export { default as customerApi } from './customerApi';
 export { default as bookCopyApi } from './bookCopyApi';
+export { default as recommendationApi } from './recommendationApi';
