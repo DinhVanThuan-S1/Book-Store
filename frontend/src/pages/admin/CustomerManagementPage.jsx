@@ -1,11 +1,4 @@
-/**
- * ==============================================
- * CUSTOMER MANAGEMENT PAGE (Admin)
- * ==============================================
- * Quản lý khách hàng cho admin
- * Author: DinhVanThuan-S1
- * Date: 2025-11-06
- */
+
 
 import React, { useEffect, useState } from 'react';
 import {

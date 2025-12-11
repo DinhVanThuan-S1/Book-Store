@@ -1,11 +1,3 @@
-/**
- * ==============================================
- * ADMIN PROFILE PAGE
- * ==============================================
- * Quản lý thông tin cá nhân admin
- * Author: DinhVanThuan-S1
- * Date: 2025-11-18
- */
 
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';

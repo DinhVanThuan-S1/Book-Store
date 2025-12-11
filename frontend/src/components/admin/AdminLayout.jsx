@@ -1,12 +1,3 @@
-/**
- * ==============================================
- * ADMIN LAYOUT COMPONENT - COMPLETE VERSION
- * ==============================================
- * Layout chính cho admin dashboard với menu đầy đủ
- * Author: DinhVanThuan-S1
- * Date: 2025-11-19
- */
-
 import React, { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';

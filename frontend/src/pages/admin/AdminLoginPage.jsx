@@ -1,11 +1,4 @@
-/**
- * ==============================================
- * ADMIN LOGIN PAGE
- * ==============================================
- * Trang đăng nhập cho admin
- * Author: DinhVanThuan-S1
- * Date: 2025-11-04
- */
+
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';

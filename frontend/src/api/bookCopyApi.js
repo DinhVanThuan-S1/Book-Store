@@ -1,12 +1,3 @@
-/**
- * ==============================================
- * BOOK COPY API
- * ==============================================
- * API calls cho quản lý bản sao sách
- * Author: DinhVanThuan-S1
- * Date: 2025-11-28
- */
-
 import axiosInstance from './axiosConfig';
 
 /**

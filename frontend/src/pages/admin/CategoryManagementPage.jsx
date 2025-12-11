@@ -1,11 +1,4 @@
-/**
- * ==============================================
- * CATEGORY MANAGEMENT PAGE
- * ==============================================
- * Quản lý danh mục sách
- * Author: DinhVanThuan-S1
- * Date: 2025-11-18
- */
+
 
 import React, { useEffect, useState } from 'react';
 import {

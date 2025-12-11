@@ -1,11 +1,4 @@
-/**
- * ==============================================
- * ADMIN DASHBOARD PAGE
- * ==============================================
- * Trang dashboard với thống kê tổng quan
- * Author: DinhVanThuan-S1
- * Date: 2025-11-04
- */
+
 
 import React, { useEffect, useState } from 'react';
 import {

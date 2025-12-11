@@ -1,12 +1,3 @@
-/**
- * ==============================================
- * REVIEW API
- * ==============================================
- * API calls liên quan đến đánh giá sách
- * Author: DinhVanThuan-S1
- * Date: 2025-11-04
- */
-
 import axiosInstance from './axiosConfig';
 
 /**

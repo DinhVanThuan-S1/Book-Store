@@ -1,11 +1,4 @@
-/**
- * ==============================================
- * AUTHOR MANAGEMENT PAGE
- * ==============================================
- * Quản lý tác giả
- * Author: DinhVanThuan-S1
- * Date: 2025-11-18
- */
+
 
 import React, { useEffect, useState } from 'react';
 import {

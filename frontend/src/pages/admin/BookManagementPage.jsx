@@ -1,16 +1,4 @@
-/**
- * ==============================================
- * BOOK MANAGEMENT PAGE - COMPLETE VERSION
- * ==============================================
- * Quản lý sách cho admin với đầy đủ tính năng:
- * - CRUD sách
- * - Thêm bản sao (BookCopy)
- * - Filter & Search
- * - Pagination
- * 
- * Author: DinhVanThuan-S1
- * Date: 2025-11-06
- */
+
 
 import React, { useEffect, useState } from 'react';
 import {

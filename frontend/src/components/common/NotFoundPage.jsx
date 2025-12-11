@@ -1,11 +1,4 @@
-/**
- * ==============================================
- * NOT FOUND PAGE (404)
- * ==============================================
- * Component hiển thị trang 404
- * Author: DinhVanThuan-S1
- * Date: 2025-11-08
- */
+
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';

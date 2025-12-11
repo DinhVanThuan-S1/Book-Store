@@ -1,11 +1,3 @@
-/**
- * ==============================================
- * LOADING COMPONENT
- * ==============================================
- * Component hiển thị loading spinner thống nhất
- * Author: DinhVanThuan-S1
- * Date: 2025-10-31
- */
 
 import React from 'react';
 import { Spin } from 'antd';
